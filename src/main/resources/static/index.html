@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Battle Arena - Real-time 2D Multiplayer</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="app-container">
+        <header class="app-header">
+            <div class="logo">
+                <span class="icon">⚔️</span>
+                <h1>Battle Arena</h1>
+            </div>
+            <div class="server-status" id="serverStatus">
+                <span class="status-dot checking"></span>
+                <span class="status-text" id="statusText">Connecting...</span>
+            </div>
+        </header>
+
+        <main class="arena-wrapper">
+            <div class="hud-bar">
+                <div class="hud-item"><span class="hud-label">POS:</span> <span id="hudPos">X: 0, Y: 0</span></div>
+                <div class="hud-item"><span class="hud-label">FPS:</span> <span id="hudFps">60</span></div>
+                <div class="hud-item"><span class="hud-label">STATUS:</span> <span id="hudState">Phase 2: Local Simulation</span></div>
+            </div>
+            <canvas id="gameCanvas" width="800" height="600"></canvas>
+            <div class="controls-legend">
+                <span>Movement: <strong>W, A, S, D</strong> or <strong>Arrow Keys</strong></span>
+            </div>
+        </main>
+
+        <footer class="app-footer">
+            <p>Battle Arena | Low-Resource Authoritative Monolith</p>
+        </footer>
+    </div>
+
+    <script src="js/game.js"></script>
+</body>
+</html>
