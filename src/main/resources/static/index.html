@@ -16,17 +16,29 @@
                 <span class="icon">⚔️</span>
                 <h1>Battle Arena</h1>
             </div>
-            <div class="server-status" id="serverStatus">
-                <span class="status-dot checking"></span>
-                <span class="status-text" id="statusText">Connecting...</span>
+            <div class="header-right">
+                <div class="user-profile-badge" id="userProfileBadge" style="display: none;">
+                    <span class="avatar-icon">👤</span>
+                    <span class="username-display" id="usernameDisplay">Player</span>
+                    <span class="high-score-badge" id="highScoreBadge">Best: 0</span>
+                    <button class="btn-text" id="logoutBtn" title="Logout">Logout</button>
+                </div>
+                <div class="auth-buttons" id="authButtons">
+                    <button class="btn-primary" id="openAuthModalBtn">Login / Register</button>
+                </div>
+                <div class="server-status" id="serverStatus">
+                    <span class="status-dot checking"></span>
+                    <span class="status-text" id="statusText">Connecting...</span>
+                </div>
             </div>
         </header>
 
         <main class="arena-wrapper">
             <div class="hud-bar">
+                <div class="hud-item"><span class="hud-label">PLAYER:</span> <span id="hudPlayer">Guest</span></div>
                 <div class="hud-item"><span class="hud-label">POS:</span> <span id="hudPos">X: 0, Y: 0</span></div>
                 <div class="hud-item"><span class="hud-label">FPS:</span> <span id="hudFps">60</span></div>
-                <div class="hud-item"><span class="hud-label">STATUS:</span> <span id="hudState">Phase 2: Local Simulation</span></div>
+                <div class="hud-item"><span class="hud-label">STATUS:</span> <span id="hudState">Phase 3: Auth & MySQL</span></div>
             </div>
             <canvas id="gameCanvas" width="800" height="600"></canvas>
             <div class="controls-legend">
@@ -35,8 +47,35 @@
         </main>
 
         <footer class="app-footer">
-            <p>Battle Arena | Low-Resource Authoritative Monolith</p>
+            <p>Battle Arena | Low-Resource Authoritative Monolith (Phase 3: MySQL & JWT)</p>
         </footer>
+    </div>
+
+    <!-- Auth Modal (Login / Register) -->
+    <div class="modal-overlay" id="authModal" style="display: none;">
+        <div class="modal-card">
+            <div class="modal-header">
+                <div class="tab-group">
+                    <button class="tab-btn active" id="tabLoginBtn" type="button">Login</button>
+                    <button class="tab-btn" id="tabRegisterBtn" type="button">Register</button>
+                </div>
+                <button class="modal-close-btn" id="closeAuthModalBtn" type="button">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="auth-alert" id="authAlert" style="display: none;"></div>
+                <form id="authForm">
+                    <div class="form-group">
+                        <label for="authUsername">Username</label>
+                        <input type="text" id="authUsername" placeholder="Enter username (3+ chars)" required autocomplete="username" maxlength="20">
+                    </div>
+                    <div class="form-group">
+                        <label for="authPassword">Password</label>
+                        <input type="password" id="authPassword" placeholder="Enter password (6+ chars)" required autocomplete="current-password">
+                    </div>
+                    <button type="submit" class="btn-submit" id="authSubmitBtn">Log In</button>
+                </form>
+            </div>
+        </div>
     </div>
 
     <script src="js/game.js"></script>

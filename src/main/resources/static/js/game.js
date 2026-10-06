@@ -9,10 +9,11 @@ const ctx = canvas.getContext('2d');
 
 const hudPos = document.getElementById('hudPos');
 const hudFps = document.getElementById('hudFps');
+const hudPlayer = document.getElementById('hudPlayer');
 const statusDot = document.querySelector('.status-dot');
 const statusText = document.getElementById('statusText');
 
-// --- Player State (Authoritative model for Phase 2) ---
+// --- Player State (Authoritative model for Phase 2 & 3) ---
 const player = {
     x: canvas.width / 2,
     y: canvas.height / 2,
@@ -21,7 +22,7 @@ const player = {
     heading: 0, // radians
     color: '#6366f1',
     accentColor: '#818cf8',
-    name: 'Player 1'
+    name: 'Guest'
 };
 
 // --- Input Manager ---
@@ -201,8 +202,182 @@ async function checkBackendHealth() {
     }
 }
 
+// --- Phase 3: Authentication & JWT State Management ---
+const JWT_STORAGE_KEY = 'battle_arena_jwt';
+
+const authModal = document.getElementById('authModal');
+const openAuthModalBtn = document.getElementById('openAuthModalBtn');
+const closeAuthModalBtn = document.getElementById('closeAuthModalBtn');
+const tabLoginBtn = document.getElementById('tabLoginBtn');
+const tabRegisterBtn = document.getElementById('tabRegisterBtn');
+const authForm = document.getElementById('authForm');
+const authUsernameInput = document.getElementById('authUsername');
+const authPasswordInput = document.getElementById('authPassword');
+const authSubmitBtn = document.getElementById('authSubmitBtn');
+const authAlert = document.getElementById('authAlert');
+
+const userProfileBadge = document.getElementById('userProfileBadge');
+const authButtons = document.getElementById('authButtons');
+const usernameDisplay = document.getElementById('usernameDisplay');
+const highScoreBadge = document.getElementById('highScoreBadge');
+const logoutBtn = document.getElementById('logoutBtn');
+
+let currentAuthMode = 'login'; // 'login' | 'register'
+
+function showAuthAlert(message, isError = true) {
+    authAlert.textContent = message;
+    authAlert.className = `auth-alert ${isError ? 'error' : 'success'}`;
+    authAlert.style.display = 'block';
+}
+
+function clearAuthAlert() {
+    authAlert.style.display = 'none';
+    authAlert.textContent = '';
+}
+
+function setAuthMode(mode) {
+    currentAuthMode = mode;
+    clearAuthAlert();
+    if (mode === 'login') {
+        tabLoginBtn.classList.add('active');
+        tabRegisterBtn.classList.remove('active');
+        authSubmitBtn.textContent = 'Log In';
+    } else {
+        tabRegisterBtn.classList.add('active');
+        tabLoginBtn.classList.remove('active');
+        authSubmitBtn.textContent = 'Register Account';
+    }
+}
+
+function openModal() {
+    clearAuthAlert();
+    authForm.reset();
+    authModal.style.display = 'flex';
+    authUsernameInput.focus();
+}
+
+function closeModal() {
+    authModal.style.display = 'none';
+    clearAuthAlert();
+}
+
+function updateAuthState(user) {
+    if (user && user.username) {
+        authButtons.style.display = 'none';
+        userProfileBadge.style.display = 'flex';
+        usernameDisplay.textContent = user.username;
+        highScoreBadge.textContent = `Best: ${user.highestScore || 0}`;
+        player.name = user.username;
+        hudPlayer.textContent = user.username;
+    } else {
+        userProfileBadge.style.display = 'none';
+        authButtons.style.display = 'block';
+        player.name = 'Guest';
+        hudPlayer.textContent = 'Guest';
+    }
+}
+
+async function verifyExistingSession() {
+    const token = localStorage.getItem(JWT_STORAGE_KEY);
+    if (!token) {
+        updateAuthState(null);
+        return;
+    }
+
+    try {
+        const response = await fetch('/api/auth/me', {
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        });
+
+        if (response.ok) {
+            const profile = await response.json();
+            updateAuthState(profile);
+        } else {
+            // Token invalid or expired
+            localStorage.removeItem(JWT_STORAGE_KEY);
+            updateAuthState(null);
+        }
+    } catch {
+        // Network error during validation
+        updateAuthState(null);
+    }
+}
+
+async function handleAuthSubmit(e) {
+    e.preventDefault();
+    clearAuthAlert();
+
+    const username = authUsernameInput.value.trim();
+    const password = authPasswordInput.value;
+
+    if (!username || !password) {
+        showAuthAlert('Username and password are required', true);
+        return;
+    }
+
+    authSubmitBtn.disabled = true;
+    authSubmitBtn.textContent = currentAuthMode === 'login' ? 'Logging in...' : 'Registering...';
+
+    const endpoint = currentAuthMode === 'login' ? '/api/auth/login' : '/api/auth/register';
+
+    try {
+        const response = await fetch(endpoint, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username, password })
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+            localStorage.setItem(JWT_STORAGE_KEY, data.token);
+            updateAuthState(data);
+            closeModal();
+        } else {
+            showAuthAlert(data.error || 'Authentication failed', true);
+        }
+    } catch (err) {
+        showAuthAlert('Could not connect to server: ' + err.message, true);
+    } finally {
+        authSubmitBtn.disabled = false;
+        authSubmitBtn.textContent = currentAuthMode === 'login' ? 'Log In' : 'Register Account';
+    }
+}
+
+function handleLogout() {
+    localStorage.removeItem(JWT_STORAGE_KEY);
+    updateAuthState(null);
+}
+
+function setupAuthEventListeners() {
+    openAuthModalBtn.addEventListener('click', openModal);
+    closeAuthModalBtn.addEventListener('click', closeModal);
+    tabLoginBtn.addEventListener('click', () => setAuthMode('login'));
+    tabRegisterBtn.addEventListener('click', () => setAuthMode('register'));
+    authForm.addEventListener('submit', handleAuthSubmit);
+    logoutBtn.addEventListener('click', handleLogout);
+
+    // Close modal if user clicks outside modal card
+    authModal.addEventListener('click', (e) => {
+        if (e.target === authModal) {
+            closeModal();
+        }
+    });
+
+    // Close on Escape key
+    window.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && authModal.style.display === 'flex') {
+            closeModal();
+        }
+    });
+}
+
 // --- Application Bootstrap ---
 window.addEventListener('DOMContentLoaded', () => {
+    setupAuthEventListeners();
     checkBackendHealth();
+    verifyExistingSession();
     requestAnimationFrame(gameLoop);
 });
