@@ -1,8 +1,7 @@
 package com.battlearena.model;
 
 import java.time.Instant;
-import java.util.Collection;
-import java.util.Collections;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
@@ -169,12 +168,20 @@ public class Room {
         return players.values().stream().allMatch(PlayerRoomState::isReady);
     }
 
+    private final ConcurrentMap<String, Coin> coins = new ConcurrentHashMap<>();
+    private final Random random = new Random();
+    private static final int TARGET_COIN_COUNT = 6;
+    private static final int WINNING_SCORE = 100;
+    private volatile String winnerUsername = null;
+
     /**
-     * Transitions room status to PLAYING and initializes real-time player entities.
+     * Transitions room status to PLAYING, initializes real-time players, and spawns initial coins.
      */
     public synchronized void start() {
         this.status = RoomStatus.PLAYING;
+        this.winnerUsername = null;
         this.gamePlayers.clear();
+        this.coins.clear();
 
         int index = 0;
         for (String username : players.keySet()) {
@@ -183,6 +190,76 @@ public class Room {
             gamePlayers.put(username, new GamePlayer(username, spawn[0], spawn[1], color));
             index++;
         }
+
+        spawnInitialCoins();
+    }
+
+    public synchronized List<Coin> spawnInitialCoins() {
+        List<Coin> newCoins = new ArrayList<>();
+        for (int i = 0; i < TARGET_COIN_COUNT; i++) {
+            newCoins.add(generateRandomCoin());
+        }
+        return newCoins;
+    }
+
+    public synchronized Coin spawnSingleCoin() {
+        if (status != RoomStatus.PLAYING) {
+            return null;
+        }
+        if (coins.size() < TARGET_COIN_COUNT) {
+            return generateRandomCoin();
+        }
+        return null;
+    }
+
+    private Coin generateRandomCoin() {
+        String coinId = "COIN-" + UUID.randomUUID().toString().substring(0, 6).toUpperCase();
+        double x = 60 + random.nextDouble() * (800 - 120);
+        double y = 60 + random.nextDouble() * (600 - 120);
+        // 20% chance of high-value bonus gold coin
+        int value = (random.nextInt(5) == 0) ? 25 : 10;
+        Coin coin = new Coin(coinId, x, y, value);
+        coins.put(coinId, coin);
+        return coin;
+    }
+
+    /**
+     * Server-Authoritative radial collision detection for coin pickup.
+     * Validates distance: (dx^2 + dy^2) <= (r1 + r2 + tolerance)^2.
+     */
+    public synchronized Coin collectCoin(String username, String coinId) {
+        if (status != RoomStatus.PLAYING) {
+            return null;
+        }
+
+        GamePlayer player = gamePlayers.get(username);
+        Coin coin = coins.get(coinId);
+
+        if (player == null || coin == null) {
+            return null;
+        }
+
+        double dx = player.getX() - coin.getX();
+        double dy = player.getY() - coin.getY();
+        double distanceSquared = dx * dx + dy * dy;
+
+        // Radius sum with 8px network latency tolerance
+        double maxDist = player.getRadius() + coin.getRadius() + 8.0;
+
+        if (distanceSquared <= maxDist * maxDist) {
+            Coin collected = coins.remove(coinId);
+            if (collected != null) {
+                player.addScore(collected.getValue());
+
+                // Check victory condition
+                if (player.getScore() >= WINNING_SCORE && winnerUsername == null) {
+                    winnerUsername = username;
+                    status = RoomStatus.FINISHED;
+                }
+                return collected;
+            }
+        }
+        return null;
     }
 
     public Collection<GamePlayer> getGamePlayers() {
@@ -191,6 +268,18 @@ public class Room {
 
     public GamePlayer getGamePlayer(String username) {
         return gamePlayers.get(username);
+    }
+
+    public Collection<Coin> getCoins() {
+        return Collections.unmodifiableCollection(coins.values());
+    }
+
+    public String getWinnerUsername() {
+        return winnerUsername;
+    }
+
+    public static int getWinningScore() {
+        return WINNING_SCORE;
     }
 
     public void updatePlayerPosition(String username, double x, double y, double heading) {

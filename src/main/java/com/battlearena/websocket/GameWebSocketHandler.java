@@ -1,9 +1,12 @@
 package com.battlearena.websocket;
 
+import com.battlearena.model.Coin;
 import com.battlearena.model.GamePlayer;
 import com.battlearena.model.Room;
+import com.battlearena.model.RoomStatus;
 import com.battlearena.security.JwtUtil;
 import com.battlearena.service.RoomService;
+import com.battlearena.service.UserService;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.stereotype.Component;
@@ -34,7 +37,8 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
 
     private final JwtUtil jwtUtil;
     private final RoomService roomService;
-    private final ObjectMapper mapper = new ObjectMapper();
+    private final UserService userService;
+    private final ObjectMapper mapper;
 
     // Session Registry
     private final ConcurrentMap<String, WebSocketSession> sessions = new ConcurrentHashMap<>();
@@ -42,9 +46,11 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
     private final ConcurrentMap<String, String> sessionToRoom = new ConcurrentHashMap<>();
     private final ConcurrentMap<String, Set<WebSocketSession>> roomSessions = new ConcurrentHashMap<>();
 
-    public GameWebSocketHandler(JwtUtil jwtUtil, RoomService roomService) {
+    public GameWebSocketHandler(JwtUtil jwtUtil, RoomService roomService, UserService userService, ObjectMapper mapper) {
         this.jwtUtil = jwtUtil;
         this.roomService = roomService;
+        this.userService = userService;
+        this.mapper = mapper;
     }
 
     @Override
@@ -95,15 +101,37 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
                     double y = root.get("y").asDouble();
                     double heading = root.has("heading") ? root.get("heading").asDouble() : 0.0;
 
-                    // Broadcast movement update to all other room members
-                    Map<String, Object> update = Map.of(
-                            "type", "PLAYER_MOVED",
-                            "username", username,
-                            "x", x,
-                            "y", y,
-                            "heading", heading
-                    );
-                    broadcastToRoomExcept(roomId, update, session.getId());
+                    Room room = roomService.getActiveRoom(roomId);
+                    if (room != null) {
+                        room.updatePlayerPosition(username, x, y, heading);
+
+                        // Broadcast movement update to all other room members
+                        Map<String, Object> update = Map.of(
+                                "type", "PLAYER_MOVED",
+                                "username", username,
+                                "x", x,
+                                "y", y,
+                                "heading", heading
+                        );
+                        broadcastToRoomExcept(roomId, update, session.getId());
+
+                        // Server-authoritative coin collision detection
+                        if (room.getStatus() == RoomStatus.PLAYING) {
+                            checkCoinCollisions(room, roomId, username);
+                        }
+                    }
+                }
+                break;
+            }
+            case "COLLECT": {
+                String username = sessionToUser.get(session.getId());
+                String roomId = sessionToRoom.get(session.getId());
+                if (username != null && roomId != null && root.has("coinId")) {
+                    String coinId = root.get("coinId").asText();
+                    Room room = roomService.getActiveRoom(roomId);
+                    if (room != null && room.getStatus() == RoomStatus.PLAYING) {
+                        handleCoinCollection(room, roomId, username, coinId);
+                    }
                 }
                 break;
             }
@@ -166,11 +194,85 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
                 "roomId", roomId
         ));
 
+        // If game is in progress, sync game state snapshot to the connecting user
+        Room activeRoom = roomService.getActiveRoom(roomId);
+        if (activeRoom != null && activeRoom.getStatus() == RoomStatus.PLAYING) {
+            sendDirect(session, Map.of(
+                    "type", "GAME_STATE_SNAPSHOT",
+                    "roomId", roomId,
+                    "coins", activeRoom.getCoins(),
+                    "players", activeRoom.getGamePlayers(),
+                    "winningScore", Room.getWinningScore()
+            ));
+        }
+
         // Notify other room participants
         broadcastToRoomExcept(roomId, Map.of(
                 "type", "PLAYER_JOINED",
                 "username", username
         ), session.getId());
+    }
+
+    private void checkCoinCollisions(Room room, String roomId, String username) {
+        GamePlayer player = room.getGamePlayer(username);
+        if (player == null) {
+            return;
+        }
+
+        for (Coin coin : room.getCoins()) {
+            double dx = player.getX() - coin.getX();
+            double dy = player.getY() - coin.getY();
+            double maxDist = player.getRadius() + coin.getRadius() + 8.0;
+            if (dx * dx + dy * dy <= maxDist * maxDist) {
+                handleCoinCollection(room, roomId, username, coin.getId());
+                break;
+            }
+        }
+    }
+
+    private synchronized void handleCoinCollection(Room room, String roomId, String username, String coinId) {
+        Coin collected = room.collectCoin(username, coinId);
+        if (collected != null) {
+            GamePlayer player = room.getGamePlayer(username);
+            int currentScore = (player != null) ? player.getScore() : 0;
+
+            // Broadcast coin pickup
+            broadcastToRoom(roomId, Map.of(
+                    "type", "COIN_COLLECTED",
+                    "coinId", collected.getId(),
+                    "username", username,
+                    "value", collected.getValue(),
+                    "playerScore", currentScore
+            ));
+
+            // Spawn replacement coin
+            Coin newCoin = room.spawnSingleCoin();
+            if (newCoin != null) {
+                broadcastToRoom(roomId, Map.of(
+                        "type", "COIN_SPAWNED",
+                        "coin", newCoin
+                ));
+            }
+
+            // Check if game reached victory condition
+            if (room.getStatus() == RoomStatus.FINISHED) {
+                broadcastToRoom(roomId, Map.of(
+                        "type", "GAME_OVER",
+                        "winner", room.getWinnerUsername(),
+                        "winningScore", Room.getWinningScore(),
+                        "players", room.getGamePlayers()
+                ));
+
+                // Persist match scores to MySQL
+                for (GamePlayer gp : room.getGamePlayers()) {
+                    try {
+                        userService.recordMatchResult(gp.getUsername(), gp.getScore());
+                    } catch (Exception e) {
+                        // Ignore persistence logging
+                    }
+                }
+            }
+        }
     }
 
     public void broadcastToRoom(String roomId, Object payload) {

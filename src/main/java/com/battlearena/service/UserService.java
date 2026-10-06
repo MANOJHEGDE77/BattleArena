@@ -98,4 +98,38 @@ public class UserService {
                 user.getCreatedAt()
         );
     }
+
+    /**
+     * Retrieves the top 10 players globally ranked by career highest score.
+     */
+    @Transactional(readOnly = true)
+    public java.util.List<com.battlearena.dto.LeaderboardEntryDTO> getLeaderboard() {
+        java.util.List<User> topUsers = userRepository.findTop10ByOrderByHighestScoreDescTotalScoreDesc();
+        java.util.concurrent.atomic.AtomicInteger rankCounter = new java.util.concurrent.atomic.AtomicInteger(1);
+
+        return topUsers.stream()
+                .map(u -> new com.battlearena.dto.LeaderboardEntryDTO(
+                        rankCounter.getAndIncrement(),
+                        u.getUsername(),
+                        u.getHighestScore(),
+                        u.getTotalScore(),
+                        u.getTotalGames()
+                ))
+                .toList();
+    }
+
+    /**
+     * Persists match results and updates career high score upon game completion.
+     */
+    @Transactional
+    public void recordMatchResult(String username, int matchScore) {
+        userRepository.findByUsername(username).ifPresent(user -> {
+            user.setTotalGames(user.getTotalGames() + 1);
+            user.setTotalScore(user.getTotalScore() + matchScore);
+            if (matchScore > user.getHighestScore()) {
+                user.setHighestScore(matchScore);
+            }
+            userRepository.save(user);
+        });
+    }
 }

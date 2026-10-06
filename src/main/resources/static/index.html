@@ -17,6 +17,7 @@
                 <h1>Battle Arena</h1>
             </div>
             <div class="header-right">
+                <button class="btn-leaderboard" id="openLeaderboardBtn" title="Global Leaderboard">🏆 Leaderboard</button>
                 <div class="user-profile-badge" id="userProfileBadge" style="display: none;">
                     <span class="avatar-icon">👤</span>
                     <span class="username-display" id="usernameDisplay">Player</span>
@@ -79,19 +80,29 @@
 
             <div class="hud-bar">
                 <div class="hud-item"><span class="hud-label">PLAYER:</span> <span id="hudPlayer">Guest</span></div>
+                <div class="hud-item hud-score"><span class="hud-label">SCORE:</span> <span id="hudScore">0</span> / <span id="hudTarget">100</span></div>
                 <div class="hud-item"><span class="hud-label">ROOM:</span> <span id="hudRoom">None (Lobby)</span></div>
                 <div class="hud-item"><span class="hud-label">POS:</span> <span id="hudPos">X: 0, Y: 0</span></div>
                 <div class="hud-item"><span class="hud-label">FPS:</span> <span id="hudFps">60</span></div>
-                <div class="hud-item"><span class="hud-label">STATUS:</span> <span id="hudState">Phase 4: Rooms & Lobby</span></div>
+                <div class="hud-item"><span class="hud-label">STATUS:</span> <span id="hudState">Phase 6: Collectibles & Scoring</span></div>
             </div>
-            <canvas id="gameCanvas" width="800" height="600"></canvas>
+
+            <div class="canvas-container">
+                <canvas id="gameCanvas" width="800" height="600"></canvas>
+                <div class="live-scoreboard" id="liveScoreboard" style="display: none;">
+                    <div class="scoreboard-title">⚡ Match Standings (Goal: <span id="scoreboardGoal">100</span>)</div>
+                    <div class="scoreboard-list" id="scoreboardList"></div>
+                </div>
+            </div>
+
             <div class="controls-legend">
                 <span>Movement: <strong>W, A, S, D</strong> or <strong>Arrow Keys</strong></span>
+                <span>Collect <strong>Golden Coins</strong> to reach the target score!</span>
             </div>
         </main>
 
         <footer class="app-footer">
-            <p>Battle Arena | Low-Resource Authoritative Monolith (Phase 4: Game Rooms & Lifecycle)</p>
+            <p>Battle Arena | Low-Resource Authoritative Monolith (Phase 6: Collectibles, Scoring & Leaderboard)</p>
         </footer>
     </div>
 
@@ -147,6 +158,53 @@
                     </div>
                     <button type="submit" class="btn-submit" id="authSubmitBtn">Log In</button>
                 </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Global Leaderboard Modal -->
+    <div class="modal-overlay" id="leaderboardModal" style="display: none;">
+        <div class="modal-card modal-large">
+            <div class="modal-header">
+                <h3>🏆 Global Hall of Fame</h3>
+                <button class="modal-close-btn" id="closeLeaderboardModalBtn" type="button">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="leaderboard-table-wrapper">
+                    <table class="leaderboard-table">
+                        <thead>
+                            <tr>
+                                <th>Rank</th>
+                                <th>Warrior</th>
+                                <th>Highest Score</th>
+                                <th>Career Total</th>
+                                <th>Matches</th>
+                            </tr>
+                        </thead>
+                        <tbody id="leaderboardTbody">
+                            <tr><td colspan="5" style="text-align: center; color: var(--text-secondary); padding: 24px;">Loading rankings...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Match Game Over Modal -->
+    <div class="modal-overlay" id="gameOverModal" style="display: none;">
+        <div class="modal-card modal-game-over">
+            <div class="modal-header">
+                <h3 id="gameOverTitle">🏆 VICTORY!</h3>
+            </div>
+            <div class="modal-body">
+                <p class="winner-announcement" id="winnerAnnouncement">Player reached the target score!</p>
+                <div class="match-summary-scores" id="matchSummaryScores">
+                    <!-- Final scores populated dynamically -->
+                </div>
+                <div class="modal-actions" style="margin-top: 20px; display: flex; justify-content: center; gap: 12px;">
+                    <button class="btn-primary" id="returnToLobbyBtn">Return to Arenas</button>
+                    <button class="btn-secondary" id="viewLeaderboardFromGameOverBtn">View Leaderboard</button>
+                </div>
             </div>
         </div>
     </div>

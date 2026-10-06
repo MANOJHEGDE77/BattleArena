@@ -151,6 +151,10 @@ public class RoomService {
         return room;
     }
 
+    public Room getActiveRoom(String roomId) {
+        return rooms.get(roomId);
+    }
+
     private String generateUniqueRoomId() {
         String id;
         do {

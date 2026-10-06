@@ -44,6 +44,8 @@ public class SecurityConfig {
                         .requestMatchers("/api/health").permitAll()
                         // Public auth registration and login endpoints
                         .requestMatchers("/api/auth/register", "/api/auth/login").permitAll()
+                        // Public leaderboard rankings
+                        .requestMatchers("/api/leaderboard").permitAll()
                         // Public WebSocket handshake (authentication is handled within WebSocket handler via JWT)
                         .requestMatchers("/ws/**").permitAll()
                         // Protected endpoints (such as /api/auth/me) require a valid token

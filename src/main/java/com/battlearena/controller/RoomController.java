@@ -1,6 +1,7 @@
 package com.battlearena.controller;
 
 import com.battlearena.dto.*;
+import com.battlearena.model.Room;
 import com.battlearena.service.RoomService;
 import com.battlearena.websocket.GameWebSocketHandler;
 import org.springframework.http.HttpStatus;
@@ -8,6 +9,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -138,10 +140,16 @@ public class RoomController {
     public ResponseEntity<?> startGame(@PathVariable String roomId, Authentication authentication) {
         try {
             RoomResponse response = roomService.startGame(roomId, authentication.getName());
-            webSocketHandler.broadcastToRoom(roomId, Map.of(
-                    "type", "GAME_START",
-                    "roomId", roomId
-            ));
+            Room room = roomService.getActiveRoom(roomId);
+            Map<String, Object> payload = new HashMap<>();
+            payload.put("type", "GAME_START");
+            payload.put("roomId", roomId);
+            if (room != null) {
+                payload.put("coins", room.getCoins());
+                payload.put("players", room.getGamePlayers());
+                payload.put("winningScore", Room.getWinningScore());
+            }
+            webSocketHandler.broadcastToRoom(roomId, payload);
             return ResponseEntity.ok(response);
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));

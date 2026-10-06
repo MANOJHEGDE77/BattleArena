@@ -739,3 +739,256 @@ body {
     color: #fbbf24;
     font-weight: 600;
 }
+
+/* --- Phase 6: Collectibles, Scoring & Leaderboard Styles --- */
+
+.btn-leaderboard {
+    background: linear-gradient(135deg, rgba(245, 158, 11, 0.2) 0%, rgba(217, 119, 6, 0.15) 100%);
+    color: #fbbf24;
+    border: 1px solid rgba(245, 158, 11, 0.4);
+    padding: 7px 14px;
+    border-radius: 8px;
+    font-family: 'Outfit', sans-serif;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.btn-leaderboard:hover {
+    background: linear-gradient(135deg, rgba(245, 158, 11, 0.35) 0%, rgba(217, 119, 6, 0.25) 100%);
+    border-color: #f59e0b;
+    box-shadow: 0 0 12px rgba(245, 158, 11, 0.3);
+    transform: translateY(-1px);
+}
+
+.hud-item.hud-score {
+    background: rgba(245, 158, 11, 0.12);
+    border: 1px solid rgba(245, 158, 11, 0.3);
+    border-radius: 6px;
+    padding: 4px 10px;
+}
+
+.hud-item.hud-score #hudScore {
+    color: #fbbf24;
+    font-weight: 700;
+    font-size: 1.05rem;
+    text-shadow: 0 0 8px rgba(245, 158, 11, 0.5);
+}
+
+.hud-item.hud-score #hudTarget {
+    color: var(--text-secondary);
+    font-size: 0.85rem;
+}
+
+.canvas-container {
+    position: relative;
+    width: 800px;
+    margin: 0 auto;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.45);
+}
+
+.live-scoreboard {
+    position: absolute;
+    top: 14px;
+    right: 14px;
+    background: rgba(15, 23, 42, 0.85);
+    backdrop-filter: blur(8px);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 10px;
+    padding: 10px 14px;
+    min-width: 190px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+    pointer-events: none;
+    z-index: 10;
+}
+
+.scoreboard-title {
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    color: #fbbf24;
+    margin-bottom: 8px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    padding-bottom: 4px;
+}
+
+.scoreboard-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.scoreboard-entry {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.85rem;
+    color: var(--text-primary);
+}
+
+.scoreboard-entry.is-me {
+    font-weight: 700;
+}
+
+.scoreboard-player-info {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.scoreboard-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    display: inline-block;
+}
+
+.scoreboard-score {
+    font-weight: 700;
+    color: #fbbf24;
+}
+
+/* Modal sizing & Leaderboard table */
+.modal-large {
+    max-width: 650px;
+    width: 90%;
+}
+
+.leaderboard-table-wrapper {
+    overflow-x: auto;
+    max-height: 420px;
+}
+
+.leaderboard-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.95rem;
+    text-align: left;
+}
+
+.leaderboard-table th {
+    background: rgba(0, 0, 0, 0.35);
+    padding: 12px 16px;
+    font-size: 0.8rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    color: var(--text-secondary);
+    border-bottom: 1px solid var(--border-color);
+}
+
+.leaderboard-table td {
+    padding: 12px 16px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    color: var(--text-primary);
+}
+
+.leaderboard-table tr:hover td {
+    background: rgba(255, 255, 255, 0.03);
+}
+
+.rank-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    font-size: 0.85rem;
+    font-weight: 700;
+}
+
+.rank-1 {
+    background: linear-gradient(135deg, #ffd700, #b8860b);
+    color: #000;
+    box-shadow: 0 0 8px rgba(255, 215, 0, 0.5);
+}
+
+.rank-2 {
+    background: linear-gradient(135deg, #e0e0e0, #9e9e9e);
+    color: #000;
+}
+
+.rank-3 {
+    background: linear-gradient(135deg, #cd7f32, #8b4513);
+    color: #fff;
+}
+
+.rank-other {
+    color: var(--text-secondary);
+}
+
+.warrior-name {
+    font-weight: 600;
+}
+
+.warrior-score-high {
+    color: #fbbf24;
+    font-weight: 700;
+}
+
+/* Game Over Modal */
+.modal-game-over {
+    text-align: center;
+    max-width: 460px;
+    animation: victoryPop 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+@keyframes victoryPop {
+    0% { transform: scale(0.8); opacity: 0; }
+    100% { transform: scale(1); opacity: 1; }
+}
+
+.modal-game-over .modal-header h3 {
+    color: #fbbf24;
+    font-size: 1.6rem;
+    text-shadow: 0 0 16px rgba(245, 158, 11, 0.6);
+}
+
+.winner-announcement {
+    font-size: 1.2rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin: 12px 0 20px 0;
+}
+
+.match-summary-scores {
+    background: rgba(0, 0, 0, 0.25);
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    padding: 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.match-summary-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 6px 10px;
+    border-radius: 6px;
+    background: rgba(255, 255, 255, 0.02);
+}
+
+.match-summary-row.is-winner {
+    background: rgba(245, 158, 11, 0.15);
+    border: 1px solid rgba(245, 158, 11, 0.3);
+}
+
+.match-summary-row .name {
+    font-weight: 600;
+}
+
+.match-summary-row .score {
+    color: #fbbf24;
+    font-weight: 700;
+}
+

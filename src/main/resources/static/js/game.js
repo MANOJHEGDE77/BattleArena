@@ -10,8 +10,33 @@ const ctx = canvas.getContext('2d');
 const hudPos = document.getElementById('hudPos');
 const hudFps = document.getElementById('hudFps');
 const hudPlayer = document.getElementById('hudPlayer');
+const hudScore = document.getElementById('hudScore');
+const hudTarget = document.getElementById('hudTarget');
 const statusDot = document.querySelector('.status-dot');
 const statusText = document.getElementById('statusText');
+
+const liveScoreboard = document.getElementById('liveScoreboard');
+const scoreboardList = document.getElementById('scoreboardList');
+const scoreboardGoal = document.getElementById('scoreboardGoal');
+
+const openLeaderboardBtn = document.getElementById('openLeaderboardBtn');
+const leaderboardModal = document.getElementById('leaderboardModal');
+const closeLeaderboardModalBtn = document.getElementById('closeLeaderboardModalBtn');
+const leaderboardTbody = document.getElementById('leaderboardTbody');
+
+const gameOverModal = document.getElementById('gameOverModal');
+const gameOverTitle = document.getElementById('gameOverTitle');
+const winnerAnnouncement = document.getElementById('winnerAnnouncement');
+const matchSummaryScores = document.getElementById('matchSummaryScores');
+const returnToLobbyBtn = document.getElementById('returnToLobbyBtn');
+const viewLeaderboardFromGameOverBtn = document.getElementById('viewLeaderboardFromGameOverBtn');
+
+// --- Phase 6 State: Collectibles & Authoritative Scoring ---
+const coins = new Map();
+let myScore = 0;
+let winningScore = 100;
+let isGameOver = false;
+const floatingTexts = [];
 
 // --- Player State (Authoritative model for Phase 2 & 3) ---
 const player = {
@@ -50,6 +75,8 @@ window.addEventListener('blur', () => {
 
 // --- Physics & Collision Engine ---
 function updatePhysics(dt) {
+    if (isGameOver) return;
+
     let moveX = 0;
     let moveY = 0;
 
@@ -81,6 +108,20 @@ function updatePhysics(dt) {
         player.y = Math.max(minY, Math.min(maxY, player.y));
 
         broadcastPlayerMovement();
+
+        // Proximity detection for client-side collection notification
+        if (activeRoom && activeRoom.status === 'PLAYING') {
+            coins.forEach((c) => {
+                const dx = player.x - c.x;
+                const dy = player.y - c.y;
+                const maxDist = player.radius + (c.radius || 10) + 4;
+                if (dx * dx + dy * dy <= maxDist * maxDist) {
+                    if (gameWs && gameWs.readyState === WebSocket.OPEN) {
+                        gameWs.send(JSON.stringify({ type: 'COLLECT', coinId: c.id }));
+                    }
+                }
+            });
+        }
     }
 
     // Update lightweight HUD
@@ -131,6 +172,81 @@ function renderArena() {
     ctx.strokeRect(2, 2, canvas.width - 4, canvas.height - 4);
 }
 
+// Render Collectible Coins (Pure Vector 2D)
+function renderCoins() {
+    const time = performance.now() * 0.005;
+    coins.forEach((coin) => {
+        ctx.save();
+        ctx.translate(coin.x, coin.y);
+
+        const isBonus = coin.value >= 20;
+        const radius = coin.radius || 10;
+        const pulse = Math.sin(time + (coin.x * 0.05)) * 1.5;
+
+        // 1. Glowing outer aura
+        ctx.beginPath();
+        ctx.arc(0, 0, radius + 3 + pulse, 0, Math.PI * 2);
+        ctx.fillStyle = isBonus ? 'rgba(236, 72, 153, 0.25)' : 'rgba(251, 191, 36, 0.2)';
+        ctx.fill();
+
+        // 2. Coin rim
+        ctx.beginPath();
+        ctx.arc(0, 0, radius, 0, Math.PI * 2);
+        ctx.fillStyle = isBonus ? '#f43f5e' : '#f59e0b';
+        ctx.fill();
+
+        // 3. Coin face
+        ctx.beginPath();
+        ctx.arc(0, 0, radius - 2, 0, Math.PI * 2);
+        ctx.fillStyle = isBonus ? '#fb7185' : '#fbbf24';
+        ctx.fill();
+
+        // 4. Center icon / star or value
+        ctx.fillStyle = '#ffffff';
+        ctx.font = isBonus ? 'bold 9px Outfit, sans-serif' : 'bold 8px Outfit, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(isBonus ? '★' : '10', 0, 0);
+
+        ctx.restore();
+    });
+}
+
+// Floating score feedback particles
+function addFloatingText(text, x, y, color = '#fbbf24') {
+    floatingTexts.push({
+        text,
+        x,
+        y,
+        alpha: 1.0,
+        vy: -45,
+        color
+    });
+}
+
+function renderFloatingTexts(dt) {
+    for (let i = floatingTexts.length - 1; i >= 0; i--) {
+        const ft = floatingTexts[i];
+        ft.y += ft.vy * dt;
+        ft.alpha -= dt * 1.1;
+
+        if (ft.alpha <= 0) {
+            floatingTexts.splice(i, 1);
+            continue;
+        }
+
+        ctx.save();
+        ctx.globalAlpha = Math.max(0, ft.alpha);
+        ctx.fillStyle = ft.color;
+        ctx.font = 'bold 13px Outfit, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.shadowColor = 'rgba(0,0,0,0.8)';
+        ctx.shadowBlur = 4;
+        ctx.fillText(ft.text, ft.x, ft.y);
+        ctx.restore();
+    }
+}
+
 // Remote Multiplayer Entities Map
 const remotePlayers = new Map();
 
@@ -168,11 +284,11 @@ function renderRemotePlayers() {
         ctx.fillStyle = '#ffffff';
         ctx.fill();
 
-        // 5. Remote player name tag
+        // 5. Remote player name & score tag
         ctx.fillStyle = '#6ee7b7';
         ctx.font = '600 11px Outfit, sans-serif';
         ctx.textAlign = 'center';
-        ctx.fillText(username, 0, -(rp.radius || 16) - 8);
+        ctx.fillText(`${username} (${rp.score || 0})`, 0, -(rp.radius || 16) - 8);
 
         ctx.restore();
     });
@@ -211,11 +327,11 @@ function renderPlayer() {
     ctx.fillStyle = '#ffffff';
     ctx.fill();
 
-    // 5. Name tag
+    // 5. Name & score tag
     ctx.fillStyle = '#e2e8f0';
     ctx.font = '600 11px Outfit, sans-serif';
     ctx.textAlign = 'center';
-    ctx.fillText(player.name, 0, -player.radius - 8);
+    ctx.fillText(`${player.name} (${myScore})`, 0, -player.radius - 8);
 
     ctx.restore();
 }
@@ -234,10 +350,12 @@ function gameLoop(currentTime) {
     // Physics update step
     updatePhysics(dt);
 
-    // Visual render step: arena surface -> remote players -> local player
+    // Visual render step: arena surface -> coins -> remote players -> local player -> floating text
     renderArena();
+    renderCoins();
     renderRemotePlayers();
     renderPlayer();
+    renderFloatingTexts(dt);
 
     // FPS Counter (sampled every 250ms for low CPU overhead)
     frameCount++;
@@ -613,7 +731,8 @@ function handleWebSocketMessage(msg) {
                         y: msg.y,
                         heading: msg.heading,
                         color: '#10b981',
-                        radius: 16
+                        radius: 16,
+                        score: 0
                     };
                     remotePlayers.set(msg.username, rp);
                 } else {
@@ -625,6 +744,7 @@ function handleWebSocketMessage(msg) {
             break;
         case 'PLAYER_LEFT':
             remotePlayers.delete(msg.username);
+            updateLiveScoreboard();
             if (activeRoom) {
                 fetchRoomDetails(activeRoom.roomId);
             }
@@ -636,14 +756,183 @@ function handleWebSocketMessage(msg) {
             }
             break;
         case 'GAME_START':
+        case 'GAME_STATE_SNAPSHOT':
+            isGameOver = false;
+            coins.clear();
+            if (msg.type === 'GAME_START') {
+                myScore = 0;
+                hudScore.textContent = '0';
+            }
+            if (msg.winningScore) {
+                winningScore = msg.winningScore;
+                hudTarget.textContent = winningScore;
+                scoreboardGoal.textContent = winningScore;
+            }
+            if (msg.coins && Array.isArray(msg.coins)) {
+                msg.coins.forEach(c => coins.set(c.id, c));
+            }
+            if (msg.players && Array.isArray(msg.players)) {
+                msg.players.forEach(p => {
+                    if (p.username === player.name) {
+                        player.x = p.x;
+                        player.y = p.y;
+                        player.color = p.color;
+                        if (p.score !== undefined) {
+                            myScore = p.score;
+                            hudScore.textContent = myScore;
+                        }
+                    } else {
+                        remotePlayers.set(p.username, {
+                            x: p.x,
+                            y: p.y,
+                            heading: p.heading || 0,
+                            color: p.color,
+                            radius: 16,
+                            score: p.score || 0
+                        });
+                    }
+                });
+            }
             if (activeRoom) {
                 activeRoom.status = 'PLAYING';
                 currentRoomStatus.textContent = 'MATCH IN PROGRESS';
                 currentRoomStatus.className = 'room-status-badge playing';
                 hudState.textContent = 'Real-time Arena Match';
             }
+            updateLiveScoreboard();
             break;
+        case 'COIN_COLLECTED': {
+            const coin = coins.get(msg.coinId);
+            const posX = coin ? coin.x : player.x;
+            const posY = coin ? coin.y : player.y;
+            coins.delete(msg.coinId);
+
+            const isMe = msg.username === player.name;
+            addFloatingText(`+${msg.value}`, posX, posY, isMe ? '#fbbf24' : '#10b981');
+
+            if (isMe) {
+                myScore = msg.playerScore;
+                hudScore.textContent = myScore;
+            } else {
+                let rp = remotePlayers.get(msg.username);
+                if (rp) {
+                    rp.score = msg.playerScore;
+                }
+            }
+            updateLiveScoreboard();
+            break;
+        }
+        case 'COIN_SPAWNED':
+            if (msg.coin) {
+                coins.set(msg.coin.id, msg.coin);
+            }
+            break;
+        case 'GAME_OVER': {
+            isGameOver = true;
+            if (activeRoom) {
+                activeRoom.status = 'FINISHED';
+                currentRoomStatus.textContent = 'MATCH FINISHED';
+                currentRoomStatus.className = 'room-status-badge waiting';
+            }
+            showGameOverModal(msg);
+            break;
+        }
     }
+}
+
+function updateLiveScoreboard() {
+    if (!activeRoom || activeRoom.status !== 'PLAYING') {
+        liveScoreboard.style.display = 'none';
+        return;
+    }
+    liveScoreboard.style.display = 'block';
+
+    const list = [];
+    list.push({ username: player.name, score: myScore, color: player.color, isMe: true });
+
+    remotePlayers.forEach((rp, uname) => {
+        list.push({ username: uname, score: rp.score || 0, color: rp.color || '#10b981', isMe: false });
+    });
+
+    list.sort((a, b) => b.score - a.score);
+
+    scoreboardList.innerHTML = list.map(item => `
+        <div class="scoreboard-entry ${item.isMe ? 'is-me' : ''}">
+            <div class="scoreboard-player-info">
+                <span class="scoreboard-dot" style="background-color: ${item.color};"></span>
+                <span>${escapeHtml(item.username)}${item.isMe ? ' (You)' : ''}</span>
+            </div>
+            <span class="scoreboard-score">${item.score}</span>
+        </div>
+    `).join('');
+}
+
+function showGameOverModal(msg) {
+    const isMeWinner = msg.winner === player.name;
+    gameOverTitle.textContent = isMeWinner ? '🏆 VICTORY!' : '🏁 MATCH COMPLETE';
+    winnerAnnouncement.textContent = isMeWinner
+        ? `Glorious Victory! You reached the target score of ${msg.winningScore || 100}!`
+        : `${escapeHtml(msg.winner)} conquered the arena with score ${msg.winningScore || 100}!`;
+
+    if (msg.players && Array.isArray(msg.players)) {
+        const sorted = [...msg.players].sort((a, b) => (b.score || 0) - (a.score || 0));
+        matchSummaryScores.innerHTML = sorted.map(p => `
+            <div class="match-summary-row ${p.username === msg.winner ? 'is-winner' : ''}">
+                <span class="name">${p.username === msg.winner ? '👑 ' : ''}${escapeHtml(p.username)}</span>
+                <span class="score">${p.score || 0} pts</span>
+            </div>
+        `).join('');
+    }
+
+    gameOverModal.style.display = 'flex';
+    // Refresh user profile stats
+    verifyExistingSession();
+}
+
+function closeGameOverModal() {
+    gameOverModal.style.display = 'none';
+}
+
+async function fetchAndShowLeaderboard() {
+    leaderboardModal.style.display = 'flex';
+    leaderboardTbody.innerHTML = '<tr><td colspan="5" style="text-align: center; color: var(--text-secondary); padding: 24px;">Loading rankings...</td></tr>';
+
+    try {
+        const res = await fetch('/api/leaderboard');
+        if (res.ok) {
+            const data = await res.json();
+            if (data.length === 0) {
+                leaderboardTbody.innerHTML = '<tr><td colspan="5" style="text-align: center; color: var(--text-secondary); padding: 24px;">No rankings available yet. Complete a match to rank up!</td></tr>';
+                return;
+            }
+
+            leaderboardTbody.innerHTML = data.map(entry => {
+                let badgeClass = 'rank-other';
+                let rankDisplay = entry.rank;
+                if (entry.rank === 1) { badgeClass = 'rank-1'; rankDisplay = '🥇'; }
+                else if (entry.rank === 2) { badgeClass = 'rank-2'; rankDisplay = '🥈'; }
+                else if (entry.rank === 3) { badgeClass = 'rank-3'; rankDisplay = '🥉'; }
+
+                return `
+                    <tr>
+                        <td><span class="rank-badge ${badgeClass}">${rankDisplay}</span></td>
+                        <td class="warrior-name">${escapeHtml(entry.username)}</td>
+                        <td class="warrior-score-high">${entry.highestScore}</td>
+                        <td>${entry.totalScore}</td>
+                        <td>${entry.totalGames}</td>
+                    </tr>
+                `;
+            }).join('');
+        } else {
+            leaderboardTbody.innerHTML = '<tr><td colspan="5" style="text-align: center; color: var(--danger); padding: 24px;">Failed to load leaderboard.</td></tr>';
+        }
+    } catch (e) {
+        leaderboardTbody.innerHTML = `<tr><td colspan="5" style="text-align: center; color: var(--danger); padding: 24px;">Network error: ${escapeHtml(e.message)}</td></tr>`;
+    }
+}
+
+function closeLeaderboardModal() {
+    leaderboardModal.style.display = 'none';
 }
 
 async function fetchRoomDetails(roomId) {
@@ -658,12 +947,18 @@ async function fetchRoomDetails(roomId) {
 
 function switchToLobbyBrowser() {
     activeRoom = null;
+    isGameOver = false;
+    coins.clear();
+    myScore = 0;
+    hudScore.textContent = '0';
+    liveScoreboard.style.display = 'none';
+    closeGameOverModal();
     disconnectGameWebSocket();
     stopRoomPolling();
     activeRoomView.style.display = 'none';
     lobbyBrowser.style.display = 'block';
     hudRoom.textContent = 'None (Lobby)';
-    hudState.textContent = 'Phase 5: WebSocket Active';
+    hudState.textContent = 'Phase 6: Collectibles & Scoring';
     fetchRoomsList();
 }
 
@@ -897,7 +1192,30 @@ function setupAuthEventListeners() {
         if (e.key === 'Escape') {
             if (authModal.style.display === 'flex') closeModal();
             if (createRoomModal.style.display === 'flex') closeCreateRoomModal();
+            if (leaderboardModal.style.display === 'flex') closeLeaderboardModal();
+            if (gameOverModal.style.display === 'flex') closeGameOverModal();
         }
+    });
+}
+
+function setupLeaderboardEventListeners() {
+    openLeaderboardBtn.addEventListener('click', fetchAndShowLeaderboard);
+    closeLeaderboardModalBtn.addEventListener('click', closeLeaderboardModal);
+
+    leaderboardModal.addEventListener('click', (e) => {
+        if (e.target === leaderboardModal) {
+            closeLeaderboardModal();
+        }
+    });
+
+    returnToLobbyBtn.addEventListener('click', () => {
+        closeGameOverModal();
+        leaveRoom();
+    });
+
+    viewLeaderboardFromGameOverBtn.addEventListener('click', () => {
+        closeGameOverModal();
+        fetchAndShowLeaderboard();
     });
 }
 
@@ -905,6 +1223,7 @@ function setupAuthEventListeners() {
 window.addEventListener('DOMContentLoaded', () => {
     setupAuthEventListeners();
     setupRoomEventListeners();
+    setupLeaderboardEventListeners();
     checkBackendHealth();
     verifyExistingSession().then(() => {
         checkMyCurrentRoom();
