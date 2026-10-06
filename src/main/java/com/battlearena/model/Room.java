@@ -138,6 +138,17 @@ public class Room {
         return state.isReady();
     }
 
+    private static final String[] PALETTE = {
+            "#6366f1", "#10b981", "#f59e0b", "#ec4899", "#3b82f6", "#8b5cf6", "#14b8a6", "#f97316"
+    };
+
+    private static final double[][] SPAWN_POINTS = {
+            {150.0, 150.0}, {650.0, 450.0}, {650.0, 150.0}, {150.0, 450.0},
+            {400.0, 150.0}, {400.0, 450.0}, {150.0, 300.0}, {650.0, 300.0}
+    };
+
+    private final ConcurrentMap<String, GamePlayer> gamePlayers = new ConcurrentHashMap<>();
+
     /**
      * Validates if the game can start:
      * 1. Must be invoked by room host
@@ -159,9 +170,33 @@ public class Room {
     }
 
     /**
-     * Transitions room status to PLAYING.
+     * Transitions room status to PLAYING and initializes real-time player entities.
      */
     public synchronized void start() {
         this.status = RoomStatus.PLAYING;
+        this.gamePlayers.clear();
+
+        int index = 0;
+        for (String username : players.keySet()) {
+            double[] spawn = SPAWN_POINTS[index % SPAWN_POINTS.length];
+            String color = PALETTE[index % PALETTE.length];
+            gamePlayers.put(username, new GamePlayer(username, spawn[0], spawn[1], color));
+            index++;
+        }
+    }
+
+    public Collection<GamePlayer> getGamePlayers() {
+        return Collections.unmodifiableCollection(gamePlayers.values());
+    }
+
+    public GamePlayer getGamePlayer(String username) {
+        return gamePlayers.get(username);
+    }
+
+    public void updatePlayerPosition(String username, double x, double y, double heading) {
+        GamePlayer player = gamePlayers.get(username);
+        if (player != null) {
+            player.updatePosition(x, y, heading);
+        }
     }
 }

@@ -2,6 +2,7 @@ package com.battlearena.controller;
 
 import com.battlearena.dto.*;
 import com.battlearena.service.RoomService;
+import com.battlearena.websocket.GameWebSocketHandler;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
@@ -24,9 +25,11 @@ import java.util.Map;
 public class RoomController {
 
     private final RoomService roomService;
+    private final GameWebSocketHandler webSocketHandler;
 
-    public RoomController(RoomService roomService) {
+    public RoomController(RoomService roomService, GameWebSocketHandler webSocketHandler) {
         this.roomService = roomService;
+        this.webSocketHandler = webSocketHandler;
     }
 
     /**
@@ -101,6 +104,11 @@ public class RoomController {
     @PostMapping("/{roomId}/leave")
     public ResponseEntity<?> leaveRoom(@PathVariable String roomId, Authentication authentication) {
         roomService.leaveCurrentRoom(authentication.getName());
+        webSocketHandler.broadcastToRoom(roomId, Map.of(
+                "type", "PLAYER_LEFT",
+                "username", authentication.getName(),
+                "roomId", roomId
+        ));
         return ResponseEntity.ok(Map.of("message", "Left room " + roomId));
     }
 
@@ -112,6 +120,10 @@ public class RoomController {
     public ResponseEntity<?> toggleReady(@PathVariable String roomId, Authentication authentication) {
         try {
             RoomResponse response = roomService.toggleReady(roomId, authentication.getName());
+            webSocketHandler.broadcastToRoom(roomId, Map.of(
+                    "type", "ROOM_UPDATED",
+                    "roomId", roomId
+            ));
             return ResponseEntity.ok(response);
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
@@ -126,6 +138,10 @@ public class RoomController {
     public ResponseEntity<?> startGame(@PathVariable String roomId, Authentication authentication) {
         try {
             RoomResponse response = roomService.startGame(roomId, authentication.getName());
+            webSocketHandler.broadcastToRoom(roomId, Map.of(
+                    "type", "GAME_START",
+                    "roomId", roomId
+            ));
             return ResponseEntity.ok(response);
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));

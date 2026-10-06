@@ -79,10 +79,28 @@ function updatePhysics(dt) {
 
         player.x = Math.max(minX, Math.min(maxX, player.x));
         player.y = Math.max(minY, Math.min(maxY, player.y));
+
+        broadcastPlayerMovement();
     }
 
     // Update lightweight HUD
     hudPos.textContent = `X: ${Math.round(player.x)}, Y: ${Math.round(player.y)}`;
+}
+
+let lastBroadcastTime = 0;
+function broadcastPlayerMovement() {
+    if (!gameWs || gameWs.readyState !== WebSocket.OPEN) return;
+    const now = performance.now();
+    // Throttle to ~30 updates/sec to minimize bandwidth and CPU
+    if (now - lastBroadcastTime < 33) return;
+    lastBroadcastTime = now;
+
+    gameWs.send(JSON.stringify({
+        type: 'MOVE',
+        x: Math.round(player.x * 10) / 10,
+        y: Math.round(player.y * 10) / 10,
+        heading: Math.round(player.heading * 100) / 100
+    }));
 }
 
 // --- Vector Rendering Engine (0 Images, Pure Canvas Geometry) ---
@@ -111,6 +129,53 @@ function renderArena() {
     ctx.strokeStyle = '#4338ca';
     ctx.lineWidth = 4;
     ctx.strokeRect(2, 2, canvas.width - 4, canvas.height - 4);
+}
+
+// Remote Multiplayer Entities Map
+const remotePlayers = new Map();
+
+function renderRemotePlayers() {
+    remotePlayers.forEach((rp, username) => {
+        ctx.save();
+        ctx.translate(rp.x, rp.y);
+
+        // 1. Remote player outer accent ring
+        ctx.beginPath();
+        ctx.arc(0, 0, (rp.radius || 16) + 2, 0, Math.PI * 2);
+        ctx.strokeStyle = 'rgba(16, 185, 129, 0.35)';
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+
+        // 2. Remote player body
+        ctx.beginPath();
+        ctx.arc(0, 0, rp.radius || 16, 0, Math.PI * 2);
+        ctx.fillStyle = rp.color || '#10b981';
+        ctx.fill();
+
+        // 3. Remote player core
+        ctx.beginPath();
+        ctx.arc(0, 0, (rp.radius || 16) * 0.5, 0, Math.PI * 2);
+        ctx.fillStyle = '#ffffff';
+        ctx.fill();
+
+        // 4. Directional heading indicator
+        const pointerDist = (rp.radius || 16) + 4;
+        const pointerX = Math.cos(rp.heading || 0) * pointerDist;
+        const pointerY = Math.sin(rp.heading || 0) * pointerDist;
+
+        ctx.beginPath();
+        ctx.arc(pointerX, pointerY, 3, 0, Math.PI * 2);
+        ctx.fillStyle = '#ffffff';
+        ctx.fill();
+
+        // 5. Remote player name tag
+        ctx.fillStyle = '#6ee7b7';
+        ctx.font = '600 11px Outfit, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText(username, 0, -(rp.radius || 16) - 8);
+
+        ctx.restore();
+    });
 }
 
 function renderPlayer() {
@@ -169,8 +234,9 @@ function gameLoop(currentTime) {
     // Physics update step
     updatePhysics(dt);
 
-    // Visual render step
+    // Visual render step: arena surface -> remote players -> local player
     renderArena();
+    renderRemotePlayers();
     renderPlayer();
 
     // FPS Counter (sampled every 250ms for low CPU overhead)
@@ -479,12 +545,125 @@ async function checkMyCurrentRoom() {
     }
 }
 
+// --- WebSocket Real-Time Networking ---
+let gameWs = null;
+
+function connectGameWebSocket(roomId) {
+    if (gameWs) {
+        if (gameWs.currentRoomId === roomId && (gameWs.readyState === WebSocket.OPEN || gameWs.readyState === WebSocket.CONNECTING)) {
+            return;
+        }
+        disconnectGameWebSocket();
+    }
+
+    const token = localStorage.getItem(JWT_STORAGE_KEY);
+    if (!token) return;
+
+    const wsProto = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const wsUrl = `${wsProto}//${window.location.host}/ws/game?token=${encodeURIComponent(token)}&roomId=${encodeURIComponent(roomId)}`;
+
+    try {
+        gameWs = new WebSocket(wsUrl);
+        gameWs.currentRoomId = roomId;
+
+        gameWs.onopen = () => {
+            hudState.textContent = 'WS: Connected (' + roomId + ')';
+            gameWs.send(JSON.stringify({ type: 'JOIN', token, roomId }));
+        };
+
+        gameWs.onmessage = (event) => {
+            try {
+                const msg = JSON.parse(event.data);
+                handleWebSocketMessage(msg);
+            } catch (err) {
+                console.error('WS parse error:', err);
+            }
+        };
+
+        gameWs.onclose = () => {
+            remotePlayers.clear();
+        };
+
+        gameWs.onerror = () => {
+            // Silently handle socket interruption
+        };
+    } catch (e) {
+        console.error('WS connection failed:', e);
+    }
+}
+
+function disconnectGameWebSocket() {
+    if (gameWs) {
+        try {
+            gameWs.close();
+        } catch {}
+        gameWs = null;
+    }
+    remotePlayers.clear();
+}
+
+function handleWebSocketMessage(msg) {
+    switch (msg.type) {
+        case 'PLAYER_MOVED':
+            if (msg.username !== player.name) {
+                let rp = remotePlayers.get(msg.username);
+                if (!rp) {
+                    rp = {
+                        x: msg.x,
+                        y: msg.y,
+                        heading: msg.heading,
+                        color: '#10b981',
+                        radius: 16
+                    };
+                    remotePlayers.set(msg.username, rp);
+                } else {
+                    rp.x = msg.x;
+                    rp.y = msg.y;
+                    rp.heading = msg.heading;
+                }
+            }
+            break;
+        case 'PLAYER_LEFT':
+            remotePlayers.delete(msg.username);
+            if (activeRoom) {
+                fetchRoomDetails(activeRoom.roomId);
+            }
+            break;
+        case 'PLAYER_JOINED':
+        case 'ROOM_UPDATED':
+            if (activeRoom) {
+                fetchRoomDetails(activeRoom.roomId);
+            }
+            break;
+        case 'GAME_START':
+            if (activeRoom) {
+                activeRoom.status = 'PLAYING';
+                currentRoomStatus.textContent = 'MATCH IN PROGRESS';
+                currentRoomStatus.className = 'room-status-badge playing';
+                hudState.textContent = 'Real-time Arena Match';
+            }
+            break;
+    }
+}
+
+async function fetchRoomDetails(roomId) {
+    try {
+        const res = await fetch(`/api/rooms/${roomId}`, { headers: getAuthHeaders() });
+        if (res.ok) {
+            const data = await res.json();
+            renderActiveRoom(data);
+        }
+    } catch {}
+}
+
 function switchToLobbyBrowser() {
     activeRoom = null;
+    disconnectGameWebSocket();
     stopRoomPolling();
     activeRoomView.style.display = 'none';
     lobbyBrowser.style.display = 'block';
     hudRoom.textContent = 'None (Lobby)';
+    hudState.textContent = 'Phase 5: WebSocket Active';
     fetchRoomsList();
 }
 
@@ -496,6 +675,9 @@ function renderActiveRoom(room) {
     currentRoomId.textContent = room.roomId;
     currentRoomName.textContent = room.name;
     hudRoom.textContent = `${room.name} (${room.roomId})`;
+
+    // Connect WebSocket channel for this room
+    connectGameWebSocket(room.roomId);
 
     // Status pill
     const isPlaying = room.status === 'PLAYING';
