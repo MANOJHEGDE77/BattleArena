@@ -1,0 +1,134 @@
+package com.battlearena.controller;
+
+import com.battlearena.dto.*;
+import com.battlearena.service.RoomService;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+import java.util.Map;
+
+/**
+ * Controller exposing REST endpoints for Multiplayer Room Management.
+ *
+ * Layer: Presentation / Controller Layer
+ * Responsibility: Maps room lifecycle actions (create, list, join, leave, ready, start)
+ * to RoomService operations.
+ *
+ * All mutative endpoints require an authenticated JWT principal.
+ */
+@RestController
+@RequestMapping("/api/rooms")
+public class RoomController {
+
+    private final RoomService roomService;
+
+    public RoomController(RoomService roomService) {
+        this.roomService = roomService;
+    }
+
+    /**
+     * Creates a new game room. Host is automatically joined.
+     * POST /api/rooms
+     */
+    @PostMapping
+    public ResponseEntity<?> createRoom(@RequestBody(required = false) CreateRoomRequest request,
+                                        Authentication authentication) {
+        try {
+            if (request == null) {
+                request = new CreateRoomRequest();
+            }
+            RoomResponse response = roomService.createRoom(request, authentication.getName());
+            return ResponseEntity.status(HttpStatus.CREATED).body(response);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    /**
+     * Lists all active rooms available in the lobby.
+     * GET /api/rooms
+     */
+    @GetMapping
+    public ResponseEntity<List<RoomSummaryResponse>> listRooms() {
+        return ResponseEntity.ok(roomService.listRooms());
+    }
+
+    /**
+     * Retrieves the room the current user is currently participating in.
+     * GET /api/rooms/my-room
+     */
+    @GetMapping("/my-room")
+    public ResponseEntity<?> getMyRoom(Authentication authentication) {
+        return roomService.getPlayerCurrentRoom(authentication.getName())
+                .map(roomId -> ResponseEntity.ok(roomService.getRoom(roomId, authentication.getName())))
+                .orElse(ResponseEntity.noContent().build());
+    }
+
+    /**
+     * Retrieves details for a specific room.
+     * GET /api/rooms/{roomId}
+     */
+    @GetMapping("/{roomId}")
+    public ResponseEntity<?> getRoom(@PathVariable String roomId, Authentication authentication) {
+        try {
+            return ResponseEntity.ok(roomService.getRoom(roomId, authentication.getName()));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    /**
+     * Joins an existing game room.
+     * POST /api/rooms/{roomId}/join
+     */
+    @PostMapping("/{roomId}/join")
+    public ResponseEntity<?> joinRoom(@PathVariable String roomId, Authentication authentication) {
+        try {
+            RoomResponse response = roomService.joinRoom(roomId, authentication.getName());
+            return ResponseEntity.ok(response);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    /**
+     * Leaves the specified room (or current room).
+     * POST /api/rooms/{roomId}/leave
+     */
+    @PostMapping("/{roomId}/leave")
+    public ResponseEntity<?> leaveRoom(@PathVariable String roomId, Authentication authentication) {
+        roomService.leaveCurrentRoom(authentication.getName());
+        return ResponseEntity.ok(Map.of("message", "Left room " + roomId));
+    }
+
+    /**
+     * Toggles player readiness state.
+     * POST /api/rooms/{roomId}/ready
+     */
+    @PostMapping("/{roomId}/ready")
+    public ResponseEntity<?> toggleReady(@PathVariable String roomId, Authentication authentication) {
+        try {
+            RoomResponse response = roomService.toggleReady(roomId, authentication.getName());
+            return ResponseEntity.ok(response);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    /**
+     * Starts the game match (host only).
+     * POST /api/rooms/{roomId}/start
+     */
+    @PostMapping("/{roomId}/start")
+    public ResponseEntity<?> startGame(@PathVariable String roomId, Authentication authentication) {
+        try {
+            RoomResponse response = roomService.startGame(roomId, authentication.getName());
+            return ResponseEntity.ok(response);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+}

@@ -400,3 +400,342 @@ body {
 .btn-submit:hover {
     background: var(--accent-hover);
 }
+
+/* --- Phase 4: Lobby & Room Management Styling --- */
+.lobby-panel {
+    width: 100%;
+    max-width: 800px;
+    background: rgba(15, 20, 32, 0.7);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 16px 20px;
+    margin-bottom: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.lobby-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.lobby-title {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.lobby-title h3 {
+    font-size: 1.1rem;
+    font-weight: 600;
+}
+
+.room-count-badge {
+    font-size: 0.75rem;
+    background: rgba(99, 102, 241, 0.15);
+    color: #a5b4fc;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-weight: 600;
+    border: 1px solid rgba(99, 102, 241, 0.3);
+}
+
+.lobby-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.btn-secondary {
+    background: rgba(255, 255, 255, 0.08);
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 7px 12px;
+    font-size: 0.82rem;
+    font-weight: 600;
+    font-family: 'Outfit', sans-serif;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+.btn-secondary:hover {
+    background: rgba(255, 255, 255, 0.15);
+}
+
+.btn-success {
+    background: #059669;
+    color: #ffffff;
+    border: none;
+    border-radius: 8px;
+    padding: 7px 14px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    font-family: 'Outfit', sans-serif;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+.btn-success:hover:not(:disabled) {
+    background: #10b981;
+}
+
+.btn-success:disabled {
+    background: rgba(255, 255, 255, 0.1);
+    color: var(--text-secondary);
+    cursor: not-allowed;
+}
+
+.btn-warning {
+    background: #d97706;
+    color: #ffffff;
+    border: none;
+    border-radius: 8px;
+    padding: 7px 14px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    font-family: 'Outfit', sans-serif;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+.btn-warning:hover {
+    background: #f59e0b;
+}
+
+.btn-danger {
+    background: rgba(239, 68, 68, 0.2);
+    color: #f87171;
+    border: 1px solid rgba(239, 68, 68, 0.4);
+    border-radius: 8px;
+    padding: 7px 14px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    font-family: 'Outfit', sans-serif;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+.btn-danger:hover {
+    background: rgba(239, 68, 68, 0.35);
+}
+
+.rooms-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+    gap: 10px;
+    max-height: 180px;
+    overflow-y: auto;
+    padding-right: 4px;
+}
+
+.empty-rooms {
+    grid-column: 1 / -1;
+    text-align: center;
+    color: var(--text-secondary);
+    font-size: 0.85rem;
+    padding: 16px;
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 8px;
+    border: 1px dashed var(--border-color);
+}
+
+.room-card {
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 10px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    transition: border-color 0.2s ease, transform 0.1s ease;
+}
+
+.room-card:hover {
+    border-color: rgba(99, 102, 241, 0.4);
+    transform: translateY(-1px);
+}
+
+.room-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.room-code-tag {
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: #818cf8;
+    background: rgba(99, 102, 241, 0.15);
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-family: monospace;
+}
+
+.room-capacity {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+}
+
+.room-card-title {
+    font-size: 0.92rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.room-card-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 4px;
+}
+
+.room-host {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+}
+
+.room-join-btn {
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    padding: 4px 10px;
+    font-size: 0.78rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.room-join-btn:hover {
+    background: var(--accent-hover);
+}
+
+/* Active Room View */
+.active-room-view {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.active-room-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.room-info {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.room-tag {
+    font-size: 0.8rem;
+    font-weight: 700;
+    font-family: monospace;
+    background: rgba(99, 102, 241, 0.2);
+    color: #a5b4fc;
+    padding: 3px 8px;
+    border-radius: 6px;
+    border: 1px solid rgba(99, 102, 241, 0.3);
+}
+
+.room-status-badge {
+    font-size: 0.75rem;
+    font-weight: 700;
+    padding: 4px 10px;
+    border-radius: 20px;
+}
+
+.room-status-badge.waiting {
+    background: rgba(245, 158, 11, 0.2);
+    color: var(--warning);
+    border: 1px solid rgba(245, 158, 11, 0.3);
+}
+
+.room-status-badge.playing {
+    background: rgba(16, 185, 129, 0.2);
+    color: var(--success);
+    border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+.players-roster {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.player-chip {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(0, 0, 0, 0.35);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 6px 12px;
+    font-size: 0.85rem;
+}
+
+.player-chip.is-host {
+    border-color: rgba(245, 158, 11, 0.4);
+}
+
+.player-chip-name {
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.player-status-tag {
+    font-size: 0.72rem;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-weight: 600;
+}
+
+.player-status-tag.ready {
+    background: rgba(16, 185, 129, 0.2);
+    color: #6ee7b7;
+}
+
+.player-status-tag.waiting {
+    background: rgba(255, 255, 255, 0.08);
+    color: var(--text-secondary);
+}
+
+.room-controls {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.room-primary-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.form-select {
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 10px 12px;
+    color: var(--text-primary);
+    font-family: 'Outfit', sans-serif;
+    font-size: 0.95rem;
+    outline: none;
+    cursor: pointer;
+}
+
+.form-select option {
+    background: #161b29;
+    color: var(--text-primary);
+}
+
+#hudRoom {
+    color: #fbbf24;
+    font-weight: 600;
+}

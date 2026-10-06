@@ -34,11 +34,55 @@
         </header>
 
         <main class="arena-wrapper">
+            <!-- Room & Lobby Management Panel -->
+            <section class="lobby-panel" id="lobbyPanel">
+                <!-- View A: Lobby Browser (when not in a room) -->
+                <div class="lobby-browser" id="lobbyBrowser">
+                    <div class="lobby-header">
+                        <div class="lobby-title">
+                            <h3>🎮 Active Arenas</h3>
+                            <span class="room-count-badge" id="roomCountBadge">0 Rooms</span>
+                        </div>
+                        <div class="lobby-actions">
+                            <button class="btn-secondary" id="refreshRoomsBtn" title="Refresh room list">🔄 Refresh</button>
+                            <button class="btn-primary" id="openCreateRoomBtn">+ Create Room</button>
+                        </div>
+                    </div>
+                    <div class="rooms-container" id="roomsContainer">
+                        <div class="empty-rooms" id="emptyRoomsMsg">No active arenas found. Create one to battle!</div>
+                    </div>
+                </div>
+
+                <!-- View B: Current Active Room (when in a room) -->
+                <div class="active-room-view" id="activeRoomView" style="display: none;">
+                    <div class="active-room-header">
+                        <div class="room-info">
+                            <span class="room-tag" id="currentRoomId">ARENA-0000</span>
+                            <h3 id="currentRoomName">Battle Arena Alpha</h3>
+                        </div>
+                        <div class="room-status-badge waiting" id="currentRoomStatus">WAITING FOR PLAYERS</div>
+                    </div>
+
+                    <div class="players-roster" id="playersRoster">
+                        <!-- Player cards rendered dynamically -->
+                    </div>
+
+                    <div class="room-controls">
+                        <button class="btn-danger" id="leaveRoomBtn">Leave Room</button>
+                        <div class="room-primary-actions">
+                            <button class="btn-warning" id="readyBtn" style="display: none;">Ready Up</button>
+                            <button class="btn-success" id="startGameBtn" style="display: none;">Start Game</button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
             <div class="hud-bar">
                 <div class="hud-item"><span class="hud-label">PLAYER:</span> <span id="hudPlayer">Guest</span></div>
+                <div class="hud-item"><span class="hud-label">ROOM:</span> <span id="hudRoom">None (Lobby)</span></div>
                 <div class="hud-item"><span class="hud-label">POS:</span> <span id="hudPos">X: 0, Y: 0</span></div>
                 <div class="hud-item"><span class="hud-label">FPS:</span> <span id="hudFps">60</span></div>
-                <div class="hud-item"><span class="hud-label">STATUS:</span> <span id="hudState">Phase 3: Auth & MySQL</span></div>
+                <div class="hud-item"><span class="hud-label">STATUS:</span> <span id="hudState">Phase 4: Rooms & Lobby</span></div>
             </div>
             <canvas id="gameCanvas" width="800" height="600"></canvas>
             <div class="controls-legend">
@@ -47,8 +91,37 @@
         </main>
 
         <footer class="app-footer">
-            <p>Battle Arena | Low-Resource Authoritative Monolith (Phase 3: MySQL & JWT)</p>
+            <p>Battle Arena | Low-Resource Authoritative Monolith (Phase 4: Game Rooms & Lifecycle)</p>
         </footer>
+    </div>
+
+    <!-- Create Room Modal -->
+    <div class="modal-overlay" id="createRoomModal" style="display: none;">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h3>Create New Arena</h3>
+                <button class="modal-close-btn" id="closeCreateRoomModalBtn" type="button">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="auth-alert" id="createRoomAlert" style="display: none;"></div>
+                <form id="createRoomForm">
+                    <div class="form-group">
+                        <label for="roomNameInput">Arena Name</label>
+                        <input type="text" id="roomNameInput" placeholder="e.g. Champions Colosseum" required maxlength="30">
+                    </div>
+                    <div class="form-group">
+                        <label for="maxPlayersSelect">Max Players</label>
+                        <select id="maxPlayersSelect" class="form-select">
+                            <option value="2">2 Players (Duel)</option>
+                            <option value="4" selected>4 Players (Classic)</option>
+                            <option value="6">6 Players (Brawl)</option>
+                            <option value="8">8 Players (Chaos)</option>
+                        </select>
+                    </div>
+                    <button type="submit" class="btn-submit" id="createRoomSubmitBtn">Create Arena</button>
+                </form>
+            </div>
+        </div>
     </div>
 
     <!-- Auth Modal (Login / Register) -->

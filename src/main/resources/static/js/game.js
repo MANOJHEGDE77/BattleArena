@@ -349,6 +349,350 @@ async function handleAuthSubmit(e) {
 function handleLogout() {
     localStorage.removeItem(JWT_STORAGE_KEY);
     updateAuthState(null);
+    if (activeRoom) {
+        leaveRoom();
+    }
+}
+
+// --- Phase 4: Room & Lobby Management ---
+const hudRoom = document.getElementById('hudRoom');
+const lobbyBrowser = document.getElementById('lobbyBrowser');
+const activeRoomView = document.getElementById('activeRoomView');
+const roomsContainer = document.getElementById('roomsContainer');
+const roomCountBadge = document.getElementById('roomCountBadge');
+const emptyRoomsMsg = document.getElementById('emptyRoomsMsg');
+const refreshRoomsBtn = document.getElementById('refreshRoomsBtn');
+const openCreateRoomBtn = document.getElementById('openCreateRoomBtn');
+const createRoomModal = document.getElementById('createRoomModal');
+const closeCreateRoomModalBtn = document.getElementById('closeCreateRoomModalBtn');
+const createRoomForm = document.getElementById('createRoomForm');
+const roomNameInput = document.getElementById('roomNameInput');
+const maxPlayersSelect = document.getElementById('maxPlayersSelect');
+const createRoomAlert = document.getElementById('createRoomAlert');
+
+const currentRoomId = document.getElementById('currentRoomId');
+const currentRoomName = document.getElementById('currentRoomName');
+const currentRoomStatus = document.getElementById('currentRoomStatus');
+const playersRoster = document.getElementById('playersRoster');
+const leaveRoomBtn = document.getElementById('leaveRoomBtn');
+const readyBtn = document.getElementById('readyBtn');
+const startGameBtn = document.getElementById('startGameBtn');
+
+let activeRoom = null;
+let roomPollingInterval = null;
+
+function getAuthHeaders() {
+    const token = localStorage.getItem(JWT_STORAGE_KEY);
+    return token ? { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' } : { 'Content-Type': 'application/json' };
+}
+
+function isAuthenticated() {
+    return !!localStorage.getItem(JWT_STORAGE_KEY);
+}
+
+function showCreateRoomAlert(message, isError = true) {
+    createRoomAlert.textContent = message;
+    createRoomAlert.className = `auth-alert ${isError ? 'error' : 'success'}`;
+    createRoomAlert.style.display = 'block';
+}
+
+function openCreateRoomModal() {
+    if (!isAuthenticated()) {
+        openModal();
+        showAuthAlert('Please log in or register to create an arena', true);
+        return;
+    }
+    createRoomAlert.style.display = 'none';
+    createRoomForm.reset();
+    createRoomModal.style.display = 'flex';
+    roomNameInput.focus();
+}
+
+function closeCreateRoomModal() {
+    createRoomModal.style.display = 'none';
+}
+
+async function fetchRoomsList() {
+    try {
+        const response = await fetch('/api/rooms', { headers: getAuthHeaders() });
+        if (!response.ok) return;
+
+        const rooms = await response.json();
+        roomCountBadge.textContent = `${rooms.length} Arena${rooms.length === 1 ? '' : 's'}`;
+
+        roomsContainer.innerHTML = '';
+        if (rooms.length === 0) {
+            roomsContainer.appendChild(emptyRoomsMsg);
+            return;
+        }
+
+        rooms.forEach(room => {
+            const card = document.createElement('div');
+            card.className = 'room-card';
+
+            const isPlaying = room.status === 'PLAYING';
+            const isFull = room.currentPlayers >= room.maxPlayers;
+            const canJoin = !isPlaying && !isFull;
+
+            card.innerHTML = `
+                <div class="room-card-header">
+                    <span class="room-code-tag">${escapeHtml(room.roomId)}</span>
+                    <span class="room-capacity">${room.currentPlayers}/${room.maxPlayers} Players</span>
+                </div>
+                <div class="room-card-title">${escapeHtml(room.name)}</div>
+                <div class="room-card-footer">
+                    <span class="room-host">Host: ${escapeHtml(room.hostUsername)}</span>
+                    <button class="room-join-btn" data-room-id="${escapeHtml(room.roomId)}" ${!canJoin ? 'disabled style="opacity:0.5;cursor:not-allowed"' : ''}>
+                        ${isPlaying ? 'In Game' : isFull ? 'Full' : 'Join'}
+                    </button>
+                </div>
+            `;
+
+            const joinBtn = card.querySelector('.room-join-btn');
+            if (canJoin) {
+                joinBtn.addEventListener('click', () => joinRoom(room.roomId));
+            }
+
+            roomsContainer.appendChild(card);
+        });
+    } catch (err) {
+        console.error('Error fetching rooms:', err);
+    }
+}
+
+async function checkMyCurrentRoom() {
+    if (!isAuthenticated()) {
+        switchToLobbyBrowser();
+        return;
+    }
+
+    try {
+        const response = await fetch('/api/rooms/my-room', { headers: getAuthHeaders() });
+        if (response.status === 200) {
+            const roomData = await response.json();
+            renderActiveRoom(roomData);
+        } else {
+            switchToLobbyBrowser();
+        }
+    } catch {
+        switchToLobbyBrowser();
+    }
+}
+
+function switchToLobbyBrowser() {
+    activeRoom = null;
+    stopRoomPolling();
+    activeRoomView.style.display = 'none';
+    lobbyBrowser.style.display = 'block';
+    hudRoom.textContent = 'None (Lobby)';
+    fetchRoomsList();
+}
+
+function renderActiveRoom(room) {
+    activeRoom = room;
+    lobbyBrowser.style.display = 'none';
+    activeRoomView.style.display = 'flex';
+
+    currentRoomId.textContent = room.roomId;
+    currentRoomName.textContent = room.name;
+    hudRoom.textContent = `${room.name} (${room.roomId})`;
+
+    // Status pill
+    const isPlaying = room.status === 'PLAYING';
+    currentRoomStatus.textContent = isPlaying ? 'MATCH IN PROGRESS' : 'WAITING FOR PLAYERS';
+    currentRoomStatus.className = `room-status-badge ${isPlaying ? 'playing' : 'waiting'}`;
+
+    // Render roster
+    playersRoster.innerHTML = '';
+    const myUsername = usernameDisplay.textContent;
+    let isMyUserHost = false;
+    let myUserReady = false;
+
+    room.players.forEach(p => {
+        if (p.username === myUsername) {
+            if (p.isHost) isMyUserHost = true;
+            if (p.isReady) myUserReady = true;
+        }
+
+        const chip = document.createElement('div');
+        chip.className = `player-chip ${p.isHost ? 'is-host' : ''}`;
+        chip.innerHTML = `
+            <span class="player-chip-name">${p.isHost ? '👑 ' : ''}${escapeHtml(p.username)}</span>
+            <span class="player-status-tag ${p.isReady ? 'ready' : 'waiting'}">
+                ${p.isHost ? 'Host' : p.isReady ? '✓ Ready' : '⏳ Waiting'}
+            </span>
+        `;
+        playersRoster.appendChild(chip);
+    });
+
+    // Control buttons visibility
+    if (isMyUserHost) {
+        readyBtn.style.display = 'none';
+        startGameBtn.style.display = isPlaying ? 'none' : 'inline-block';
+        startGameBtn.disabled = !room.canStart;
+        startGameBtn.title = room.canStart ? 'Launch the match' : 'Waiting for all players to be ready';
+    } else {
+        startGameBtn.style.display = 'none';
+        readyBtn.style.display = isPlaying ? 'none' : 'inline-block';
+        readyBtn.textContent = myUserReady ? 'Unready' : 'Ready Up';
+        readyBtn.className = myUserReady ? 'btn-secondary' : 'btn-warning';
+    }
+
+    startRoomPolling(room.roomId);
+}
+
+function startRoomPolling(roomId) {
+    if (roomPollingInterval) return;
+    roomPollingInterval = setInterval(async () => {
+        if (!activeRoom || !isAuthenticated()) {
+            stopRoomPolling();
+            return;
+        }
+        try {
+            const res = await fetch(`/api/rooms/${roomId}`, { headers: getAuthHeaders() });
+            if (res.ok) {
+                const updatedRoom = await res.json();
+                renderActiveRoom(updatedRoom);
+            } else if (res.status === 404) {
+                switchToLobbyBrowser();
+            }
+        } catch {
+            // Keep polling
+        }
+    }, 1500);
+}
+
+function stopRoomPolling() {
+    if (roomPollingInterval) {
+        clearInterval(roomPollingInterval);
+        roomPollingInterval = null;
+    }
+}
+
+async function createRoom(name, maxPlayers) {
+    try {
+        const response = await fetch('/api/rooms', {
+            method: 'POST',
+            headers: getAuthHeaders(),
+            body: JSON.stringify({ name, maxPlayers: parseInt(maxPlayers, 10) })
+        });
+        const data = await response.json();
+        if (response.ok) {
+            closeCreateRoomModal();
+            renderActiveRoom(data);
+        } else {
+            showCreateRoomAlert(data.error || 'Failed to create arena', true);
+        }
+    } catch (err) {
+        showCreateRoomAlert('Network error: ' + err.message, true);
+    }
+}
+
+async function joinRoom(roomId) {
+    if (!isAuthenticated()) {
+        openModal();
+        showAuthAlert('Please log in or register to join an arena', true);
+        return;
+    }
+
+    try {
+        const response = await fetch(`/api/rooms/${roomId}/join`, {
+            method: 'POST',
+            headers: getAuthHeaders()
+        });
+        const data = await response.json();
+        if (response.ok) {
+            renderActiveRoom(data);
+        } else {
+            alert(data.error || 'Could not join arena');
+            fetchRoomsList();
+        }
+    } catch (err) {
+        alert('Network error: ' + err.message);
+    }
+}
+
+async function leaveRoom() {
+    if (!activeRoom) return;
+    const roomId = activeRoom.roomId;
+    try {
+        await fetch(`/api/rooms/${roomId}/leave`, {
+            method: 'POST',
+            headers: getAuthHeaders()
+        });
+    } catch {
+        // Continue cleanup locally
+    }
+    switchToLobbyBrowser();
+}
+
+async function toggleReady() {
+    if (!activeRoom) return;
+    try {
+        const res = await fetch(`/api/rooms/${activeRoom.roomId}/ready`, {
+            method: 'POST',
+            headers: getAuthHeaders()
+        });
+        if (res.ok) {
+            const data = await res.json();
+            renderActiveRoom(data);
+        }
+    } catch (err) {
+        console.error('Error toggling ready:', err);
+    }
+}
+
+async function startGame() {
+    if (!activeRoom) return;
+    try {
+        const res = await fetch(`/api/rooms/${activeRoom.roomId}/start`, {
+            method: 'POST',
+            headers: getAuthHeaders()
+        });
+        if (res.ok) {
+            const data = await res.json();
+            renderActiveRoom(data);
+        } else {
+            const err = await res.json();
+            alert(err.error || 'Cannot start match');
+        }
+    } catch (err) {
+        console.error('Error starting match:', err);
+    }
+}
+
+function escapeHtml(str) {
+    if (!str) return '';
+    return str.replace(/[&<>"']/g, m => ({
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#39;'
+    }[m]));
+}
+
+function setupRoomEventListeners() {
+    openCreateRoomBtn.addEventListener('click', openCreateRoomModal);
+    closeCreateRoomModalBtn.addEventListener('click', closeCreateRoomModal);
+    refreshRoomsBtn.addEventListener('click', fetchRoomsList);
+
+    createRoomForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const name = roomNameInput.value.trim();
+        const maxPlayers = maxPlayersSelect.value;
+        createRoom(name, maxPlayers);
+    });
+
+    createRoomModal.addEventListener('click', (e) => {
+        if (e.target === createRoomModal) {
+            closeCreateRoomModal();
+        }
+    });
+
+    leaveRoomBtn.addEventListener('click', leaveRoom);
+    readyBtn.addEventListener('click', toggleReady);
+    startGameBtn.addEventListener('click', startGame);
 }
 
 function setupAuthEventListeners() {
@@ -368,8 +712,9 @@ function setupAuthEventListeners() {
 
     // Close on Escape key
     window.addEventListener('keydown', (e) => {
-        if (e.key === 'Escape' && authModal.style.display === 'flex') {
-            closeModal();
+        if (e.key === 'Escape') {
+            if (authModal.style.display === 'flex') closeModal();
+            if (createRoomModal.style.display === 'flex') closeCreateRoomModal();
         }
     });
 }
@@ -377,7 +722,11 @@ function setupAuthEventListeners() {
 // --- Application Bootstrap ---
 window.addEventListener('DOMContentLoaded', () => {
     setupAuthEventListeners();
+    setupRoomEventListeners();
     checkBackendHealth();
-    verifyExistingSession();
+    verifyExistingSession().then(() => {
+        checkMyCurrentRoom();
+        fetchRoomsList();
+    });
     requestAnimationFrame(gameLoop);
 });
