@@ -155,4 +155,22 @@ public class RoomController {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }
     }
+
+    /**
+     * Resets a completed room for a rematch (host only).
+     * POST /api/rooms/{roomId}/rematch
+     */
+    @PostMapping("/{roomId}/rematch")
+    public ResponseEntity<?> rematchRoom(@PathVariable String roomId, Authentication authentication) {
+        try {
+            RoomResponse response = roomService.rematchRoom(roomId, authentication.getName());
+            webSocketHandler.broadcastToRoom(roomId, Map.of(
+                    "type", "REMATCH_RESET",
+                    "roomId", roomId
+            ));
+            return ResponseEntity.ok(response);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
 }

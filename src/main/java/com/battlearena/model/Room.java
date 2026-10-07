@@ -173,6 +173,7 @@ public class Room {
     private static final int TARGET_COIN_COUNT = 6;
     private static final int WINNING_SCORE = 100;
     private volatile String winnerUsername = null;
+    private volatile Instant matchStartedAt = null;
 
     /**
      * Transitions room status to PLAYING, initializes real-time players, and spawns initial coins.
@@ -180,6 +181,7 @@ public class Room {
     public synchronized void start() {
         this.status = RoomStatus.PLAYING;
         this.winnerUsername = null;
+        this.matchStartedAt = Instant.now();
         this.gamePlayers.clear();
         this.coins.clear();
 
@@ -280,6 +282,23 @@ public class Room {
 
     public static int getWinningScore() {
         return WINNING_SCORE;
+    }
+
+    public Instant getMatchStartedAt() {
+        return matchStartedAt;
+    }
+
+    public synchronized void resetForRematch() {
+        this.status = RoomStatus.WAITING;
+        this.winnerUsername = null;
+        this.matchStartedAt = null;
+        this.gamePlayers.clear();
+        this.coins.clear();
+        for (PlayerRoomState state : players.values()) {
+            if (!state.isHost()) {
+                state.setReady(false);
+            }
+        }
     }
 
     public void updatePlayerPosition(String username, double x, double y, double heading) {

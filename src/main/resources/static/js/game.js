@@ -31,6 +31,18 @@ const matchSummaryScores = document.getElementById('matchSummaryScores');
 const returnToLobbyBtn = document.getElementById('returnToLobbyBtn');
 const viewLeaderboardFromGameOverBtn = document.getElementById('viewLeaderboardFromGameOverBtn');
 
+// --- Phase 7 DOM Elements: Match History & Rematch ---
+const openMatchHistoryBtn = document.getElementById('openMatchHistoryBtn');
+const matchHistoryModal = document.getElementById('matchHistoryModal');
+const closeMatchHistoryModalBtn = document.getElementById('closeMatchHistoryModalBtn');
+const matchHistoryList = document.getElementById('matchHistoryList');
+const profileStatUsername = document.getElementById('profileStatUsername');
+const profileStatGames = document.getElementById('profileStatGames');
+const profileStatTotalScore = document.getElementById('profileStatTotalScore');
+const profileStatHighScore = document.getElementById('profileStatHighScore');
+const matchMetaPill = document.getElementById('matchMetaPill');
+const rematchBtn = document.getElementById('rematchBtn');
+
 // --- Phase 6 State: Collectibles & Authoritative Scoring ---
 const coins = new Map();
 let myScore = 0;
@@ -449,12 +461,14 @@ function updateAuthState(user) {
     if (user && user.username) {
         authButtons.style.display = 'none';
         userProfileBadge.style.display = 'flex';
+        if (openMatchHistoryBtn) openMatchHistoryBtn.style.display = 'inline-block';
         usernameDisplay.textContent = user.username;
         highScoreBadge.textContent = `Best: ${user.highestScore || 0}`;
         player.name = user.username;
         hudPlayer.textContent = user.username;
     } else {
         userProfileBadge.style.display = 'none';
+        if (openMatchHistoryBtn) openMatchHistoryBtn.style.display = 'none';
         authButtons.style.display = 'block';
         player.name = 'Guest';
         hudPlayer.textContent = 'Guest';
@@ -837,6 +851,20 @@ function handleWebSocketMessage(msg) {
             showGameOverModal(msg);
             break;
         }
+        case 'REMATCH_RESET': {
+            closeGameOverModal();
+            isGameOver = false;
+            coins.clear();
+            myScore = 0;
+            hudScore.textContent = '0';
+            if (activeRoom) {
+                activeRoom.status = 'WAITING';
+                currentRoomStatus.textContent = 'WAITING FOR PLAYERS';
+                currentRoomStatus.className = 'room-status-badge waiting';
+                fetchRoomDetails(activeRoom.roomId);
+            }
+            break;
+        }
     }
 }
 
@@ -884,6 +912,20 @@ function showGameOverModal(msg) {
         `).join('');
     }
 
+    if (msg.matchId) {
+        matchMetaPill.textContent = `Match #${msg.matchId}`;
+        matchMetaPill.style.display = 'inline-block';
+    } else {
+        matchMetaPill.style.display = 'none';
+    }
+
+    // Host can trigger Rematch
+    if (activeRoom && activeRoom.hostUsername === player.name) {
+        rematchBtn.style.display = 'inline-block';
+    } else {
+        rematchBtn.style.display = 'none';
+    }
+
     gameOverModal.style.display = 'flex';
     // Refresh user profile stats
     verifyExistingSession();
@@ -891,6 +933,88 @@ function showGameOverModal(msg) {
 
 function closeGameOverModal() {
     gameOverModal.style.display = 'none';
+}
+
+async function triggerRematch() {
+    if (!activeRoom) return;
+    try {
+        const res = await fetch(`/api/rooms/${activeRoom.roomId}/rematch`, {
+            method: 'POST',
+            headers: getAuthHeaders()
+        });
+        if (res.ok) {
+            closeGameOverModal();
+            fetchRoomDetails(activeRoom.roomId);
+        }
+    } catch (e) {
+        console.error('Rematch request failed:', e);
+    }
+}
+
+async function fetchAndShowMatchHistory() {
+    matchHistoryModal.style.display = 'flex';
+    matchHistoryList.innerHTML = '<div class="empty-history-msg">Loading battle records...</div>';
+
+    // Populate user career stats
+    try {
+        const profileRes = await fetch('/api/auth/me', { headers: getAuthHeaders() });
+        if (profileRes.ok) {
+            const profile = await profileRes.json();
+            profileStatUsername.textContent = profile.username;
+            profileStatGames.textContent = profile.totalGames;
+            profileStatTotalScore.textContent = profile.totalScore;
+            profileStatHighScore.textContent = profile.highestScore;
+        }
+    } catch {}
+
+    // Fetch match logs
+    try {
+        const res = await fetch('/api/matches/me', { headers: getAuthHeaders() });
+        if (res.ok) {
+            const matches = await res.json();
+            if (matches.length === 0) {
+                matchHistoryList.innerHTML = '<div class="empty-history-msg">No completed matches yet. Jump into an arena to record your first battle!</div>';
+                return;
+            }
+
+            matchHistoryList.innerHTML = matches.map(m => {
+                const dateStr = new Date(m.finishedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) + ' ' + new Date(m.finishedAt).toLocaleDateString();
+                const outcomeClass = m.winner ? 'victory' : 'defeat';
+                const outcomeText = m.winner ? '🏆 Victory' : 'Defeat';
+
+                const chips = Object.entries(m.scores || {}).map(([uname, score]) => {
+                    const isWin = uname === m.winnerUsername;
+                    return `<span class="match-player-chip ${isWin ? 'is-winner' : ''}">${isWin ? '👑 ' : ''}${escapeHtml(uname)}: ${score}</span>`;
+                }).join('');
+
+                return `
+                    <div class="match-card">
+                        <div class="match-card-top">
+                            <span class="match-card-title">
+                                <span>${escapeHtml(m.roomName)}</span>
+                                <span class="room-code-tag">${escapeHtml(m.roomId)}</span>
+                            </span>
+                            <span class="match-outcome-badge ${outcomeClass}">${outcomeText}</span>
+                        </div>
+                        <div class="match-card-details">
+                            <span>Your Score: <strong class="match-personal-score">${m.playerScore} pts</strong></span>
+                            <span>Duration: ${m.durationSeconds}s</span>
+                            <span class="match-time-tag">${dateStr}</span>
+                        </div>
+                        <div class="match-roster-breakdown">
+                            ${chips}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+    } catch (e) {
+        matchHistoryList.innerHTML = '<div class="empty-history-msg">Failed to load match history.</div>';
+    }
+}
+
+function closeMatchHistoryModal() {
+    matchHistoryModal.style.display = 'none';
 }
 
 async function fetchAndShowLeaderboard() {
@@ -1193,6 +1317,7 @@ function setupAuthEventListeners() {
             if (authModal.style.display === 'flex') closeModal();
             if (createRoomModal.style.display === 'flex') closeCreateRoomModal();
             if (leaderboardModal.style.display === 'flex') closeLeaderboardModal();
+            if (matchHistoryModal.style.display === 'flex') closeMatchHistoryModal();
             if (gameOverModal.style.display === 'flex') closeGameOverModal();
         }
     });
@@ -1207,6 +1332,24 @@ function setupLeaderboardEventListeners() {
             closeLeaderboardModal();
         }
     });
+
+    if (openMatchHistoryBtn) {
+        openMatchHistoryBtn.addEventListener('click', fetchAndShowMatchHistory);
+    }
+    if (closeMatchHistoryModalBtn) {
+        closeMatchHistoryModalBtn.addEventListener('click', closeMatchHistoryModal);
+    }
+    if (matchHistoryModal) {
+        matchHistoryModal.addEventListener('click', (e) => {
+            if (e.target === matchHistoryModal) {
+                closeMatchHistoryModal();
+            }
+        });
+    }
+
+    if (rematchBtn) {
+        rematchBtn.addEventListener('click', triggerRematch);
+    }
 
     returnToLobbyBtn.addEventListener('click', () => {
         closeGameOverModal();

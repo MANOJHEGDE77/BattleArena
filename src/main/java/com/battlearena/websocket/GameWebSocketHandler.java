@@ -38,6 +38,7 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
     private final JwtUtil jwtUtil;
     private final RoomService roomService;
     private final UserService userService;
+    private final com.battlearena.service.MatchService matchService;
     private final ObjectMapper mapper;
 
     // Session Registry
@@ -46,10 +47,12 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
     private final ConcurrentMap<String, String> sessionToRoom = new ConcurrentHashMap<>();
     private final ConcurrentMap<String, Set<WebSocketSession>> roomSessions = new ConcurrentHashMap<>();
 
-    public GameWebSocketHandler(JwtUtil jwtUtil, RoomService roomService, UserService userService, ObjectMapper mapper) {
+    public GameWebSocketHandler(JwtUtil jwtUtil, RoomService roomService, UserService userService,
+                                com.battlearena.service.MatchService matchService, ObjectMapper mapper) {
         this.jwtUtil = jwtUtil;
         this.roomService = roomService;
         this.userService = userService;
+        this.matchService = matchService;
         this.mapper = mapper;
     }
 
@@ -256,14 +259,27 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
 
             // Check if game reached victory condition
             if (room.getStatus() == RoomStatus.FINISHED) {
-                broadcastToRoom(roomId, Map.of(
-                        "type", "GAME_OVER",
-                        "winner", room.getWinnerUsername(),
-                        "winningScore", Room.getWinningScore(),
-                        "players", room.getGamePlayers()
-                ));
+                Long matchId = null;
+                try {
+                    com.battlearena.model.GameResult savedMatch = matchService.recordMatch(room);
+                    if (savedMatch != null) {
+                        matchId = savedMatch.getId();
+                    }
+                } catch (Exception e) {
+                    // Ignore match persistence failure
+                }
 
-                // Persist match scores to MySQL
+                Map<String, Object> gameOverPayload = new HashMap<>();
+                gameOverPayload.put("type", "GAME_OVER");
+                gameOverPayload.put("winner", room.getWinnerUsername());
+                gameOverPayload.put("winningScore", Room.getWinningScore());
+                gameOverPayload.put("players", room.getGamePlayers());
+                if (matchId != null) {
+                    gameOverPayload.put("matchId", matchId);
+                }
+                broadcastToRoom(roomId, gameOverPayload);
+
+                // Persist lifetime match scores to MySQL
                 for (GamePlayer gp : room.getGamePlayers()) {
                     try {
                         userService.recordMatchResult(gp.getUsername(), gp.getScore());

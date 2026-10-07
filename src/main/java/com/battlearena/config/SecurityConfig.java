@@ -46,9 +46,11 @@ public class SecurityConfig {
                         .requestMatchers("/api/auth/register", "/api/auth/login").permitAll()
                         // Public leaderboard rankings
                         .requestMatchers("/api/leaderboard").permitAll()
+                        // Public recent matches
+                        .requestMatchers("/api/matches/recent").permitAll()
                         // Public WebSocket handshake (authentication is handled within WebSocket handler via JWT)
                         .requestMatchers("/ws/**").permitAll()
-                        // Protected endpoints (such as /api/auth/me) require a valid token
+                        // Protected endpoints (such as /api/auth/me, /api/matches/me) require a valid token
                         .anyRequest().authenticated()
                 )
                 .exceptionHandling(ex -> ex

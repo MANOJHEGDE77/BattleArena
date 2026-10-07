@@ -137,6 +137,18 @@ public class RoomService {
     }
 
     /**
+     * Resets a completed room for a new match (rematch). Host only.
+     */
+    public RoomResponse rematchRoom(String roomId, String requestingUser) {
+        Room room = findRoomOrThrow(roomId);
+        if (!room.getHostUsername().equals(requestingUser)) {
+            throw new IllegalArgumentException("Only the arena host can initiate a rematch.");
+        }
+        room.resetForRematch();
+        return toRoomResponse(room, requestingUser);
+    }
+
+    /**
      * Returns the roomId the player is currently in, if any.
      */
     public Optional<String> getPlayerCurrentRoom(String username) {

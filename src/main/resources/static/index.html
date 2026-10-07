@@ -18,6 +18,7 @@
             </div>
             <div class="header-right">
                 <button class="btn-leaderboard" id="openLeaderboardBtn" title="Global Leaderboard">🏆 Leaderboard</button>
+                <button class="btn-history" id="openMatchHistoryBtn" title="Match History" style="display: none;">📜 History</button>
                 <div class="user-profile-badge" id="userProfileBadge" style="display: none;">
                     <span class="avatar-icon">👤</span>
                     <span class="username-display" id="usernameDisplay">Player</span>
@@ -102,7 +103,7 @@
         </main>
 
         <footer class="app-footer">
-            <p>Battle Arena | Low-Resource Authoritative Monolith (Phase 6: Collectibles, Scoring & Leaderboard)</p>
+            <p>Battle Arena | Low-Resource Authoritative Monolith (Phase 7: Persistent Match History & Match Lifecycle)</p>
         </footer>
     </div>
 
@@ -190,6 +191,30 @@
         </div>
     </div>
 
+    <!-- Match History Modal -->
+    <div class="modal-overlay" id="matchHistoryModal" style="display: none;">
+        <div class="modal-card modal-large">
+            <div class="modal-header">
+                <h3>📜 Match Records & Career Log</h3>
+                <button class="modal-close-btn" id="closeMatchHistoryModalBtn" type="button">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="profile-stats-summary" id="profileStatsSummary">
+                    <div class="stat-pill"><span class="stat-label">Warrior:</span> <strong id="profileStatUsername">-</strong></div>
+                    <div class="stat-pill"><span class="stat-label">Total Matches:</span> <strong id="profileStatGames">0</strong></div>
+                    <div class="stat-pill"><span class="stat-label">Career Total:</span> <strong id="profileStatTotalScore">0</strong></div>
+                    <div class="stat-pill"><span class="stat-label">Personal Best:</span> <strong id="profileStatHighScore">0</strong></div>
+                </div>
+                <div class="history-list-header">
+                    <h4>Recent Battles</h4>
+                </div>
+                <div class="match-history-list" id="matchHistoryList">
+                    <div class="empty-history-msg">No completed matches yet. Jump into an arena to record your first battle!</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Match Game Over Modal -->
     <div class="modal-overlay" id="gameOverModal" style="display: none;">
         <div class="modal-card modal-game-over">
@@ -197,11 +222,13 @@
                 <h3 id="gameOverTitle">🏆 VICTORY!</h3>
             </div>
             <div class="modal-body">
+                <div class="match-meta-pill" id="matchMetaPill" style="display: none;">Match #0</div>
                 <p class="winner-announcement" id="winnerAnnouncement">Player reached the target score!</p>
                 <div class="match-summary-scores" id="matchSummaryScores">
                     <!-- Final scores populated dynamically -->
                 </div>
-                <div class="modal-actions" style="margin-top: 20px; display: flex; justify-content: center; gap: 12px;">
+                <div class="modal-actions" style="margin-top: 20px; display: flex; justify-content: center; gap: 12px; flex-wrap: wrap;">
+                    <button class="btn-success" id="rematchBtn" style="display: none;">🔄 Rematch</button>
                     <button class="btn-primary" id="returnToLobbyBtn">Return to Arenas</button>
                     <button class="btn-secondary" id="viewLeaderboardFromGameOverBtn">View Leaderboard</button>
                 </div>
