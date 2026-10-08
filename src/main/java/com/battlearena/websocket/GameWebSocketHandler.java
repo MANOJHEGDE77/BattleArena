@@ -399,7 +399,8 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
             snapshot.put("obstacles", activeRoom.getObstacles());
             snapshot.put("hazards", activeRoom.getHazards());
             snapshot.put("projectiles", activeRoom.getProjectiles());
-            snapshot.put("winningScore", Room.getWinningScore());
+            snapshot.put("winningScore", activeRoom.getTargetWinningScore());
+            snapshot.put("gameMode", activeRoom.getGameMode());
             snapshot.put("matchDurationSeconds", Room.MATCH_DURATION_SECONDS);
             snapshot.put("timeRemaining", activeRoom.getTimeRemainingSeconds());
             snapshot.put("safeZoneRadius", activeRoom.getCurrentSafeZoneRadius());
@@ -744,7 +745,8 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
                 payload.put("players", room.getGamePlayers());
                 payload.put("obstacles", room.getObstacles());
                 payload.put("hazards", room.getHazards());
-                payload.put("winningScore", Room.getWinningScore());
+                payload.put("winningScore", room.getTargetWinningScore());
+                payload.put("gameMode", room.getGameMode());
                 payload.put("matchDurationSeconds", Room.MATCH_DURATION_SECONDS);
                 payload.put("timeRemaining", room.getTimeRemainingSeconds());
                 payload.put("safeZoneRadius", room.getCurrentSafeZoneRadius());

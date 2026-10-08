@@ -2689,10 +2689,13 @@ const createRoomModal = document.getElementById('createRoomModal');
 const closeCreateRoomModalBtn = document.getElementById('closeCreateRoomModalBtn');
 const createRoomForm = document.getElementById('createRoomForm');
 const roomNameInput = document.getElementById('roomNameInput');
+const roomGameModeSelect = document.getElementById('roomGameModeSelect');
 const maxPlayersSelect = document.getElementById('maxPlayersSelect');
 const createRoomAlert = document.getElementById('createRoomAlert');
 
 const currentRoomId = document.getElementById('currentRoomId');
+const currentRoomModeBadge = document.getElementById('currentRoomModeBadge');
+const hudModeBadge = document.getElementById('hudModeBadge');
 const currentRoomName = document.getElementById('currentRoomName');
 const currentRoomStatus = document.getElementById('currentRoomStatus');
 const playersRoster = document.getElementById('playersRoster');
@@ -2700,6 +2703,8 @@ const leaveRoomBtn = document.getElementById('leaveRoomBtn');
 const readyBtn = document.getElementById('readyBtn');
 const startGameBtn = document.getElementById('startGameBtn');
 const addBotBtn = document.getElementById('addBotBtn');
+const pvpDuelBtn = document.getElementById('pvpDuelBtn');
+const pvePracticeBtn = document.getElementById('pvePracticeBtn');
 
 let activeRoom = null;
 let roomPollingInterval = null;
@@ -2756,10 +2761,19 @@ async function fetchRoomsList() {
             const isPlaying = room.status === 'PLAYING';
             const isFull = room.currentPlayers >= room.maxPlayers;
             const canJoin = !isPlaying && !isFull;
+            const mode = room.gameMode || (room.maxPlayers === 2 ? 'PVP_1V1' : 'PVP_FFA');
+            const modeBadgeHtml = mode === 'PVP_1V1'
+                ? '<span class="room-mode-badge mode-1v1">⚔️ 1v1 DUEL</span>'
+                : (mode === 'PVP_CHAOS'
+                    ? '<span class="room-mode-badge mode-chaos">🔥 CHAOS</span>'
+                    : '<span class="room-mode-badge mode-ffa">💀 FFA</span>');
 
             card.innerHTML = `
                 <div class="room-card-header">
-                    <span class="room-code-tag">${escapeHtml(room.roomId)}</span>
+                    <div style="display: flex; align-items: center; gap: 6px;">
+                        <span class="room-code-tag">${escapeHtml(room.roomId)}</span>
+                        ${modeBadgeHtml}
+                    </div>
                     <span class="room-capacity">${room.currentPlayers}/${room.maxPlayers} Players</span>
                 </div>
                 <div class="room-card-title">${escapeHtml(room.name)}</div>
@@ -3916,11 +3930,52 @@ function renderActiveRoom(room) {
     currentRoomName.textContent = room.name;
     hudRoom.textContent = `${room.name} (${room.roomId})`;
 
+    const mode = room.gameMode || (room.maxPlayers === 2 ? 'PVP_1V1' : 'PVP_FFA');
+    if (currentRoomModeBadge) {
+        if (mode === 'PVP_1V1') {
+            currentRoomModeBadge.textContent = '⚔️ 1v1 DUEL';
+            currentRoomModeBadge.className = 'room-mode-badge mode-1v1';
+        } else if (mode === 'PVP_CHAOS') {
+            currentRoomModeBadge.textContent = '🔥 CHAOS FFA';
+            currentRoomModeBadge.className = 'room-mode-badge mode-chaos';
+        } else {
+            currentRoomModeBadge.textContent = '💀 PVP FFA';
+            currentRoomModeBadge.className = 'room-mode-badge mode-ffa';
+        }
+    }
+
+    if (hudModeBadge) {
+        if (mode === 'PVP_1V1') {
+            hudModeBadge.textContent = '⚔️ 1v1 DUEL';
+            hudModeBadge.className = 'hud-mode-pill';
+            hudModeBadge.style.color = '#fca5a5';
+            hudModeBadge.style.borderColor = 'rgba(239, 68, 68, 0.4)';
+            hudModeBadge.style.background = 'rgba(239, 68, 68, 0.2)';
+        } else if (mode === 'PVP_CHAOS') {
+            hudModeBadge.textContent = '🔥 CHAOS';
+            hudModeBadge.className = 'hud-mode-pill';
+            hudModeBadge.style.color = '#e9d5ff';
+            hudModeBadge.style.borderColor = 'rgba(168, 85, 247, 0.4)';
+            hudModeBadge.style.background = 'rgba(168, 85, 247, 0.2)';
+        } else {
+            hudModeBadge.textContent = '💀 FFA';
+            hudModeBadge.className = 'hud-mode-pill';
+            hudModeBadge.style.color = '#6ee7b7';
+            hudModeBadge.style.borderColor = 'rgba(16, 185, 129, 0.4)';
+            hudModeBadge.style.background = 'rgba(16, 185, 129, 0.2)';
+        }
+    }
+
+    if (mode === 'PVP_1V1' && hudTarget && winningScore === 100) {
+        winningScore = 45;
+        hudTarget.textContent = '45';
+        if (scoreboardGoal) scoreboardGoal.textContent = '45';
+    }
+
     // Connect WebSocket channel for this room
     connectGameWebSocket(room.roomId);
 
     // Status pill
-    const isPlaying = room.status === 'PLAYING';
     currentRoomStatus.textContent = isPlaying ? 'MATCH IN PROGRESS' : 'WAITING FOR PLAYERS';
     currentRoomStatus.className = `room-status-badge ${isPlaying ? 'playing' : 'waiting'}`;
 
@@ -4041,12 +4096,17 @@ function stopRoomPolling() {
     }
 }
 
-async function createRoom(name, maxPlayers) {
+async function createRoom(name, maxPlayers, gameMode) {
     try {
+        const payload = {
+            name,
+            maxPlayers: parseInt(maxPlayers, 10),
+            gameMode: gameMode || (parseInt(maxPlayers, 10) === 2 ? 'PVP_1V1' : 'PVP_FFA')
+        };
         const response = await fetch('/api/rooms', {
             method: 'POST',
             headers: getAuthHeaders(),
-            body: JSON.stringify({ name, maxPlayers: parseInt(maxPlayers, 10) })
+            body: JSON.stringify(payload)
         });
         const data = await response.json();
         if (response.ok) {
@@ -4181,6 +4241,60 @@ function escapeHtml(str) {
     }[m]));
 }
 
+async function quickPvPDuel() {
+    if (!isAuthenticated()) {
+        openModal();
+        showAuthAlert('Please log in or register to join a 1v1 PvP Duel', true);
+        return;
+    }
+    try {
+        const response = await fetch('/api/rooms', { headers: getAuthHeaders() });
+        if (response.ok) {
+            const rooms = await response.json();
+            const joinable = rooms.find(r => (r.gameMode === 'PVP_1V1' || r.maxPlayers === 2) && r.status === 'WAITING' && r.currentPlayers < r.maxPlayers);
+            if (joinable) {
+                joinRoom(joinable.roomId);
+                return;
+            }
+        }
+        const randId = Math.floor(1000 + Math.random() * 9000);
+        createRoom(`⚔️ 1v1 Duel #${randId}`, 2, 'PVP_1V1');
+    } catch {
+        openCreateRoomModal();
+    }
+}
+
+async function startPracticeBattle() {
+    if (!isAuthenticated()) {
+        openModal();
+        showAuthAlert('Please log in or register to launch a practice arena', true);
+        return;
+    }
+    try {
+        const randId = Math.floor(1000 + Math.random() * 9000);
+        const res = await fetch('/api/rooms', {
+            method: 'POST',
+            headers: getAuthHeaders(),
+            body: JSON.stringify({ name: `🤖 Practice Dojo #${randId}`, maxPlayers: 2, gameMode: 'PVP_1V1' })
+        });
+        if (res.ok) {
+            const roomData = await res.json();
+            renderActiveRoom(roomData);
+            // Auto spawn AI Bot Opponent
+            await fetch(`/api/rooms/${roomData.roomId}/bot`, {
+                method: 'POST',
+                headers: getAuthHeaders()
+            });
+            const updated = await fetch(`/api/rooms/${roomData.roomId}`, { headers: getAuthHeaders() });
+            if (updated.ok) {
+                renderActiveRoom(await updated.json());
+            }
+        }
+    } catch (err) {
+        console.error('Failed to create practice arena:', err);
+    }
+}
+
 async function quickBattle() {
     if (!isAuthenticated()) {
         openModal();
@@ -4198,7 +4312,7 @@ async function quickBattle() {
             }
         }
         const randId = Math.floor(1000 + Math.random() * 9000);
-        createRoom(`Cyber Arena #${randId}`, 4);
+        createRoom(`Cyber Arena #${randId}`, 4, 'PVP_FFA');
     } catch {
         openCreateRoomModal();
     }
@@ -4209,16 +4323,36 @@ function setupRoomEventListeners() {
     closeCreateRoomModalBtn.addEventListener('click', closeCreateRoomModal);
     refreshRoomsBtn.addEventListener('click', fetchRoomsList);
 
+    if (pvpDuelBtn) {
+        pvpDuelBtn.addEventListener('click', quickPvPDuel);
+    }
+    if (pvePracticeBtn) {
+        pvePracticeBtn.addEventListener('click', startPracticeBattle);
+    }
+
     const quickBattleBtn = document.getElementById('quickBattleBtn');
     if (quickBattleBtn) {
         quickBattleBtn.addEventListener('click', quickBattle);
+    }
+
+    if (roomGameModeSelect) {
+        roomGameModeSelect.addEventListener('change', () => {
+            if (roomGameModeSelect.value === 'PVP_1V1') {
+                maxPlayersSelect.value = '2';
+            } else if (roomGameModeSelect.value === 'PVP_CHAOS') {
+                maxPlayersSelect.value = '8';
+            } else if (maxPlayersSelect.value === '2') {
+                maxPlayersSelect.value = '4';
+            }
+        });
     }
 
     createRoomForm.addEventListener('submit', (e) => {
         e.preventDefault();
         const name = roomNameInput.value.trim();
         const maxPlayers = maxPlayersSelect.value;
-        createRoom(name, maxPlayers);
+        const gameMode = roomGameModeSelect ? roomGameModeSelect.value : (parseInt(maxPlayers, 10) === 2 ? 'PVP_1V1' : 'PVP_FFA');
+        createRoom(name, maxPlayers, gameMode);
     });
 
     createRoomModal.addEventListener('click', (e) => {

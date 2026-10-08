@@ -29,6 +29,7 @@ public class Room {
     private final int maxPlayers;
     private volatile RoomStatus status;
     private final Instant createdAt;
+    private final String gameMode;
 
     private final List<ChatMessage> chatHistory = new CopyOnWriteArrayList<>();
     private final ConcurrentMap<String, Long> lastChatTimes = new ConcurrentHashMap<>();
@@ -36,15 +37,31 @@ public class Room {
     private final ConcurrentMap<String, PlayerRoomState> players = new ConcurrentHashMap<>();
 
     public Room(String roomId, String name, String hostUsername, int maxPlayers) {
+        this(roomId, name, hostUsername, maxPlayers, (maxPlayers == 2 ? "PVP_1V1" : "PVP_FFA"));
+    }
+
+    public Room(String roomId, String name, String hostUsername, int maxPlayers, String gameMode) {
         this.roomId = roomId;
         this.name = name;
         this.hostUsername = hostUsername;
         this.maxPlayers = maxPlayers;
+        this.gameMode = (gameMode != null && !gameMode.isEmpty()) ? gameMode : (maxPlayers == 2 ? "PVP_1V1" : "PVP_FFA");
         this.status = RoomStatus.WAITING;
         this.createdAt = Instant.now();
 
         // Host is automatically added as first player with host privileges
         this.players.put(hostUsername, new PlayerRoomState(hostUsername, true));
+    }
+
+    public String getGameMode() {
+        return gameMode;
+    }
+
+    public int getTargetWinningScore() {
+        if ("PVP_1V1".equalsIgnoreCase(gameMode)) {
+            return 45;
+        }
+        return WINNING_SCORE;
     }
 
     public String getRoomId() {
@@ -719,7 +736,7 @@ public class Room {
                 player.addScore(collected.getValue());
 
                 // Check victory condition
-                if (player.getScore() >= WINNING_SCORE && winnerUsername == null) {
+                if (player.getScore() >= getTargetWinningScore() && winnerUsername == null) {
                     winnerUsername = username;
                     status = RoomStatus.FINISHED;
                 }
@@ -951,7 +968,7 @@ public class Room {
             if (eliminated) {
                 shooter.addKill();
                 shooter.addScore(KILL_SCORE_BONUS);
-                if (shooter.getScore() >= WINNING_SCORE && winnerUsername == null) {
+                if (shooter.getScore() >= getTargetWinningScore() && winnerUsername == null) {
                     winnerUsername = shooter.getUsername();
                     status = RoomStatus.FINISHED;
                 }

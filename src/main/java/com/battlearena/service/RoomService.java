@@ -45,7 +45,11 @@ public class RoomService {
             maxPlayers = Math.max(2, Math.min(8, request.getMaxPlayers()));
         }
 
-        Room room = new Room(roomId, roomName, hostUsername, maxPlayers);
+        String gameMode = (request.getGameMode() != null && !request.getGameMode().trim().isEmpty())
+                ? request.getGameMode().trim().toUpperCase()
+                : (maxPlayers == 2 ? "PVP_1V1" : "PVP_FFA");
+
+        Room room = new Room(roomId, roomName, hostUsername, maxPlayers, gameMode);
         rooms.put(roomId, room);
         playerToRoom.put(hostUsername, roomId);
 
@@ -64,7 +68,8 @@ public class RoomService {
                         r.getHostUsername(),
                         r.getPlayerCount(),
                         r.getMaxPlayers(),
-                        r.getStatus().name()
+                        r.getStatus().name(),
+                        r.getGameMode()
                 ))
                 .toList();
     }
@@ -208,7 +213,8 @@ public class RoomService {
                 room.getCombatantCount(),
                 room.getStatus().name(),
                 playerList,
-                room.canStart(requestingUser)
+                room.canStart(requestingUser),
+                room.getGameMode()
         );
     }
 

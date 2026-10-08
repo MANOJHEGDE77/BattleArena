@@ -148,7 +148,9 @@
                             <span class="room-count-badge" id="roomCountBadge">0 Rooms</span>
                         </div>
                         <div class="lobby-actions">
-                            <button class="btn-success btn-quick-play" id="quickBattleBtn" title="Instant Quick Match">⚡ Quick Play</button>
+                            <button class="btn-pvp-duel" id="pvpDuelBtn" title="Instant 1v1 Head-to-Head Duel (First to 3 Eliminations)">⚔️ 1v1 PvP Duel</button>
+                            <button class="btn-success btn-quick-play" id="quickBattleBtn" title="Instant Quick Match FFA">⚡ Quick Play</button>
+                            <button class="btn-pve-practice" id="pvePracticeBtn" title="Instant Solo Practice vs AI Bot">🤖 Practice vs Bot</button>
                             <button class="btn-primary" id="openCreateRoomBtn">+ Create Room</button>
                             <button class="btn-secondary" id="refreshRoomsBtn" title="Refresh room list">🔄 Refresh</button>
                         </div>
@@ -163,6 +165,7 @@
                     <div class="active-room-header">
                         <div class="room-info">
                             <span class="room-tag" id="currentRoomId">ARENA-0000</span>
+                            <span class="room-mode-badge mode-ffa" id="currentRoomModeBadge">💀 PVP FFA</span>
                             <h3 id="currentRoomName">Battle Arena Alpha</h3>
                         </div>
                         <div class="room-status-badge waiting" id="currentRoomStatus">WAITING FOR PLAYERS</div>
@@ -188,6 +191,10 @@
                 <div class="hud-item hud-pilot-item">
                     <span class="hud-label">PILOT</span>
                     <span id="hudPlayer" class="hud-val-bold">Guest</span>
+                </div>
+                <div class="hud-item hud-mode-item" id="hudModeItem">
+                    <span class="hud-label">MODE</span>
+                    <span id="hudModeBadge" class="hud-mode-pill">💀 PVP FFA</span>
                 </div>
                 <div class="hud-item hud-class-item">
                     <span class="hud-label">CLASS</span>
@@ -379,6 +386,14 @@
                     <div class="form-group">
                         <label for="roomNameInput">Arena Name</label>
                         <input type="text" id="roomNameInput" placeholder="e.g. Champions Colosseum" required maxlength="30">
+                    </div>
+                    <div class="form-group">
+                        <label for="roomGameModeSelect">Battle Mode</label>
+                        <select id="roomGameModeSelect" class="form-select">
+                            <option value="PVP_1V1">⚔️ 1v1 PvP Duel (First to 3 Kills / 45 pts)</option>
+                            <option value="PVP_FFA" selected>💀 Free-For-All PvP (Target 100 pts)</option>
+                            <option value="PVP_CHAOS">🔥 Mayhem FFA (8-Player High Octane)</option>
+                        </select>
                     </div>
                     <div class="form-group">
                         <label for="maxPlayersSelect">Max Players</label>

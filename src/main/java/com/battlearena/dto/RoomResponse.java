@@ -15,12 +15,18 @@ public class RoomResponse {
     private String status;
     private List<PlayerRoomDTO> players;
     private boolean canStart;
+    private String gameMode = "PVP_FFA";
 
     public RoomResponse() {
     }
 
     public RoomResponse(String roomId, String name, String hostUsername, int maxPlayers, int currentPlayers,
                         String status, List<PlayerRoomDTO> players, boolean canStart) {
+        this(roomId, name, hostUsername, maxPlayers, currentPlayers, status, players, canStart, "PVP_FFA");
+    }
+
+    public RoomResponse(String roomId, String name, String hostUsername, int maxPlayers, int currentPlayers,
+                        String status, List<PlayerRoomDTO> players, boolean canStart, String gameMode) {
         this.roomId = roomId;
         this.name = name;
         this.hostUsername = hostUsername;
@@ -29,6 +35,7 @@ public class RoomResponse {
         this.status = status;
         this.players = players;
         this.canStart = canStart;
+        this.gameMode = (gameMode != null && !gameMode.isEmpty()) ? gameMode : (maxPlayers == 2 ? "PVP_1V1" : "PVP_FFA");
     }
 
     public String getRoomId() {
@@ -93,5 +100,13 @@ public class RoomResponse {
 
     public void setCanStart(boolean canStart) {
         this.canStart = canStart;
+    }
+
+    public String getGameMode() {
+        return gameMode;
+    }
+
+    public void setGameMode(String gameMode) {
+        this.gameMode = gameMode;
     }
 }

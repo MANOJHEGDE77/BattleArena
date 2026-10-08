@@ -11,17 +11,23 @@ public class RoomSummaryResponse {
     private int currentPlayers;
     private int maxPlayers;
     private String status;
+    private String gameMode = "PVP_FFA";
 
     public RoomSummaryResponse() {
     }
 
     public RoomSummaryResponse(String roomId, String name, String hostUsername, int currentPlayers, int maxPlayers, String status) {
+        this(roomId, name, hostUsername, currentPlayers, maxPlayers, status, "PVP_FFA");
+    }
+
+    public RoomSummaryResponse(String roomId, String name, String hostUsername, int currentPlayers, int maxPlayers, String status, String gameMode) {
         this.roomId = roomId;
         this.name = name;
         this.hostUsername = hostUsername;
         this.currentPlayers = currentPlayers;
         this.maxPlayers = maxPlayers;
         this.status = status;
+        this.gameMode = (gameMode != null && !gameMode.isEmpty()) ? gameMode : (maxPlayers == 2 ? "PVP_1V1" : "PVP_FFA");
     }
 
     public String getRoomId() {
@@ -70,5 +76,13 @@ public class RoomSummaryResponse {
 
     public void setStatus(String status) {
         this.status = status;
+    }
+
+    public String getGameMode() {
+        return gameMode;
+    }
+
+    public void setGameMode(String gameMode) {
+        this.gameMode = gameMode;
     }
 }

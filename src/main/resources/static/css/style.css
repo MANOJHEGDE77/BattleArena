@@ -444,6 +444,48 @@ body.in-combat-mode #gameCanvas {
     box-shadow: 0 0 20px rgba(16, 185, 129, 0.7) !important;
 }
 
+.btn-pvp-duel {
+    background: linear-gradient(135deg, #dc2626, #ea580c) !important;
+    color: #ffffff !important;
+    font-weight: 700 !important;
+    border: 1px solid #f87171 !important;
+    border-radius: 8px;
+    padding: 7px 14px;
+    font-size: 0.85rem;
+    font-family: 'Outfit', sans-serif;
+    cursor: pointer;
+    box-shadow: 0 0 14px rgba(220, 38, 38, 0.45) !important;
+    letter-spacing: 0.5px;
+    transition: all 0.2s ease !important;
+}
+
+.btn-pvp-duel:hover {
+    background: linear-gradient(135deg, #b91c1c, #c2410c) !important;
+    transform: translateY(-2px);
+    box-shadow: 0 0 20px rgba(234, 88, 12, 0.7) !important;
+}
+
+.btn-pve-practice {
+    background: linear-gradient(135deg, #4f46e5, #7c3aed) !important;
+    color: #ffffff !important;
+    font-weight: 700 !important;
+    border: 1px solid #a78bfa !important;
+    border-radius: 8px;
+    padding: 7px 14px;
+    font-size: 0.85rem;
+    font-family: 'Outfit', sans-serif;
+    cursor: pointer;
+    box-shadow: 0 0 14px rgba(124, 58, 237, 0.45) !important;
+    letter-spacing: 0.5px;
+    transition: all 0.2s ease !important;
+}
+
+.btn-pve-practice:hover {
+    background: linear-gradient(135deg, #4338ca, #6d28d9) !important;
+    transform: translateY(-2px);
+    box-shadow: 0 0 20px rgba(139, 92, 246, 0.7) !important;
+}
+
 #gameCanvas {
     background-color: var(--canvas-bg);
     border-radius: 12px;
@@ -952,6 +994,49 @@ body.in-combat-mode #gameCanvas {
     padding: 3px 8px;
     border-radius: 6px;
     border: 1px solid rgba(99, 102, 241, 0.3);
+}
+
+.room-mode-badge {
+    font-size: 0.68rem;
+    font-weight: 800;
+    letter-spacing: 0.5px;
+    padding: 2px 7px;
+    border-radius: 4px;
+    text-transform: uppercase;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.room-mode-badge.mode-1v1 {
+    background: rgba(239, 68, 68, 0.18);
+    color: #f87171;
+    border: 1px solid rgba(239, 68, 68, 0.45);
+    box-shadow: 0 0 8px rgba(239, 68, 68, 0.2);
+}
+
+.room-mode-badge.mode-ffa {
+    background: rgba(16, 185, 129, 0.18);
+    color: #34d399;
+    border: 1px solid rgba(16, 185, 129, 0.45);
+}
+
+.room-mode-badge.mode-chaos {
+    background: rgba(168, 85, 247, 0.18);
+    color: #c084fc;
+    border: 1px solid rgba(168, 85, 247, 0.45);
+    box-shadow: 0 0 8px rgba(168, 85, 247, 0.25);
+}
+
+.hud-mode-pill {
+    font-size: 0.72rem;
+    font-weight: 800;
+    color: #fca5a5;
+    background: rgba(239, 68, 68, 0.2);
+    padding: 2px 7px;
+    border-radius: 4px;
+    border: 1px solid rgba(239, 68, 68, 0.4);
+    letter-spacing: 0.5px;
 }
 
 .room-status-badge {
