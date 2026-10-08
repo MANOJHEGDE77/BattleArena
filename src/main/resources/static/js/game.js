@@ -51,6 +51,243 @@ const killFeed = document.getElementById('killFeed');
 const respawnOverlay = document.getElementById('respawnOverlay');
 const respawnCountdown = document.getElementById('respawnCountdown');
 const hudTimer = document.getElementById('hudTimer');
+const soundToggleBtn = document.getElementById('soundToggleBtn');
+
+// --- Phase 13: Procedural Synthetic Audio Engine (Zero audio files/bandwidth) ---
+class SoundEngine {
+    constructor() {
+        this.ctx = null;
+        this.muted = localStorage.getItem('battle_arena_sound_muted') === 'true';
+        this.masterVolume = 0.22;
+    }
+
+    init() {
+        if (!this.ctx) {
+            const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+            if (AudioContextClass) {
+                this.ctx = new AudioContextClass();
+            }
+        }
+        if (this.ctx && this.ctx.state === 'suspended') {
+            this.ctx.resume().catch(() => {});
+        }
+    }
+
+    toggleMute() {
+        this.muted = !this.muted;
+        localStorage.setItem('battle_arena_sound_muted', String(this.muted));
+        return this.muted;
+    }
+
+    isMuted() {
+        return this.muted;
+    }
+
+    playLaser(isSpread = false) {
+        if (this.muted) return;
+        this.init();
+        if (!this.ctx) return;
+        try {
+            const now = this.ctx.currentTime;
+            const osc = this.ctx.createOscillator();
+            const gain = this.ctx.createGain();
+
+            osc.type = isSpread ? 'sawtooth' : 'triangle';
+            const startFreq = isSpread ? 1040 : 880;
+            osc.frequency.setValueAtTime(startFreq, now);
+            osc.frequency.exponentialRampToValueAtTime(110, now + 0.12);
+
+            gain.gain.setValueAtTime(this.masterVolume * 0.7, now);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
+
+            osc.connect(gain);
+            gain.connect(this.ctx.destination);
+
+            osc.start(now);
+            osc.stop(now + 0.13);
+        } catch {}
+    }
+
+    playHit() {
+        if (this.muted) return;
+        this.init();
+        if (!this.ctx) return;
+        try {
+            const now = this.ctx.currentTime;
+            const osc = this.ctx.createOscillator();
+            const gain = this.ctx.createGain();
+
+            osc.type = 'sawtooth';
+            osc.frequency.setValueAtTime(190, now);
+            osc.frequency.exponentialRampToValueAtTime(40, now + 0.08);
+
+            gain.gain.setValueAtTime(this.masterVolume * 0.8, now);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
+
+            osc.connect(gain);
+            gain.connect(this.ctx.destination);
+
+            osc.start(now);
+            osc.stop(now + 0.09);
+        } catch {}
+    }
+
+    playShieldDeflect() {
+        if (this.muted) return;
+        this.init();
+        if (!this.ctx) return;
+        try {
+            const now = this.ctx.currentTime;
+            const osc = this.ctx.createOscillator();
+            const gain = this.ctx.createGain();
+
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(1200, now);
+            osc.frequency.linearRampToValueAtTime(1650, now + 0.06);
+            osc.frequency.exponentialRampToValueAtTime(800, now + 0.14);
+
+            gain.gain.setValueAtTime(this.masterVolume * 0.65, now);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.14);
+
+            osc.connect(gain);
+            gain.connect(this.ctx.destination);
+
+            osc.start(now);
+            osc.stop(now + 0.15);
+        } catch {}
+    }
+
+    playCoin() {
+        if (this.muted) return;
+        this.init();
+        if (!this.ctx) return;
+        try {
+            const now = this.ctx.currentTime;
+            const notes = [1318.5, 1661.2]; // E6, G#6 bright chime
+            notes.forEach((freq, idx) => {
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                const t = now + idx * 0.055;
+
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(freq, t);
+
+                gain.gain.setValueAtTime(this.masterVolume * 0.5, t);
+                gain.gain.exponentialRampToValueAtTime(0.001, t + 0.11);
+
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+
+                osc.start(t);
+                osc.stop(t + 0.12);
+            });
+        } catch {}
+    }
+
+    playPowerUp() {
+        if (this.muted) return;
+        this.init();
+        if (!this.ctx) return;
+        try {
+            const now = this.ctx.currentTime;
+            const freqs = [523.25, 659.25, 783.99, 1046.5]; // C5 -> C6 fanfare
+            freqs.forEach((freq, idx) => {
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                const t = now + idx * 0.05;
+
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(freq, t);
+
+                gain.gain.setValueAtTime(this.masterVolume * 0.55, t);
+                gain.gain.exponentialRampToValueAtTime(0.001, t + 0.14);
+
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+
+                osc.start(t);
+                osc.stop(t + 0.15);
+            });
+        } catch {}
+    }
+
+    playExplosion() {
+        if (this.muted) return;
+        this.init();
+        if (!this.ctx) return;
+        try {
+            const now = this.ctx.currentTime;
+            const bufferSize = Math.floor(this.ctx.sampleRate * 0.3);
+            const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+            const data = buffer.getChannelData(0);
+            for (let i = 0; i < bufferSize; i++) {
+                data[i] = (Math.random() * 2 - 1) * Math.exp(-i / (bufferSize * 0.35));
+            }
+
+            const noise = this.ctx.createBufferSource();
+            noise.buffer = buffer;
+
+            const filter = this.ctx.createBiquadFilter();
+            filter.type = 'lowpass';
+            filter.frequency.setValueAtTime(750, now);
+            filter.frequency.exponentialRampToValueAtTime(60, now + 0.3);
+
+            const gain = this.ctx.createGain();
+            gain.gain.setValueAtTime(this.masterVolume * 0.85, now);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
+
+            noise.connect(filter);
+            filter.connect(gain);
+            gain.connect(this.ctx.destination);
+
+            noise.start(now);
+        } catch {}
+    }
+
+    playStormBuzz() {
+        if (this.muted) return;
+        this.init();
+        if (!this.ctx) return;
+        try {
+            const now = this.ctx.currentTime;
+            const osc = this.ctx.createOscillator();
+            const gain = this.ctx.createGain();
+
+            osc.type = 'sawtooth';
+            osc.frequency.setValueAtTime(70, now);
+            osc.frequency.linearRampToValueAtTime(45, now + 0.14);
+
+            gain.gain.setValueAtTime(this.masterVolume * 0.4, now);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.14);
+
+            osc.connect(gain);
+            gain.connect(this.ctx.destination);
+
+            osc.start(now);
+            osc.stop(now + 0.15);
+        } catch {}
+    }
+}
+
+const soundEngine = new SoundEngine();
+
+function updateSoundButtonUi(isMuted) {
+    if (!soundToggleBtn) return;
+    if (isMuted) {
+        soundToggleBtn.textContent = '🔇 Sound: OFF';
+        soundToggleBtn.classList.add('muted');
+        soundToggleBtn.title = 'Audio Synthesizer Muted (Click to Unmute)';
+    } else {
+        soundToggleBtn.textContent = '🔊 Sound: ON';
+        soundToggleBtn.classList.remove('muted');
+        soundToggleBtn.title = 'Audio Synthesizer Active (Click to Mute)';
+    }
+}
+
+// Global user interaction gesture to unlock Web Audio API Context
+['click', 'keydown', 'pointerdown'].forEach(evt => {
+    window.addEventListener(evt, () => soundEngine.init(), { passive: true });
+});
 
 const projectiles = new Map();
 const ATTACK_COOLDOWN_MS = 350;
@@ -138,6 +375,8 @@ function fireBlaster(targetHeading) {
     const now = performance.now();
     if (now - player.lastAttackTime < ATTACK_COOLDOWN_MS) return;
     player.lastAttackTime = now;
+
+    soundEngine.playLaser(player.spreadShotUntil > Date.now());
 
     const heading = targetHeading !== undefined ? targetHeading : player.heading;
     gameWs.send(JSON.stringify({
@@ -1416,6 +1655,7 @@ function handleWebSocketMessage(msg) {
             const targetX = isMe ? player.x : (remotePlayers.get(msg.username)?.x || player.x);
             const targetY = isMe ? player.y : (remotePlayers.get(msg.username)?.y || player.y);
             addFloatingText(`-${msg.damage} ⚡STORM`, targetX, targetY - 22, '#ef4444');
+            soundEngine.playStormBuzz();
             if (isMe) {
                 if (msg.currentShield !== undefined) player.shield = msg.currentShield;
                 player.health = msg.currentHealth;
@@ -1438,6 +1678,7 @@ function handleWebSocketMessage(msg) {
             break;
         case 'POWER_UP_COLLECTED': {
             powerUps.delete(msg.powerUpId);
+            soundEngine.playPowerUp();
             const isMe = msg.username === player.name;
             const targetX = isMe ? player.x : (remotePlayers.get(msg.username)?.x || player.x);
             const targetY = isMe ? player.y : (remotePlayers.get(msg.username)?.y || player.y);
@@ -1461,6 +1702,9 @@ function handleWebSocketMessage(msg) {
             break;
         }
         case 'PROJECTILE_SPAWNED':
+            if (msg.shooter !== player.name) {
+                soundEngine.playLaser();
+            }
             projectiles.set(msg.id, {
                 id: msg.id,
                 shooter: msg.shooter,
@@ -1492,11 +1736,14 @@ function handleWebSocketMessage(msg) {
             const targetY = isMe ? player.y : (remotePlayers.get(msg.targetUsername)?.y || player.y);
 
             if (msg.shieldDamage > 0) {
+                soundEngine.playShieldDeflect();
                 addFloatingText(`-${msg.shieldDamage} 🛡️`, targetX, targetY - 28, '#06b6d4');
             }
             if (msg.healthDamage > 0) {
+                soundEngine.playHit();
                 addFloatingText(`-${msg.healthDamage}`, targetX, targetY - 14, isMe ? '#ef4444' : '#f87171');
             } else if (!msg.shieldDamage) {
+                soundEngine.playHit();
                 addFloatingText(`-${msg.damage}`, targetX, targetY - 14, isMe ? '#ef4444' : '#f87171');
             }
 
@@ -1516,6 +1763,7 @@ function handleWebSocketMessage(msg) {
             break;
         }
         case 'PLAYER_ELIMINATED': {
+            soundEngine.playExplosion();
             addKillFeedMessage(msg.killer, msg.victim);
 
             if (msg.victim === player.name) {
@@ -1571,6 +1819,7 @@ function handleWebSocketMessage(msg) {
             break;
         }
         case 'COIN_COLLECTED': {
+            soundEngine.playCoin();
             const coin = coins.get(msg.coinId);
             const posX = coin ? coin.x : player.x;
             const posY = coin ? coin.y : player.y;
@@ -2190,11 +2439,23 @@ function setupLeaderboardEventListeners() {
     });
 }
 
+function setupAudioEventListeners() {
+    if (soundToggleBtn) {
+        updateSoundButtonUi(soundEngine.isMuted());
+        soundToggleBtn.addEventListener('click', () => {
+            soundEngine.init();
+            const muted = soundEngine.toggleMute();
+            updateSoundButtonUi(muted);
+        });
+    }
+}
+
 // --- Application Bootstrap ---
 window.addEventListener('DOMContentLoaded', () => {
     setupAuthEventListeners();
     setupRoomEventListeners();
     setupLeaderboardEventListeners();
+    setupAudioEventListeners();
     checkBackendHealth();
     verifyExistingSession().then(() => {
         checkMyCurrentRoom();
