@@ -136,7 +136,8 @@
                 <div class="hud-item"><span class="hud-label">ROOM:</span> <span id="hudRoom">None (Lobby)</span></div>
                 <div class="hud-item"><span class="hud-label">POS:</span> <span id="hudPos">X: 0, Y: 0</span></div>
                 <div class="hud-item"><span class="hud-label">FPS:</span> <span id="hudFps">60</span></div>
-                <div class="hud-item"><span class="hud-label">STATUS:</span> <span id="hudState">Phase 17: Dynamic Arena Hazards & Traps</span></div>
+                <div class="hud-item"><span class="hud-label">STATUS:</span> <span id="hudState">Phase 18: Tactical Emotes & Callouts</span></div>
+                <button type="button" class="hud-emote-trigger-btn" id="hudEmoteTriggerBtn" title="Press T or Click for Callout Wheel">💬 Callouts [T]</button>
             </div>
 
             <div class="canvas-container">
@@ -149,6 +150,55 @@
                 <div class="live-scoreboard" id="liveScoreboard" style="display: none;">
                     <div class="scoreboard-title">⚡ Match Standings (Goal: <span id="scoreboardGoal">100</span>)</div>
                     <div class="scoreboard-list" id="scoreboardList"></div>
+                </div>
+
+                <!-- Phase 18: Tactical Emote Wheel & Radial Callout HUD -->
+                <div class="emote-wheel-overlay" id="emoteWheelOverlay" style="display: none;">
+                    <div class="emote-wheel-container">
+                        <div class="emote-wheel-title">TACTICAL CALLOUTS <span class="emote-hint">[Hold T / Press 1-8]</span></div>
+                        <div class="emote-grid">
+                            <button class="emote-btn" data-emote="TARGET_SPOTTED" title="1: Enemy Sighted!">
+                                <span class="emote-num">1</span>
+                                <span class="emote-icon">🎯</span>
+                                <span class="emote-label">Enemy Sighted</span>
+                            </button>
+                            <button class="emote-btn" data-emote="DEFEND_POS" title="2: Defend Here!">
+                                <span class="emote-num">2</span>
+                                <span class="emote-icon">🛡️</span>
+                                <span class="emote-label">Defend Here</span>
+                            </button>
+                            <button class="emote-btn" data-emote="RUSH_ATTACK" title="3: Charge Forward!">
+                                <span class="emote-num">3</span>
+                                <span class="emote-icon">⚡</span>
+                                <span class="emote-label">Charge In</span>
+                            </button>
+                            <button class="emote-btn" data-emote="DANGER_ALERT" title="4: Danger Ahead!">
+                                <span class="emote-num">4</span>
+                                <span class="emote-icon">💥</span>
+                                <span class="emote-label">Danger Ahead</span>
+                            </button>
+                            <button class="emote-btn" data-emote="NEED_BACKUP" title="5: Need Backup!">
+                                <span class="emote-num">5</span>
+                                <span class="emote-icon">🚨</span>
+                                <span class="emote-label">Need Backup</span>
+                            </button>
+                            <button class="emote-btn" data-emote="TAUNT_FLEX" title="6: Can't Touch This!">
+                                <span class="emote-num">6</span>
+                                <span class="emote-icon">💀</span>
+                                <span class="emote-label">Taunt Flex</span>
+                            </button>
+                            <button class="emote-btn" data-emote="CELEBRATE_GG" title="7: Good Game!">
+                                <span class="emote-num">7</span>
+                                <span class="emote-icon">👑</span>
+                                <span class="emote-label">Good Game</span>
+                            </button>
+                            <button class="emote-btn" data-emote="HEAL_REQUEST" title="8: Need Repairs!">
+                                <span class="emote-num">8</span>
+                                <span class="emote-icon">❤️</span>
+                                <span class="emote-label">Need Repairs</span>
+                            </button>
+                        </div>
+                    </div>
                 </div>
 
                 <!-- Phase 14: In-Game Real-Time Match Chat Overlay -->
@@ -170,8 +220,9 @@
             <div class="controls-legend">
                 <span>Movement: <strong>W, A, S, D</strong> or <strong>Arrow Keys</strong></span>
                 <span>Attack: <strong>Spacebar</strong> or <strong>Left-Click</strong> to Fire Blaster (+15 pts/kill)</span>
+                <span>Emotes: <strong>[T]</strong> Wheel / <strong>[1-8]</strong> Callouts</span>
                 <span>Chat: <strong>Enter</strong> to Talk</span>
-                <span>Spectate: <strong>[1-8]</strong> Track Warriors | <strong>[Space]</strong> Center</span>
+                <span>Spectate: <strong>Track</strong> [1-8] / <strong>[Space]</strong> Center</span>
             </div>
         </main>
 

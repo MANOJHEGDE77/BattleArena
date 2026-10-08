@@ -9,6 +9,7 @@ import com.battlearena.model.Projectile;
 import com.battlearena.model.Room;
 import com.battlearena.model.RoomStatus;
 import com.battlearena.model.WarriorClass;
+import com.battlearena.model.EmoteType;
 import com.battlearena.security.JwtUtil;
 import com.battlearena.service.RoomService;
 import com.battlearena.service.UserService;
@@ -43,6 +44,8 @@ import java.util.concurrent.TimeUnit;
 @Component
 public class GameWebSocketHandler extends TextWebSocketHandler {
 
+    private static final long EMOTE_COOLDOWN_MS = 1200L;
+
     private final JwtUtil jwtUtil;
     private final RoomService roomService;
     private final UserService userService;
@@ -54,6 +57,7 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
     private final ConcurrentMap<String, String> sessionToUser = new ConcurrentHashMap<>();
     private final ConcurrentMap<String, String> sessionToRoom = new ConcurrentHashMap<>();
     private final ConcurrentMap<String, Set<WebSocketSession>> roomSessions = new ConcurrentHashMap<>();
+    private final ConcurrentMap<String, Long> lastEmoteTimes = new ConcurrentHashMap<>();
     private final ScheduledExecutorService respawnScheduler = Executors.newSingleThreadScheduledExecutor();
 
     public GameWebSocketHandler(JwtUtil jwtUtil, RoomService roomService, UserService userService,
@@ -100,6 +104,7 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
             }
 
             if (username != null) {
+                lastEmoteTimes.remove(username);
                 Room room = roomService.getActiveRoom(roomId);
                 if (room != null) {
                     if (room.getStatus() != RoomStatus.PLAYING) {
@@ -329,6 +334,15 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
                             ));
                         }
                     } catch (Exception ignored) {}
+                }
+                break;
+            }
+            case "EMOTE": {
+                String username = sessionToUser.get(session.getId());
+                String roomId = sessionToRoom.get(session.getId());
+                if (username != null && roomId != null && root.has("emoteId")) {
+                    String emoteId = root.get("emoteId").asText();
+                    handleEmote(roomId, username, emoteId, root);
                 }
                 break;
             }
@@ -616,6 +630,57 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
                 ));
             }
         }
+    }
+
+    private void handleEmote(String roomId, String username, String emoteId, JsonNode root) {
+        Room room = roomService.getActiveRoom(roomId);
+        if (room == null) return;
+
+        long now = System.currentTimeMillis();
+        Long lastTime = lastEmoteTimes.get(username);
+        if (lastTime != null && (now - lastTime) < EMOTE_COOLDOWN_MS) {
+            return; // Anti-spam rate limit
+        }
+        lastEmoteTimes.put(username, now);
+
+        EmoteType emote;
+        try {
+            emote = EmoteType.valueOf(emoteId.toUpperCase());
+        } catch (Exception ex) {
+            return;
+        }
+
+        GamePlayer player = room.getGamePlayer(username);
+        double px = player != null ? player.getX() : 400.0;
+        double py = player != null ? player.getY() : 300.0;
+
+        Map<String, Object> payload = new LinkedHashMap<>();
+        payload.put("type", "EMOTE_TRIGGERED");
+        payload.put("username", username);
+        payload.put("emoteId", emote.getId());
+        payload.put("icon", emote.getIcon());
+        payload.put("label", emote.getLabel());
+        payload.put("category", emote.getCategory());
+        payload.put("x", px);
+        payload.put("y", py);
+        payload.put("timestamp", now);
+        if (root.has("targetX") && root.has("targetY")) {
+            payload.put("targetX", root.get("targetX").asDouble());
+            payload.put("targetY", root.get("targetY").asDouble());
+        }
+
+        broadcastToRoom(roomId, payload);
+
+        // Also broadcast as a distinct chat message so all players can read it in their log
+        broadcastToRoom(roomId, Map.of(
+                "type", "CHAT_MESSAGE",
+                "id", UUID.randomUUID().toString(),
+                "username", username,
+                "text", emote.getIcon() + " " + emote.getLabel(),
+                "timestamp", now,
+                "system", false,
+                "isEmote", true
+        ));
     }
 
     public void broadcastToRoom(String roomId, Object payload) {

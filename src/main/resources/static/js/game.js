@@ -504,6 +504,95 @@ class SoundEngine {
             osc.stop(now + 0.1);
         } catch {}
     }
+
+    playEmoteSound(emoteId, category) {
+        if (this.muted) return;
+        this.init();
+        if (!this.ctx) return;
+        try {
+            const now = this.ctx.currentTime;
+            if (emoteId === 'CELEBRATE_GG') {
+                const notes = [523.25, 659.25, 783.99, 1046.5];
+                notes.forEach((freq, i) => {
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+                    const t = now + i * 0.07;
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(freq, t);
+                    gain.gain.setValueAtTime(this.masterVolume * 0.5, t);
+                    gain.gain.exponentialRampToValueAtTime(0.001, t + 0.18);
+                    osc.connect(gain);
+                    gain.connect(this.ctx.destination);
+                    osc.start(t);
+                    osc.stop(t + 0.2);
+                });
+            } else if (emoteId === 'TARGET_SPOTTED' || emoteId === 'DANGER_ALERT') {
+                [660, 880].forEach((freq, i) => {
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+                    const t = now + i * 0.08;
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(freq, t);
+                    gain.gain.setValueAtTime(this.masterVolume * 0.65, t);
+                    gain.gain.exponentialRampToValueAtTime(0.001, t + 0.12);
+                    osc.connect(gain);
+                    gain.connect(this.ctx.destination);
+                    osc.start(t);
+                    osc.stop(t + 0.14);
+                });
+            } else if (emoteId === 'DEFEND_POS') {
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(220, now);
+                osc.frequency.linearRampToValueAtTime(330, now + 0.15);
+                gain.gain.setValueAtTime(this.masterVolume * 0.6, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.28);
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start(now);
+                osc.stop(now + 0.3);
+            } else if (emoteId === 'RUSH_ATTACK') {
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(280, now);
+                osc.frequency.exponentialRampToValueAtTime(840, now + 0.2);
+                gain.gain.setValueAtTime(this.masterVolume * 0.55, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.22);
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start(now);
+                osc.stop(now + 0.25);
+            } else if (emoteId === 'NEED_BACKUP' || emoteId === 'HEAL_REQUEST') {
+                [587.33, 783.99].forEach((freq, i) => {
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+                    const t = now + i * 0.09;
+                    osc.type = 'square';
+                    osc.frequency.setValueAtTime(freq, t);
+                    gain.gain.setValueAtTime(this.masterVolume * 0.45, t);
+                    gain.gain.exponentialRampToValueAtTime(0.001, t + 0.13);
+                    osc.connect(gain);
+                    gain.connect(this.ctx.destination);
+                    osc.start(t);
+                    osc.stop(t + 0.15);
+                });
+            } else {
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(500, now);
+                osc.frequency.exponentialRampToValueAtTime(200, now + 0.22);
+                gain.gain.setValueAtTime(this.masterVolume * 0.55, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start(now);
+                osc.stop(now + 0.27);
+            }
+        } catch {}
+    }
 }
 
 const soundEngine = new SoundEngine();
@@ -581,6 +670,11 @@ window.addEventListener('keydown', (e) => {
         if (chatInput) chatInput.focus();
         return;
     }
+    if (e.key === 't' || e.key === 'T') {
+        e.preventDefault();
+        toggleEmoteWheel();
+        return;
+    }
     if (isSpectator) {
         if (e.code === 'Space') {
             e.preventDefault();
@@ -598,6 +692,14 @@ window.addEventListener('keydown', (e) => {
             return;
         }
     } else {
+        if (e.key >= '1' && e.key <= '8') {
+            const emote = EMOTE_MAP[e.key];
+            if (emote) {
+                e.preventDefault();
+                triggerEmote(emote);
+                return;
+            }
+        }
         if (e.code === 'Space') {
             e.preventDefault();
             fireBlaster();
@@ -986,6 +1088,218 @@ function renderShockwaves(dt) {
         ctx.shadowColor = sw.color;
         ctx.shadowBlur = 14;
         ctx.stroke();
+        ctx.restore();
+    }
+}
+
+// --- Phase 18 DOM Elements & State: Tactical Emote Wheel & Callout HUD ---
+const emoteWheelOverlay = document.getElementById('emoteWheelOverlay');
+const hudEmoteTriggerBtn = document.getElementById('hudEmoteTriggerBtn');
+const activeEmotes = [];
+const activePings = [];
+
+const EMOTE_MAP = {
+    '1': 'TARGET_SPOTTED',
+    '2': 'DEFEND_POS',
+    '3': 'RUSH_ATTACK',
+    '4': 'DANGER_ALERT',
+    '5': 'NEED_BACKUP',
+    '6': 'TAUNT_FLEX',
+    '7': 'CELEBRATE_GG',
+    '8': 'HEAL_REQUEST'
+};
+
+function openEmoteWheel() {
+    if (!emoteWheelOverlay) return;
+    emoteWheelOverlay.style.display = 'block';
+}
+
+function closeEmoteWheel() {
+    if (!emoteWheelOverlay) return;
+    emoteWheelOverlay.style.display = 'none';
+}
+
+function toggleEmoteWheel() {
+    if (!emoteWheelOverlay) return;
+    if (emoteWheelOverlay.style.display === 'block') {
+        closeEmoteWheel();
+    } else {
+        openEmoteWheel();
+    }
+}
+
+function getEmoteCategoryColor(category) {
+    switch (category) {
+        case 'warning': return '#f59e0b';
+        case 'tactical': return '#06b6d4';
+        case 'aggressive': return '#ef4444';
+        case 'urgent': return '#ec4899';
+        case 'social': return '#eab308';
+        default: return '#38bdf8';
+    }
+}
+
+function triggerEmote(emoteId) {
+    if (!gameWs || gameWs.readyState !== WebSocket.OPEN) return;
+    if (!activeRoom || activeRoom.status !== 'PLAYING') return;
+
+    gameWs.send(JSON.stringify({
+        type: 'EMOTE',
+        emoteId: emoteId
+    }));
+    closeEmoteWheel();
+}
+
+function handleEmoteTriggered(msg) {
+    soundEngine.playEmoteSound(msg.emoteId, msg.category);
+    activeEmotes.push({
+        id: 'em_' + Math.random(),
+        username: msg.username,
+        emoteId: msg.emoteId,
+        icon: msg.icon || '💬',
+        label: msg.label || 'Callout',
+        category: msg.category || 'tactical',
+        x: msg.x,
+        y: msg.y,
+        createdAt: performance.now(),
+        duration: 3500
+    });
+
+    const catColor = getEmoteCategoryColor(msg.category);
+    if (msg.targetX !== undefined && msg.targetY !== undefined) {
+        activePings.push({
+            x: msg.targetX,
+            y: msg.targetY,
+            icon: msg.icon || '📍',
+            color: catColor,
+            createdAt: performance.now(),
+            duration: 3500
+        });
+    }
+
+    addFloatingText(`${msg.icon || ''} ${msg.label || ''}`, msg.x, msg.y - 36, catColor);
+}
+
+function renderEmotes(dt) {
+    if (activeEmotes.length === 0) return;
+    const now = performance.now();
+
+    for (let i = activeEmotes.length - 1; i >= 0; i--) {
+        const em = activeEmotes[i];
+        const elapsed = now - em.createdAt;
+        if (elapsed >= em.duration) {
+            activeEmotes.splice(i, 1);
+            continue;
+        }
+
+        let px = em.x;
+        let py = em.y;
+        if (em.username === player.name) {
+            px = player.x;
+            py = player.y;
+        } else if (remotePlayers.has(em.username)) {
+            const rp = remotePlayers.get(em.username);
+            px = rp.x;
+            py = rp.y;
+        }
+
+        const progress = elapsed / em.duration;
+        let alpha = 1;
+        if (elapsed < 200) {
+            alpha = elapsed / 200;
+        } else if (em.duration - elapsed < 800) {
+            alpha = (em.duration - elapsed) / 800;
+        }
+        alpha = Math.max(0, Math.min(1, alpha));
+
+        const floatY = progress * 24;
+        const catColor = getEmoteCategoryColor(em.category);
+
+        ctx.save();
+        ctx.globalAlpha = alpha;
+
+        // Holographic tether line connecting bubble to player
+        ctx.beginPath();
+        ctx.moveTo(px, py - 22);
+        ctx.lineTo(px, py - 38 - floatY);
+        ctx.strokeStyle = catColor;
+        ctx.lineWidth = 1.2;
+        ctx.setLineDash([3, 3]);
+        ctx.stroke();
+        ctx.setLineDash([]);
+
+        // Holographic Badge Pill
+        const text = `${em.icon} ${em.label}`;
+        ctx.font = 'bold 12px Outfit, sans-serif';
+        const textMetrics = ctx.measureText(text);
+        const pillWidth = textMetrics.width + 20;
+        const pillHeight = 24;
+        const pillX = px - pillWidth / 2;
+        const pillY = py - 46 - floatY - pillHeight / 2;
+
+        // Glass background
+        ctx.fillStyle = 'rgba(10, 15, 30, 0.9)';
+        ctx.beginPath();
+        if (ctx.roundRect) {
+            ctx.roundRect(pillX, pillY, pillWidth, pillHeight, 12);
+        } else {
+            ctx.rect(pillX, pillY, pillWidth, pillHeight);
+        }
+        ctx.fill();
+
+        // Glowing border
+        ctx.strokeStyle = catColor;
+        ctx.lineWidth = 1.6;
+        ctx.shadowColor = catColor;
+        ctx.shadowBlur = 8;
+        ctx.stroke();
+
+        // Interior glow
+        ctx.fillStyle = catColor;
+        ctx.globalAlpha = alpha * 0.14;
+        ctx.fill();
+
+        // Text
+        ctx.globalAlpha = alpha;
+        ctx.shadowBlur = 0;
+        ctx.fillStyle = '#ffffff';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(text, px, pillY + pillHeight / 2);
+
+        ctx.restore();
+    }
+}
+
+function renderPings(dt) {
+    if (activePings.length === 0) return;
+    const now = performance.now();
+
+    for (let i = activePings.length - 1; i >= 0; i--) {
+        const ping = activePings[i];
+        const elapsed = now - ping.createdAt;
+        if (elapsed >= ping.duration) {
+            activePings.splice(i, 1);
+            continue;
+        }
+
+        const alpha = Math.max(0, 1 - elapsed / ping.duration);
+        const pulse = 18 + Math.sin(elapsed * 0.01) * 6;
+
+        ctx.save();
+        ctx.globalAlpha = alpha * 0.85;
+        ctx.beginPath();
+        ctx.arc(ping.x, ping.y, pulse, 0, Math.PI * 2);
+        ctx.strokeStyle = ping.color;
+        ctx.lineWidth = 2;
+        ctx.shadowColor = ping.color;
+        ctx.shadowBlur = 10;
+        ctx.stroke();
+
+        ctx.font = '16px Outfit, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(ping.icon, ping.x, ping.y);
         ctx.restore();
     }
 }
@@ -1777,6 +2091,8 @@ function gameLoop(currentTime) {
     renderRemotePlayers();
     renderPlayer();
     renderShockwaves(dt);
+    renderPings(dt);
+    renderEmotes(dt);
     renderFloatingTexts(dt);
 
     if (hasShake) {
@@ -2378,6 +2694,9 @@ function handleWebSocketMessage(msg) {
             break;
         case 'CHAT_MESSAGE':
             appendChatMessage(msg);
+            break;
+        case 'EMOTE_TRIGGERED':
+            handleEmoteTriggered(msg);
             break;
         case 'ZONE_TICK':
             if (msg.timeRemaining !== undefined) {
@@ -3260,6 +3579,7 @@ function setupAuthEventListeners() {
     // Close on Escape key
     window.addEventListener('keydown', (e) => {
         if (e.key === 'Escape') {
+            closeEmoteWheel();
             if (authModal.style.display === 'flex') closeModal();
             if (createRoomModal.style.display === 'flex') closeCreateRoomModal();
             if (leaderboardModal.style.display === 'flex') closeLeaderboardModal();
@@ -3267,6 +3587,33 @@ function setupAuthEventListeners() {
             if (gameOverModal.style.display === 'flex') closeGameOverModal();
         }
     });
+}
+
+function setupEmoteEventListeners() {
+    if (hudEmoteTriggerBtn) {
+        hudEmoteTriggerBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            toggleEmoteWheel();
+        });
+    }
+
+    if (emoteWheelOverlay) {
+        emoteWheelOverlay.querySelectorAll('.emote-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const emoteId = btn.getAttribute('data-emote');
+                if (emoteId) {
+                    triggerEmote(emoteId);
+                }
+            });
+        });
+
+        emoteWheelOverlay.addEventListener('click', (e) => {
+            if (e.target === emoteWheelOverlay) {
+                closeEmoteWheel();
+            }
+        });
+    }
 }
 
 function setupLeaderboardEventListeners() {
@@ -3349,6 +3696,7 @@ window.addEventListener('DOMContentLoaded', () => {
     setupLeaderboardEventListeners();
     setupAudioEventListeners();
     setupChatEventListeners();
+    setupEmoteEventListeners();
     checkBackendHealth();
     verifyExistingSession().then(() => {
         checkMyCurrentRoom();

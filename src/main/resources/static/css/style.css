@@ -1704,5 +1704,137 @@ body {
     font-weight: 700;
 }
 
+/* Phase 18: Tactical Emote Wheel & Callout HUD */
+.emote-wheel-overlay {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 45;
+    pointer-events: auto;
+    animation: emoteFadeIn 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes emoteFadeIn {
+    from {
+        opacity: 0;
+        transform: translate(-50%, -50%) scale(0.92);
+    }
+    to {
+        opacity: 1;
+        transform: translate(-50%, -50%) scale(1);
+    }
+}
+
+.emote-wheel-container {
+    background: rgba(10, 15, 30, 0.94);
+    backdrop-filter: blur(14px);
+    border: 1px solid rgba(14, 165, 233, 0.5);
+    border-radius: 20px;
+    padding: 16px 20px;
+    box-shadow: 0 0 35px rgba(14, 165, 233, 0.3), 0 10px 40px rgba(0, 0, 0, 0.85);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+}
+
+.emote-wheel-title {
+    font-size: 0.82rem;
+    font-weight: 800;
+    letter-spacing: 1.5px;
+    color: #38bdf8;
+    text-shadow: 0 0 10px rgba(56, 189, 248, 0.6);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.emote-hint {
+    font-size: 0.72rem;
+    color: var(--text-secondary);
+    font-weight: 500;
+}
+
+.emote-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+}
+
+.emote-btn {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    width: 88px;
+    height: 78px;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.15s ease-out;
+    color: var(--text-primary);
+    padding: 6px;
+}
+
+.emote-btn:hover, .emote-btn.active-focus {
+    background: rgba(14, 165, 233, 0.22);
+    border-color: #38bdf8;
+    transform: translateY(-2px) scale(1.04);
+    box-shadow: 0 0 18px rgba(56, 189, 248, 0.5);
+}
+
+.emote-btn .emote-num {
+    position: absolute;
+    top: 4px;
+    left: 6px;
+    font-size: 0.65rem;
+    font-weight: 800;
+    color: #94a3b8;
+    font-family: monospace;
+}
+
+.emote-btn .emote-icon {
+    font-size: 1.6rem;
+    line-height: 1;
+    filter: drop-shadow(0 0 6px rgba(255, 255, 255, 0.4));
+}
+
+.emote-btn .emote-label {
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.3px;
+    color: #e2e8f0;
+    text-align: center;
+    white-space: nowrap;
+}
+
+/* Quick HUD Emote Trigger Button on Arena Screen */
+.hud-emote-trigger-btn {
+    background: rgba(14, 165, 233, 0.15);
+    border: 1px solid rgba(14, 165, 233, 0.4);
+    color: #38bdf8;
+    border-radius: 8px;
+    padding: 6px 12px;
+    font-size: 0.78rem;
+    font-weight: 700;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    transition: all 0.2s ease;
+}
+
+.hud-emote-trigger-btn:hover {
+    background: rgba(14, 165, 233, 0.3);
+    border-color: #38bdf8;
+    box-shadow: 0 0 12px rgba(56, 189, 248, 0.4);
+    transform: translateY(-1px);
+}
+
+
 
 
