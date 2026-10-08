@@ -1,6 +1,7 @@
 package com.battlearena.service;
 
 import com.battlearena.dto.*;
+import com.battlearena.exception.ResourceNotFoundException;
 import com.battlearena.model.PlayerRoomState;
 import com.battlearena.model.Room;
 import org.springframework.stereotype.Service;
@@ -158,7 +159,7 @@ public class RoomService {
     private Room findRoomOrThrow(String roomId) {
         Room room = rooms.get(roomId);
         if (room == null) {
-            throw new IllegalArgumentException("Room not found: " + roomId);
+            throw new ResourceNotFoundException("Room not found: " + roomId);
         }
         return room;
     }

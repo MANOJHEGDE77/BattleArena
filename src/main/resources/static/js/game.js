@@ -14,6 +14,7 @@ const hudScore = document.getElementById('hudScore');
 const hudTarget = document.getElementById('hudTarget');
 const statusDot = document.querySelector('.status-dot');
 const statusText = document.getElementById('statusText');
+const hudState = document.getElementById('hudState');
 
 const liveScoreboard = document.getElementById('liveScoreboard');
 const scoreboardList = document.getElementById('scoreboardList');
@@ -897,7 +898,7 @@ function connectGameWebSocket(roomId) {
         gameWs.currentRoomId = roomId;
 
         gameWs.onopen = () => {
-            hudState.textContent = 'WS: Connected (' + roomId + ')';
+            if (hudState) hudState.textContent = 'WS: Connected (' + roomId + ')';
             gameWs.send(JSON.stringify({ type: 'JOIN', token, roomId }));
         };
 
@@ -910,12 +911,22 @@ function connectGameWebSocket(roomId) {
             }
         };
 
-        gameWs.onclose = () => {
+        gameWs.onclose = (event) => {
+            if (hudState) hudState.textContent = 'WS: Disconnected';
             remotePlayers.clear();
+            // Resilient auto-reconnect if client remains in active room and socket closed unexpectedly
+            if (activeRoom && activeRoom.roomId === roomId && !event.wasClean) {
+                if (hudState) hudState.textContent = 'WS: Reconnecting...';
+                setTimeout(() => {
+                    if (activeRoom && activeRoom.roomId === roomId) {
+                        connectGameWebSocket(roomId);
+                    }
+                }, 2000);
+            }
         };
 
         gameWs.onerror = () => {
-            // Silently handle socket interruption
+            if (hudState) hudState.textContent = 'WS: Connection Issue';
         };
     } catch (e) {
         console.error('WS connection failed:', e);
@@ -955,6 +966,20 @@ function handleWebSocketMessage(msg) {
             }
             break;
         case 'PLAYER_LEFT':
+            remotePlayers.delete(msg.username);
+            updateLiveScoreboard();
+            if (activeRoom) {
+                fetchRoomDetails(activeRoom.roomId);
+            }
+            break;
+        case 'PLAYER_DISCONNECTED':
+            if (killFeed) {
+                const item = document.createElement('div');
+                item.className = 'kill-feed-item';
+                item.innerHTML = `<span>⚠️</span> <span class="victim">${escapeHtml(msg.username)}</span> <span class="bonus">disconnected</span>`;
+                killFeed.appendChild(item);
+                setTimeout(() => { if (item.parentNode) item.remove(); }, 4000);
+            }
             remotePlayers.delete(msg.username);
             updateLiveScoreboard();
             if (activeRoom) {

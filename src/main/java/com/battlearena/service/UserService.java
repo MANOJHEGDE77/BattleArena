@@ -3,6 +3,7 @@ package com.battlearena.service;
 import com.battlearena.dto.AuthRequest;
 import com.battlearena.dto.AuthResponse;
 import com.battlearena.dto.UserProfileResponse;
+import com.battlearena.exception.ResourceNotFoundException;
 import com.battlearena.model.User;
 import com.battlearena.repository.UserRepository;
 import com.battlearena.security.JwtUtil;
@@ -71,10 +72,10 @@ public class UserService {
 
         String username = request.getUsername().trim();
         User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new IllegalArgumentException("Invalid username or password"));
+                .orElseThrow(() -> new org.springframework.security.authentication.BadCredentialsException("Invalid username or password"));
 
         if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
-            throw new IllegalArgumentException("Invalid username or password");
+            throw new org.springframework.security.authentication.BadCredentialsException("Invalid username or password");
         }
 
         String token = jwtUtil.generateToken(user.getUsername(), user.getId());
@@ -87,7 +88,7 @@ public class UserService {
     @Transactional(readOnly = true)
     public UserProfileResponse getUserProfile(String username) {
         User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new IllegalArgumentException("User not found: " + username));
+                .orElseThrow(() -> new ResourceNotFoundException("User not found: " + username));
 
         return new UserProfileResponse(
                 user.getId(),

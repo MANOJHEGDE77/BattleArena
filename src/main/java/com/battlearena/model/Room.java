@@ -104,6 +104,7 @@ public class Room {
      */
     public synchronized boolean removePlayer(String username) {
         players.remove(username);
+        gamePlayers.remove(username);
 
         if (players.isEmpty()) {
             return true;

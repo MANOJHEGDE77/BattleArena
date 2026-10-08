@@ -39,17 +39,13 @@ public class RoomController {
      * POST /api/rooms
      */
     @PostMapping
-    public ResponseEntity<?> createRoom(@RequestBody(required = false) CreateRoomRequest request,
-                                        Authentication authentication) {
-        try {
-            if (request == null) {
-                request = new CreateRoomRequest();
-            }
-            RoomResponse response = roomService.createRoom(request, authentication.getName());
-            return ResponseEntity.status(HttpStatus.CREATED).body(response);
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+    public ResponseEntity<RoomResponse> createRoom(@RequestBody(required = false) CreateRoomRequest request,
+                                                  Authentication authentication) {
+        if (request == null) {
+            request = new CreateRoomRequest();
         }
+        RoomResponse response = roomService.createRoom(request, authentication.getName());
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
     /**
@@ -77,12 +73,8 @@ public class RoomController {
      * GET /api/rooms/{roomId}
      */
     @GetMapping("/{roomId}")
-    public ResponseEntity<?> getRoom(@PathVariable String roomId, Authentication authentication) {
-        try {
-            return ResponseEntity.ok(roomService.getRoom(roomId, authentication.getName()));
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", e.getMessage()));
-        }
+    public ResponseEntity<RoomResponse> getRoom(@PathVariable String roomId, Authentication authentication) {
+        return ResponseEntity.ok(roomService.getRoom(roomId, authentication.getName()));
     }
 
     /**
@@ -90,13 +82,9 @@ public class RoomController {
      * POST /api/rooms/{roomId}/join
      */
     @PostMapping("/{roomId}/join")
-    public ResponseEntity<?> joinRoom(@PathVariable String roomId, Authentication authentication) {
-        try {
-            RoomResponse response = roomService.joinRoom(roomId, authentication.getName());
-            return ResponseEntity.ok(response);
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
-        }
+    public ResponseEntity<RoomResponse> joinRoom(@PathVariable String roomId, Authentication authentication) {
+        RoomResponse response = roomService.joinRoom(roomId, authentication.getName());
+        return ResponseEntity.ok(response);
     }
 
     /**
@@ -104,7 +92,7 @@ public class RoomController {
      * POST /api/rooms/{roomId}/leave
      */
     @PostMapping("/{roomId}/leave")
-    public ResponseEntity<?> leaveRoom(@PathVariable String roomId, Authentication authentication) {
+    public ResponseEntity<Map<String, String>> leaveRoom(@PathVariable String roomId, Authentication authentication) {
         roomService.leaveCurrentRoom(authentication.getName());
         webSocketHandler.broadcastToRoom(roomId, Map.of(
                 "type", "PLAYER_LEFT",
@@ -119,17 +107,13 @@ public class RoomController {
      * POST /api/rooms/{roomId}/ready
      */
     @PostMapping("/{roomId}/ready")
-    public ResponseEntity<?> toggleReady(@PathVariable String roomId, Authentication authentication) {
-        try {
-            RoomResponse response = roomService.toggleReady(roomId, authentication.getName());
-            webSocketHandler.broadcastToRoom(roomId, Map.of(
-                    "type", "ROOM_UPDATED",
-                    "roomId", roomId
-            ));
-            return ResponseEntity.ok(response);
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
-        }
+    public ResponseEntity<RoomResponse> toggleReady(@PathVariable String roomId, Authentication authentication) {
+        RoomResponse response = roomService.toggleReady(roomId, authentication.getName());
+        webSocketHandler.broadcastToRoom(roomId, Map.of(
+                "type", "ROOM_UPDATED",
+                "roomId", roomId
+        ));
+        return ResponseEntity.ok(response);
     }
 
     /**
@@ -137,23 +121,19 @@ public class RoomController {
      * POST /api/rooms/{roomId}/start
      */
     @PostMapping("/{roomId}/start")
-    public ResponseEntity<?> startGame(@PathVariable String roomId, Authentication authentication) {
-        try {
-            RoomResponse response = roomService.startGame(roomId, authentication.getName());
-            Room room = roomService.getActiveRoom(roomId);
-            Map<String, Object> payload = new HashMap<>();
-            payload.put("type", "GAME_START");
-            payload.put("roomId", roomId);
-            if (room != null) {
-                payload.put("coins", room.getCoins());
-                payload.put("players", room.getGamePlayers());
-                payload.put("winningScore", Room.getWinningScore());
-            }
-            webSocketHandler.broadcastToRoom(roomId, payload);
-            return ResponseEntity.ok(response);
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+    public ResponseEntity<RoomResponse> startGame(@PathVariable String roomId, Authentication authentication) {
+        RoomResponse response = roomService.startGame(roomId, authentication.getName());
+        Room room = roomService.getActiveRoom(roomId);
+        Map<String, Object> payload = new HashMap<>();
+        payload.put("type", "GAME_START");
+        payload.put("roomId", roomId);
+        if (room != null) {
+            payload.put("coins", room.getCoins());
+            payload.put("players", room.getGamePlayers());
+            payload.put("winningScore", Room.getWinningScore());
         }
+        webSocketHandler.broadcastToRoom(roomId, payload);
+        return ResponseEntity.ok(response);
     }
 
     /**
@@ -161,16 +141,12 @@ public class RoomController {
      * POST /api/rooms/{roomId}/rematch
      */
     @PostMapping("/{roomId}/rematch")
-    public ResponseEntity<?> rematchRoom(@PathVariable String roomId, Authentication authentication) {
-        try {
-            RoomResponse response = roomService.rematchRoom(roomId, authentication.getName());
-            webSocketHandler.broadcastToRoom(roomId, Map.of(
-                    "type", "REMATCH_RESET",
-                    "roomId", roomId
-            ));
-            return ResponseEntity.ok(response);
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
-        }
+    public ResponseEntity<RoomResponse> rematchRoom(@PathVariable String roomId, Authentication authentication) {
+        RoomResponse response = roomService.rematchRoom(roomId, authentication.getName());
+        webSocketHandler.broadcastToRoom(roomId, Map.of(
+                "type", "REMATCH_RESET",
+                "roomId", roomId
+        ));
+        return ResponseEntity.ok(response);
     }
 }

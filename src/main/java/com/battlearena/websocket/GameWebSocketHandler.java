@@ -15,7 +15,7 @@ import org.springframework.web.socket.CloseStatus;
 import org.springframework.web.socket.TextMessage;
 import org.springframework.web.socket.WebSocketSession;
 import org.springframework.web.socket.handler.TextWebSocketHandler;
-
+import jakarta.annotation.PreDestroy;
 import java.io.IOException;
 import java.net.URI;
 import java.util.*;
@@ -74,6 +74,47 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
 
             if (token != null && roomId != null) {
                 authenticateAndJoin(session, token, roomId);
+            }
+        }
+    }
+
+    @Override
+    public void afterConnectionClosed(WebSocketSession session, CloseStatus status) throws Exception {
+        String sessionId = session.getId();
+        sessions.remove(sessionId);
+        String username = sessionToUser.remove(sessionId);
+        String roomId = sessionToRoom.remove(sessionId);
+
+        if (roomId != null) {
+            Set<WebSocketSession> set = roomSessions.get(roomId);
+            if (set != null) {
+                set.remove(session);
+                if (set.isEmpty()) {
+                    roomSessions.remove(roomId);
+                }
+            }
+
+            if (username != null) {
+                Room room = roomService.getActiveRoom(roomId);
+                if (room != null) {
+                    if (room.getStatus() != RoomStatus.PLAYING) {
+                        roomService.leaveCurrentRoom(username);
+                        broadcastToRoom(roomId, Map.of(
+                                "type", "PLAYER_LEFT",
+                                "username", username,
+                                "roomId", roomId
+                        ));
+                    } else {
+                        broadcastToRoom(roomId, Map.of(
+                                "type", "PLAYER_DISCONNECTED",
+                                "username", username,
+                                "roomId", roomId
+                        ));
+                        if (set == null || set.isEmpty()) {
+                            roomService.leaveCurrentRoom(username);
+                        }
+                    }
+                }
             }
         }
     }
@@ -189,31 +230,6 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
             }
             default:
                 break;
-        }
-    }
-
-    @Override
-    public void afterConnectionClosed(WebSocketSession session, CloseStatus status) throws Exception {
-        String sessionId = session.getId();
-        String username = sessionToUser.remove(sessionId);
-        String roomId = sessionToRoom.remove(sessionId);
-        sessions.remove(sessionId);
-
-        if (roomId != null) {
-            Set<WebSocketSession> set = roomSessions.get(roomId);
-            if (set != null) {
-                set.remove(session);
-                if (set.isEmpty()) {
-                    roomSessions.remove(roomId);
-                }
-            }
-
-            if (username != null) {
-                broadcastToRoom(roomId, Map.of(
-                        "type", "PLAYER_LEFT",
-                        "username", username
-                ));
-            }
         }
     }
 
@@ -464,5 +480,10 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
             }
         }
         return result;
+    }
+
+    @PreDestroy
+    public void destroy() {
+        respawnScheduler.shutdownNow();
     }
 }
