@@ -178,6 +178,8 @@ public class Room {
     private static final int WINNING_SCORE = 100;
     public static final int KILL_SCORE_BONUS = 15;
     public static final long ATTACK_COOLDOWN_MS = 350L;
+    public static final int MATCH_DURATION_SECONDS = 120;
+    private final SafeZone safeZone = new SafeZone();
     private volatile String winnerUsername = null;
     private volatile Instant matchStartedAt = null;
 
@@ -190,6 +192,62 @@ public class Room {
             new Obstacle("OBS-BL", 240.0, 390.0, 30.0, 100.0, "BARRIER"),
             new Obstacle("OBS-BR", 530.0, 390.0, 30.0, 100.0, "BARRIER")
     );
+
+    public SafeZone getSafeZone() {
+        return safeZone;
+    }
+
+    public long getElapsedSeconds() {
+        if (matchStartedAt == null) return 0L;
+        return java.time.Duration.between(matchStartedAt, Instant.now()).getSeconds();
+    }
+
+    public long getTimeRemainingSeconds() {
+        long elapsed = getElapsedSeconds();
+        return Math.max(0, MATCH_DURATION_SECONDS - elapsed);
+    }
+
+    public double getCurrentSafeZoneRadius() {
+        return safeZone.calculateRadius(getElapsedSeconds());
+    }
+
+    public boolean isSuddenDeathActive() {
+        return getElapsedSeconds() >= safeZone.getShrinkStartDelaySec();
+    }
+
+    public record ZoneDamageEvent(
+            String username,
+            int damage,
+            int currentHealth,
+            int currentShield,
+            boolean eliminated
+    ) {}
+
+    public synchronized List<ZoneDamageEvent> tickZoneDamage() {
+        if (status != RoomStatus.PLAYING) return Collections.emptyList();
+        double currentRadius = getCurrentSafeZoneRadius();
+        List<ZoneDamageEvent> events = new ArrayList<>();
+        for (GamePlayer p : gamePlayers.values()) {
+            if (p.isAlive() && safeZone.isOutside(p.getX(), p.getY(), currentRadius)) {
+                DamageResult dmg = p.takeDamageWithShield(5);
+                events.add(new ZoneDamageEvent(p.getUsername(), 5, p.getHealth(), p.getShield(), dmg.eliminated()));
+            }
+        }
+        return events;
+    }
+
+    public synchronized boolean checkMatchTimerExpired() {
+        if (status != RoomStatus.PLAYING) return false;
+        if (getTimeRemainingSeconds() <= 0) {
+            GamePlayer highest = gamePlayers.values().stream()
+                    .max(Comparator.comparingInt(GamePlayer::getScore))
+                    .orElse(null);
+            this.winnerUsername = (highest != null) ? highest.getUsername() : hostUsername;
+            this.status = RoomStatus.FINISHED;
+            return true;
+        }
+        return false;
+    }
 
     public List<Obstacle> getObstacles() {
         return ARENA_OBSTACLES;

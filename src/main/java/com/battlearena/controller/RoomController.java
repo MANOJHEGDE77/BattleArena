@@ -133,6 +133,10 @@ public class RoomController {
             payload.put("players", room.getGamePlayers());
             payload.put("obstacles", room.getObstacles());
             payload.put("winningScore", Room.getWinningScore());
+            payload.put("matchDurationSeconds", Room.MATCH_DURATION_SECONDS);
+            payload.put("timeRemaining", room.getTimeRemainingSeconds());
+            payload.put("safeZoneRadius", room.getCurrentSafeZoneRadius());
+            payload.put("suddenDeath", room.isSuddenDeathActive());
         }
         webSocketHandler.broadcastToRoom(roomId, payload);
         return ResponseEntity.ok(response);

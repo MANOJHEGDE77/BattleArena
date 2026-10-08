@@ -61,6 +61,7 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
         this.userService = userService;
         this.matchService = matchService;
         this.mapper = mapper;
+        this.respawnScheduler.scheduleAtFixedRate(this::tickActiveRooms, 1, 1, TimeUnit.SECONDS);
     }
 
     @Override
@@ -304,6 +305,10 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
             snapshot.put("obstacles", activeRoom.getObstacles());
             snapshot.put("projectiles", activeRoom.getProjectiles());
             snapshot.put("winningScore", Room.getWinningScore());
+            snapshot.put("matchDurationSeconds", Room.MATCH_DURATION_SECONDS);
+            snapshot.put("timeRemaining", activeRoom.getTimeRemainingSeconds());
+            snapshot.put("safeZoneRadius", activeRoom.getCurrentSafeZoneRadius());
+            snapshot.put("suddenDeath", activeRoom.isSuddenDeathActive());
             sendDirect(session, snapshot);
         }
 
@@ -578,6 +583,78 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
             }
         }
         return result;
+    }
+
+    private void tickActiveRooms() {
+        for (String roomId : roomSessions.keySet()) {
+            try {
+                Room room = roomService.getActiveRoom(roomId);
+                if (room != null && room.getStatus() == RoomStatus.PLAYING) {
+                    // 1. Check timer expiration
+                    if (room.checkMatchTimerExpired()) {
+                        onMatchFinished(room, roomId);
+                        continue;
+                    }
+
+                    // 2. Broadcast ZONE_TICK with current radius and time remaining
+                    long timeRemaining = room.getTimeRemainingSeconds();
+                    double radius = room.getCurrentSafeZoneRadius();
+                    boolean suddenDeath = room.isSuddenDeathActive();
+
+                    broadcastToRoom(roomId, Map.of(
+                            "type", "ZONE_TICK",
+                            "timeRemaining", timeRemaining,
+                            "safeZoneRadius", Math.round(radius * 10.0) / 10.0,
+                            "suddenDeath", suddenDeath
+                    ));
+
+                    // 3. Process zone storm tick damage for combatants outside perimeter
+                    List<Room.ZoneDamageEvent> dmgEvents = room.tickZoneDamage();
+                    for (Room.ZoneDamageEvent evt : dmgEvents) {
+                        broadcastToRoom(roomId, Map.of(
+                                "type", "ZONE_DAMAGE",
+                                "username", evt.username(),
+                                "damage", evt.damage(),
+                                "currentHealth", evt.currentHealth(),
+                                "currentShield", evt.currentShield(),
+                                "isEliminated", evt.eliminated()
+                        ));
+
+                        if (evt.eliminated()) {
+                            broadcastToRoom(roomId, Map.of(
+                                    "type", "PLAYER_ELIMINATED",
+                                    "victim", evt.username(),
+                                    "killer", "THE_STORM",
+                                    "victimDeaths", room.getGamePlayer(evt.username()).getDeaths(),
+                                    "killerKills", 0,
+                                    "killerScore", 0,
+                                    "respawnDelayMs", 2500,
+                                    "respawnX", 400.0,
+                                    "respawnY", 300.0
+                            ));
+                            final String victim = evt.username();
+                            respawnScheduler.schedule(() -> {
+                                try {
+                                    Room r = roomService.getActiveRoom(roomId);
+                                    if (r != null && r.getStatus() == RoomStatus.PLAYING) {
+                                        r.respawnPlayer(victim, 400.0, 300.0);
+                                        broadcastToRoom(roomId, Map.of(
+                                                "type", "PLAYER_RESPAWNED",
+                                                "username", victim,
+                                                "x", 400.0,
+                                                "y", 300.0,
+                                                "health", 100
+                                        ));
+                                    }
+                                } catch (Exception ignored) {}
+                            }, 2500, TimeUnit.MILLISECONDS);
+                        }
+                    }
+                }
+            } catch (Exception ignored) {
+                // Ignore transient ticker error
+            }
+        }
     }
 
     @PreDestroy

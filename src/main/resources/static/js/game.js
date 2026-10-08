@@ -50,10 +50,16 @@ const hudKd = document.getElementById('hudKd');
 const killFeed = document.getElementById('killFeed');
 const respawnOverlay = document.getElementById('respawnOverlay');
 const respawnCountdown = document.getElementById('respawnCountdown');
+const hudTimer = document.getElementById('hudTimer');
 
 const projectiles = new Map();
 const ATTACK_COOLDOWN_MS = 350;
 let respawnTimerInterval = null;
+
+// --- Phase 12 State: Match Countdown & Shrinking Safe Zone ---
+let matchTimeRemaining = 120;
+let safeZoneRadius = 500;
+let isSuddenDeath = false;
 
 // --- Phase 10 State: Obstacles & Tactical Cover ---
 const obstacles = [];
@@ -318,6 +324,55 @@ function renderArena() {
     ctx.strokeStyle = '#4338ca';
     ctx.lineWidth = 4;
     ctx.strokeRect(2, 2, canvas.width - 4, canvas.height - 4);
+}
+
+// Phase 12: Battle Royale Safe Zone & Storm Perimeter Visuals
+function updateHudTimer() {
+    if (!hudTimer) return;
+    const mins = Math.floor(Math.max(0, matchTimeRemaining) / 60);
+    const secs = Math.floor(Math.max(0, matchTimeRemaining) % 60);
+    const formatted = `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+    if (isSuddenDeath) {
+        hudTimer.innerHTML = `<span style="color:#ef4444; font-weight:700; text-shadow:0 0 8px rgba(239,68,68,0.8);">${formatted} ⚠️ SUDDEN DEATH</span>`;
+    } else {
+        hudTimer.textContent = formatted;
+    }
+}
+
+function renderSafeZone() {
+    if (!activeRoom || activeRoom.status !== 'PLAYING') return;
+
+    const centerX = 400;
+    const centerY = 300;
+    const radius = Math.max(0, safeZoneRadius);
+    const time = performance.now() * 0.003;
+    const pulse = Math.sin(time) * 3;
+
+    ctx.save();
+    // 1. Draw glowing outer storm zone with radial shadow
+    ctx.beginPath();
+    ctx.rect(0, 0, canvas.width, canvas.height);
+    ctx.arc(centerX, centerY, radius, 0, Math.PI * 2, true);
+    ctx.fillStyle = isSuddenDeath ? 'rgba(239, 68, 68, 0.22)' : 'rgba(244, 63, 94, 0.13)';
+    ctx.fill();
+
+    // 2. Safe zone boundary laser ring
+    ctx.beginPath();
+    ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
+    ctx.strokeStyle = isSuddenDeath ? '#ef4444' : '#f43f5e';
+    ctx.lineWidth = isSuddenDeath ? 3 : 2;
+    ctx.shadowColor = isSuddenDeath ? 'rgba(239, 68, 68, 0.9)' : 'rgba(244, 63, 94, 0.6)';
+    ctx.shadowBlur = 10 + pulse;
+    ctx.stroke();
+
+    // 3. Electric ripple perimeter
+    ctx.beginPath();
+    ctx.arc(centerX, centerY, radius + 4 + pulse, 0, Math.PI * 2);
+    ctx.strokeStyle = isSuddenDeath ? 'rgba(239, 68, 68, 0.35)' : 'rgba(244, 63, 94, 0.25)';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+
+    ctx.restore();
 }
 
 // Circle vs AABB obstacle collision resolution
@@ -804,8 +859,9 @@ function gameLoop(currentTime) {
     // Physics update step
     updatePhysics(dt);
 
-    // Visual render step: arena surface -> obstacles -> coins -> power-ups -> projectiles -> remote players -> local player -> floating text
+    // Visual render step: arena surface -> safe zone -> obstacles -> coins -> power-ups -> projectiles -> remote players -> local player -> floating text
     renderArena();
+    renderSafeZone();
     renderObstacles();
     renderCoins();
     renderPowerUps();
@@ -1331,8 +1387,50 @@ function handleWebSocketMessage(msg) {
                 currentRoomStatus.className = 'room-status-badge playing';
                 hudState.textContent = 'Real-time Arena Match';
             }
+            if (msg.timeRemaining !== undefined) {
+                matchTimeRemaining = msg.timeRemaining;
+                updateHudTimer();
+            }
+            if (msg.safeZoneRadius !== undefined) {
+                safeZoneRadius = msg.safeZoneRadius;
+            }
+            if (msg.suddenDeath !== undefined) {
+                isSuddenDeath = !!msg.suddenDeath;
+            }
             updateLiveScoreboard();
             break;
+        case 'ZONE_TICK':
+            if (msg.timeRemaining !== undefined) {
+                matchTimeRemaining = msg.timeRemaining;
+                updateHudTimer();
+            }
+            if (msg.safeZoneRadius !== undefined) {
+                safeZoneRadius = msg.safeZoneRadius;
+            }
+            if (msg.suddenDeath !== undefined) {
+                isSuddenDeath = !!msg.suddenDeath;
+            }
+            break;
+        case 'ZONE_DAMAGE': {
+            const isMe = msg.username === player.name;
+            const targetX = isMe ? player.x : (remotePlayers.get(msg.username)?.x || player.x);
+            const targetY = isMe ? player.y : (remotePlayers.get(msg.username)?.y || player.y);
+            addFloatingText(`-${msg.damage} ⚡STORM`, targetX, targetY - 22, '#ef4444');
+            if (isMe) {
+                if (msg.currentShield !== undefined) player.shield = msg.currentShield;
+                player.health = msg.currentHealth;
+                player.alive = !msg.isEliminated;
+                updateHudHealth();
+            } else {
+                const rp = remotePlayers.get(msg.username);
+                if (rp) {
+                    if (msg.currentShield !== undefined) rp.shield = msg.currentShield;
+                    rp.health = msg.currentHealth;
+                    rp.alive = !msg.isEliminated;
+                }
+            }
+            break;
+        }
         case 'POWER_UP_SPAWNED':
             if (msg.powerUp) {
                 powerUps.set(msg.powerUp.id, msg.powerUp);
@@ -1522,6 +1620,10 @@ function handleWebSocketMessage(msg) {
             player.alive = true;
             player.kills = 0;
             player.deaths = 0;
+            matchTimeRemaining = 120;
+            safeZoneRadius = 500;
+            isSuddenDeath = false;
+            updateHudTimer();
             updateHudHealth();
             if (activeRoom) {
                 activeRoom.status = 'WAITING';

@@ -784,6 +784,21 @@ body {
     font-size: 0.85rem;
 }
 
+.hud-item.hud-timer {
+    background: rgba(244, 63, 94, 0.12);
+    border: 1px solid rgba(244, 63, 94, 0.35);
+    border-radius: 6px;
+    padding: 4px 10px;
+}
+
+.hud-item.hud-timer #hudTimer {
+    color: #f43f5e;
+    font-weight: 700;
+    font-size: 1.05rem;
+    font-variant-numeric: tabular-nums;
+    text-shadow: 0 0 8px rgba(244, 63, 94, 0.5);
+}
+
 .canvas-container {
     position: relative;
     width: 800px;
