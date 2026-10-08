@@ -139,6 +139,7 @@ public class RoomController {
             payload.put("suddenDeath", room.isSuddenDeathActive());
         }
         webSocketHandler.broadcastToRoom(roomId, payload);
+        webSocketHandler.broadcastSystemAnnouncement(room, roomId, "⚔️ Match started! Battle for arena supremacy!");
         return ResponseEntity.ok(response);
     }
 

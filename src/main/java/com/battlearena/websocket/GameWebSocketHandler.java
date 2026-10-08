@@ -1,5 +1,6 @@
 package com.battlearena.websocket;
 
+import com.battlearena.model.ChatMessage;
 import com.battlearena.model.Coin;
 import com.battlearena.model.GamePlayer;
 import com.battlearena.model.Obstacle;
@@ -259,6 +260,28 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
                 }
                 break;
             }
+            case "CHAT": {
+                String username = sessionToUser.get(session.getId());
+                String roomId = sessionToRoom.get(session.getId());
+                if (username != null && roomId != null && root.has("text")) {
+                    String text = root.get("text").asText();
+                    Room room = roomService.getActiveRoom(roomId);
+                    if (room != null) {
+                        ChatMessage chatMsg = room.addChatMessage(username, text, false);
+                        if (chatMsg != null) {
+                            broadcastToRoom(roomId, Map.of(
+                                    "type", "CHAT_MESSAGE",
+                                    "id", chatMsg.getId(),
+                                    "username", chatMsg.getUsername(),
+                                    "text", chatMsg.getText(),
+                                    "timestamp", chatMsg.getTimestamp(),
+                                    "system", chatMsg.isSystem()
+                            ));
+                        }
+                    }
+                }
+                break;
+            }
             case "PING": {
                 sendDirect(session, Map.of("type", "PONG", "timestamp", System.currentTimeMillis()));
                 break;
@@ -309,6 +332,7 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
             snapshot.put("timeRemaining", activeRoom.getTimeRemainingSeconds());
             snapshot.put("safeZoneRadius", activeRoom.getCurrentSafeZoneRadius());
             snapshot.put("suddenDeath", activeRoom.isSuddenDeathActive());
+            snapshot.put("chatHistory", activeRoom.getChatHistory());
             sendDirect(session, snapshot);
         }
 
@@ -352,6 +376,7 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
                 payload.put("spreadShotUntil", player.getSpreadShotUntil());
             }
             broadcastToRoom(roomId, payload);
+            broadcastSystemAnnouncement(room, roomId, "⚡ " + username + " collected " + collected.getType().name() + "!");
 
             // Spawn replacement power-up after 6 seconds delay
             respawnScheduler.schedule(() -> {
@@ -450,6 +475,7 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
                         "respawnX", (respawnCoords != null ? respawnCoords[0] : 400.0),
                         "respawnY", (respawnCoords != null ? respawnCoords[1] : 300.0)
                 ));
+                broadcastSystemAnnouncement(room, roomId, "☠️ " + hit.getShooter().getUsername() + " eliminated " + hit.getTarget().getUsername() + "!");
 
                 // Schedule automated respawn after 2.5 seconds
                 final String victim = hit.getTarget().getUsername();
@@ -507,6 +533,7 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
             gameOverPayload.put("matchId", matchId);
         }
         broadcastToRoom(roomId, gameOverPayload);
+        broadcastSystemAnnouncement(room, roomId, "🏆 VICTORY: " + room.getWinnerUsername() + " won the arena match!");
 
         // Persist lifetime match scores to MySQL
         for (GamePlayer gp : room.getGamePlayers()) {
@@ -514,6 +541,22 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
                 userService.recordMatchResult(gp.getUsername(), gp.getScore());
             } catch (Exception e) {
                 // Ignore persistence logging
+            }
+        }
+    }
+
+    public void broadcastSystemAnnouncement(Room room, String roomId, String text) {
+        if (room != null && text != null) {
+            ChatMessage sysMsg = room.addChatMessage("SYSTEM", text, true);
+            if (sysMsg != null) {
+                broadcastToRoom(roomId, Map.of(
+                        "type", "CHAT_MESSAGE",
+                        "id", sysMsg.getId(),
+                        "username", sysMsg.getUsername(),
+                        "text", sysMsg.getText(),
+                        "timestamp", sysMsg.getTimestamp(),
+                        "system", true
+                ));
             }
         }
     }

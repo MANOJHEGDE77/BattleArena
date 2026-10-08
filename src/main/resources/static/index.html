@@ -103,11 +103,21 @@
                     <div class="scoreboard-title">⚡ Match Standings (Goal: <span id="scoreboardGoal">100</span>)</div>
                     <div class="scoreboard-list" id="scoreboardList"></div>
                 </div>
+
+                <!-- Phase 14: In-Game Real-Time Match Chat Overlay -->
+                <div class="chat-overlay" id="chatOverlay">
+                    <div class="chat-messages" id="chatMessages"></div>
+                    <form class="chat-input-form" id="chatInputForm">
+                        <input type="text" id="chatInput" class="chat-input" placeholder="Press Enter to chat..." maxlength="120" autocomplete="off">
+                        <button type="submit" class="chat-send-btn" id="chatSendBtn">Send</button>
+                    </form>
+                </div>
             </div>
 
             <div class="controls-legend">
                 <span>Movement: <strong>W, A, S, D</strong> or <strong>Arrow Keys</strong></span>
                 <span>Attack: <strong>Spacebar</strong> or <strong>Left-Click</strong> to Fire Blaster (+15 pts/kill)</span>
+                <span>Chat: <strong>Enter</strong> to Talk</span>
                 <span>Collect <strong>Coins</strong> or eliminate foes to reach 100 pts!</span>
             </div>
         </main>

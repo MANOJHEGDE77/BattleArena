@@ -53,6 +53,31 @@ const respawnCountdown = document.getElementById('respawnCountdown');
 const hudTimer = document.getElementById('hudTimer');
 const soundToggleBtn = document.getElementById('soundToggleBtn');
 
+// --- Phase 14 DOM Elements: In-Game Real-Time Match Chat ---
+const chatOverlay = document.getElementById('chatOverlay');
+const chatMessages = document.getElementById('chatMessages');
+const chatInputForm = document.getElementById('chatInputForm');
+const chatInput = document.getElementById('chatInput');
+
+function appendChatMessage(msg) {
+    if (!chatMessages) return;
+    const div = document.createElement('div');
+    if (msg.system) {
+        div.className = 'chat-msg system';
+        div.textContent = msg.text;
+    } else {
+        div.className = 'chat-msg';
+        const userSpan = document.createElement('span');
+        userSpan.className = 'chat-user' + (msg.username === player.name ? ' me' : '');
+        userSpan.textContent = msg.username + ':';
+        const textNode = document.createTextNode(' ' + msg.text);
+        div.appendChild(userSpan);
+        div.appendChild(textNode);
+    }
+    chatMessages.appendChild(div);
+    chatMessages.scrollTop = chatMessages.scrollHeight;
+}
+
 // --- Phase 13: Procedural Synthetic Audio Engine (Zero audio files/bandwidth) ---
 class SoundEngine {
     constructor() {
@@ -337,6 +362,12 @@ const player = {
 const activeKeys = new Set();
 
 window.addEventListener('keydown', (e) => {
+    if (document.activeElement === chatInput) return;
+    if (e.key === 'Enter') {
+        e.preventDefault();
+        if (chatInput) chatInput.focus();
+        return;
+    }
     if (e.code === 'Space') {
         e.preventDefault();
         fireBlaster();
@@ -1540,6 +1571,14 @@ function handleWebSocketMessage(msg) {
             powerUps.clear();
             projectiles.clear();
             clearRespawnCountdown();
+            if (msg.chatHistory && Array.isArray(msg.chatHistory)) {
+                if (chatMessages) {
+                    chatMessages.innerHTML = '';
+                    msg.chatHistory.forEach(appendChatMessage);
+                }
+            } else if (msg.type === 'GAME_START' && chatMessages) {
+                chatMessages.innerHTML = '';
+            }
             if (msg.type === 'GAME_START') {
                 myScore = 0;
                 hudScore.textContent = '0';
@@ -1637,6 +1676,9 @@ function handleWebSocketMessage(msg) {
                 isSuddenDeath = !!msg.suddenDeath;
             }
             updateLiveScoreboard();
+            break;
+        case 'CHAT_MESSAGE':
+            appendChatMessage(msg);
             break;
         case 'ZONE_TICK':
             if (msg.timeRemaining !== undefined) {
@@ -2450,12 +2492,36 @@ function setupAudioEventListeners() {
     }
 }
 
+function setupChatEventListeners() {
+    if (chatInput) {
+        chatInput.addEventListener('keydown', (e) => {
+            e.stopPropagation();
+            if (e.key === 'Escape') {
+                chatInput.blur();
+            }
+        });
+    }
+    if (chatInputForm) {
+        chatInputForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            if (!chatInput) return;
+            const text = chatInput.value.trim();
+            if (text && gameWs && gameWs.readyState === WebSocket.OPEN) {
+                gameWs.send(JSON.stringify({ type: 'CHAT', text }));
+                chatInput.value = '';
+                chatInput.blur();
+            }
+        });
+    }
+}
+
 // --- Application Bootstrap ---
 window.addEventListener('DOMContentLoaded', () => {
     setupAuthEventListeners();
     setupRoomEventListeners();
     setupLeaderboardEventListeners();
     setupAudioEventListeners();
+    setupChatEventListeners();
     checkBackendHealth();
     verifyExistingSession().then(() => {
         checkMyCurrentRoom();

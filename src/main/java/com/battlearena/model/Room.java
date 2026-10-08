@@ -4,6 +4,7 @@ import java.time.Instant;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 /**
  * In-memory Game Room managing multiplayer lobby membership and match lifecycle.
@@ -18,12 +19,19 @@ import java.util.concurrent.ConcurrentMap;
  */
 public class Room {
 
+    public static final int MAX_CHAT_HISTORY = 50;
+    public static final int MAX_CHAT_LENGTH = 120;
+    public static final long CHAT_RATE_LIMIT_MS = 500;
+
     private final String roomId;
     private final String name;
     private volatile String hostUsername;
     private final int maxPlayers;
     private volatile RoomStatus status;
     private final Instant createdAt;
+
+    private final List<ChatMessage> chatHistory = new CopyOnWriteArrayList<>();
+    private final ConcurrentMap<String, Long> lastChatTimes = new ConcurrentHashMap<>();
 
     private final ConcurrentMap<String, PlayerRoomState> players = new ConcurrentHashMap<>();
 
@@ -247,6 +255,44 @@ public class Room {
             return true;
         }
         return false;
+    }
+
+    public synchronized ChatMessage addChatMessage(String username, String rawText, boolean isSystem) {
+        if (rawText == null) return null;
+        String trimmed = rawText.trim();
+        if (trimmed.isEmpty()) return null;
+
+        if (!isSystem) {
+            long now = System.currentTimeMillis();
+            Long last = lastChatTimes.get(username);
+            if (last != null && (now - last) < CHAT_RATE_LIMIT_MS) {
+                return null; // Rate limited (anti-spam)
+            }
+            lastChatTimes.put(username, now);
+        }
+
+        // Enforce max character limit
+        if (trimmed.length() > MAX_CHAT_LENGTH) {
+            trimmed = trimmed.substring(0, MAX_CHAT_LENGTH);
+        }
+        // HTML sanitize
+        String sanitized = trimmed
+                .replace("&", "&amp;")
+                .replace("<", "&lt;")
+                .replace(">", "&gt;")
+                .replace("\"", "&quot;");
+
+        String id = "chat_" + System.currentTimeMillis() + "_" + (int)(Math.random() * 1000);
+        ChatMessage msg = new ChatMessage(id, isSystem ? "SYSTEM" : username, sanitized, System.currentTimeMillis(), isSystem);
+        chatHistory.add(msg);
+        if (chatHistory.size() > MAX_CHAT_HISTORY) {
+            chatHistory.remove(0);
+        }
+        return msg;
+    }
+
+    public List<ChatMessage> getChatHistory() {
+        return Collections.unmodifiableList(chatHistory);
     }
 
     public List<Obstacle> getObstacles() {
