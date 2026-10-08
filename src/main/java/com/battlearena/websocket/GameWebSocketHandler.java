@@ -535,17 +535,33 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
 
             if (hit.isEliminated()) {
                 double[] respawnCoords = hit.getRespawnCoords();
-                broadcastToRoom(roomId, Map.of(
-                        "type", "PLAYER_ELIMINATED",
-                        "victim", hit.getTarget().getUsername(),
-                        "killer", hit.getShooter().getUsername(),
-                        "victimDeaths", hit.getTarget().getDeaths(),
-                        "killerKills", hit.getShooter().getKills(),
-                        "killerScore", hit.getShooter().getScore(),
-                        "respawnDelayMs", 2500,
-                        "respawnX", (respawnCoords != null ? respawnCoords[0] : 400.0),
-                        "respawnY", (respawnCoords != null ? respawnCoords[1] : 300.0)
-                ));
+                double dist = Math.hypot(hit.getShooter().getX() - hit.getTarget().getX(),
+                                         hit.getShooter().getY() - hit.getTarget().getY());
+                String weaponName = hit.getShooter().getWarriorClass() != null ? hit.getShooter().getWarriorClass().getWeaponName() : "Pulse Blaster";
+                String className = hit.getShooter().getWarriorClass() != null ? hit.getShooter().getWarriorClass().name() : "ASSAULT";
+
+                room.recordCombatEvent("ELIMINATION", hit.getShooter().getUsername(), hit.getTarget().getUsername(), weaponName, hit.getDamage(), (int)Math.round(dist));
+
+                Map<String, Object> elimPayload = new LinkedHashMap<>();
+                elimPayload.put("type", "PLAYER_ELIMINATED");
+                elimPayload.put("victim", hit.getTarget().getUsername());
+                elimPayload.put("killer", hit.getShooter().getUsername());
+                elimPayload.put("victimDeaths", hit.getTarget().getDeaths());
+                elimPayload.put("killerKills", hit.getShooter().getKills());
+                elimPayload.put("killerScore", hit.getShooter().getScore());
+                elimPayload.put("respawnDelayMs", 2500);
+                elimPayload.put("respawnX", (respawnCoords != null ? respawnCoords[0] : 400.0));
+                elimPayload.put("respawnY", (respawnCoords != null ? respawnCoords[1] : 300.0));
+                elimPayload.put("killerHealth", hit.getShooter().getHealth());
+                elimPayload.put("killerMaxHealth", hit.getShooter().getMaxHealth());
+                elimPayload.put("killerShield", hit.getShooter().getShield());
+                elimPayload.put("killerMaxShield", hit.getShooter().getMaxShield());
+                elimPayload.put("killerClass", className);
+                elimPayload.put("weaponName", weaponName);
+                elimPayload.put("distance", Math.round(dist));
+                elimPayload.put("finalDamage", hit.getDamage());
+                broadcastToRoom(roomId, elimPayload);
+
                 broadcastSystemAnnouncement(room, roomId, "☠️ " + hit.getShooter().getUsername() + " eliminated " + hit.getTarget().getUsername() + "!");
 
                 // Schedule automated respawn after 2.5 seconds
@@ -600,6 +616,7 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
         gameOverPayload.put("winner", room.getWinnerUsername());
         gameOverPayload.put("winningScore", Room.getWinningScore());
         gameOverPayload.put("players", room.getGamePlayers());
+        gameOverPayload.put("combatEvents", room.getCombatEvents());
         if (matchId != null) {
             gameOverPayload.put("matchId", matchId);
         }
@@ -864,17 +881,29 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
     private void eliminatePlayerByHazard(Room room, String roomId, String victim, String killerName) {
         GamePlayer gp = room.getGamePlayer(victim);
         int victimDeaths = (gp != null) ? gp.getDeaths() : 0;
-        broadcastToRoom(roomId, Map.of(
-                "type", "PLAYER_ELIMINATED",
-                "victim", victim,
-                "killer", killerName,
-                "victimDeaths", victimDeaths,
-                "killerKills", 0,
-                "killerScore", 0,
-                "respawnDelayMs", 2500,
-                "respawnX", 400.0,
-                "respawnY", 300.0
-        ));
+        String hazardWeapon = killerName.contains("STORM") ? "Thermal Storm" : "Volatile Barrel";
+        room.recordCombatEvent("HAZARD_ELIMINATION", killerName, victim, hazardWeapon, 100, 0);
+
+        Map<String, Object> elimPayload = new LinkedHashMap<>();
+        elimPayload.put("type", "PLAYER_ELIMINATED");
+        elimPayload.put("victim", victim);
+        elimPayload.put("killer", killerName);
+        elimPayload.put("victimDeaths", victimDeaths);
+        elimPayload.put("killerKills", 0);
+        elimPayload.put("killerScore", 0);
+        elimPayload.put("respawnDelayMs", 2500);
+        elimPayload.put("respawnX", 400.0);
+        elimPayload.put("respawnY", 300.0);
+        elimPayload.put("killerHealth", 100);
+        elimPayload.put("killerMaxHealth", 100);
+        elimPayload.put("killerShield", 0);
+        elimPayload.put("killerMaxShield", 0);
+        elimPayload.put("killerClass", "HAZARD");
+        elimPayload.put("weaponName", hazardWeapon);
+        elimPayload.put("distance", 0);
+        elimPayload.put("finalDamage", 100);
+
+        broadcastToRoom(roomId, elimPayload);
         respawnScheduler.schedule(() -> {
             try {
                 Room r = roomService.getActiveRoom(roomId);

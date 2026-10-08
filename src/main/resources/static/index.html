@@ -136,16 +136,47 @@
                 <div class="hud-item"><span class="hud-label">ROOM:</span> <span id="hudRoom">None (Lobby)</span></div>
                 <div class="hud-item"><span class="hud-label">POS:</span> <span id="hudPos">X: 0, Y: 0</span></div>
                 <div class="hud-item"><span class="hud-label">FPS:</span> <span id="hudFps">60</span></div>
-                <div class="hud-item"><span class="hud-label">STATUS:</span> <span id="hudState">Phase 18: Tactical Emotes & Callouts</span></div>
+                <div class="hud-item"><span class="hud-label">STATUS:</span> <span id="hudState">Phase 19: Combat Highlights & Killcam</span></div>
                 <button type="button" class="hud-emote-trigger-btn" id="hudEmoteTriggerBtn" title="Press T or Click for Callout Wheel">💬 Callouts [T]</button>
             </div>
 
             <div class="canvas-container">
                 <canvas id="gameCanvas" width="800" height="600"></canvas>
                 <div class="kill-feed" id="killFeed"></div>
+                <!-- Phase 19: Dynamic Death Cam & Tactical Elimination Review -->
                 <div class="respawn-overlay" id="respawnOverlay" style="display: none;">
-                    <div class="respawn-title">☠️ ELIMINATED</div>
-                    <div class="respawn-countdown" id="respawnCountdown">Respawning in 2.5s...</div>
+                    <div class="killcam-card">
+                        <div class="respawn-title">☠️ YOU WERE ELIMINATED</div>
+                        <div class="killcam-killer-row">
+                            <span class="killcam-killer-avatar" id="killcamAvatar">🤖</span>
+                            <div class="killcam-killer-meta">
+                                <div class="killcam-killer-name" id="killcamKillerName">Killer</div>
+                                <span class="killcam-class-badge" id="killcamClassBadge">ASSAULT</span>
+                            </div>
+                        </div>
+                        <div class="killcam-stats-grid">
+                            <div class="killcam-stat-item">
+                                <span class="stat-lbl">Killer Status</span>
+                                <span class="stat-val" id="killcamKillerHp">HP 100 | Shield 50</span>
+                            </div>
+                            <div class="killcam-stat-item">
+                                <span class="stat-lbl">Elimination Tool</span>
+                                <span class="stat-val" id="killcamWeapon">Pulse Blaster</span>
+                            </div>
+                            <div class="killcam-stat-item">
+                                <span class="stat-lbl">Range</span>
+                                <span class="stat-val" id="killcamDistance">150m</span>
+                            </div>
+                            <div class="killcam-stat-item">
+                                <span class="stat-lbl">Impact Damage</span>
+                                <span class="stat-val text-red" id="killcamDamage">-20 HP</span>
+                            </div>
+                        </div>
+                        <div class="respawn-countdown" id="respawnCountdown">Tactical Respawn in 2.5s...</div>
+                        <div class="respawn-progress-bar">
+                            <div class="respawn-progress-fill" id="respawnProgressFill"></div>
+                        </div>
+                    </div>
                 </div>
                 <div class="live-scoreboard" id="liveScoreboard" style="display: none;">
                     <div class="scoreboard-title">⚡ Match Standings (Goal: <span id="scoreboardGoal">100</span>)</div>
@@ -348,10 +379,19 @@
             <div class="modal-body">
                 <div class="match-meta-pill" id="matchMetaPill" style="display: none;">Match #0</div>
                 <p class="winner-announcement" id="winnerAnnouncement">Player reached the target score!</p>
+
+                <!-- Phase 19: Post-Match Accolades & Highlights -->
+                <div class="match-accolades-row" id="matchAccoladesRow"></div>
+                <div class="match-highlights-box" id="matchHighlightsBox">
+                    <div class="highlights-header">⚡ COMBAT TIMELINE & HIGHLIGHTS</div>
+                    <div class="highlights-list" id="highlightsList"></div>
+                </div>
+
                 <div class="match-summary-scores" id="matchSummaryScores">
                     <!-- Final scores populated dynamically -->
                 </div>
                 <div class="modal-actions" style="margin-top: 20px; display: flex; justify-content: center; gap: 12px; flex-wrap: wrap;">
+                    <button class="btn-copy-report" id="copyBattleReportBtn">📋 Share Battle Report</button>
                     <button class="btn-success" id="rematchBtn" style="display: none;">🔄 Rematch</button>
                     <button class="btn-primary" id="returnToLobbyBtn">Return to Arenas</button>
                     <button class="btn-secondary" id="viewLeaderboardFromGameOverBtn">View Leaderboard</button>

@@ -243,6 +243,28 @@ public class Room {
             ArenaHazard.createExplosiveBarrel("BARREL-4", 400.0, 405.0)
     );
 
+    public record CombatEvent(
+            long timestamp,
+            long secondOffset,
+            String type,
+            String killer,
+            String victim,
+            String weapon,
+            int damage,
+            int distance
+    ) {}
+
+    private final List<CombatEvent> combatEvents = new CopyOnWriteArrayList<>();
+
+    public synchronized void recordCombatEvent(String type, String killer, String victim, String weapon, int damage, int distance) {
+        long offset = getElapsedSeconds();
+        combatEvents.add(new CombatEvent(System.currentTimeMillis(), offset, type, killer, victim, weapon, damage, distance));
+    }
+
+    public List<CombatEvent> getCombatEvents() {
+        return Collections.unmodifiableList(combatEvents);
+    }
+
     public SafeZone getSafeZone() {
         return safeZone;
     }
@@ -582,6 +604,7 @@ public class Room {
         this.coins.clear();
         this.projectiles.clear();
         this.powerUps.clear();
+        this.combatEvents.clear();
         for (ArenaHazard h : arenaHazards) {
             h.reset();
         }
@@ -942,6 +965,7 @@ public class Room {
         this.gamePlayers.clear();
         this.coins.clear();
         this.projectiles.clear();
+        this.combatEvents.clear();
         for (PlayerRoomState state : players.values()) {
             if (!state.isHost()) {
                 state.setReady(false);

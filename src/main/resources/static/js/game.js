@@ -94,6 +94,50 @@ function updateSpectatorTargetDisplay() {
     }
 }
 
+// --- Phase 19 DOM Elements & State: Killcam Review & Combat Highlights ---
+const killcamAvatar = document.getElementById('killcamAvatar');
+const killcamKillerName = document.getElementById('killcamKillerName');
+const killcamClassBadge = document.getElementById('killcamClassBadge');
+const killcamKillerHp = document.getElementById('killcamKillerHp');
+const killcamWeapon = document.getElementById('killcamWeapon');
+const killcamDistance = document.getElementById('killcamDistance');
+const killcamDamage = document.getElementById('killcamDamage');
+const respawnProgressFill = document.getElementById('respawnProgressFill');
+const matchAccoladesRow = document.getElementById('matchAccoladesRow');
+const matchHighlightsBox = document.getElementById('matchHighlightsBox');
+const highlightsList = document.getElementById('highlightsList');
+const copyBattleReportBtn = document.getElementById('copyBattleReportBtn');
+let lastMatchSummary = null;
+
+function showKillcamReview(msg) {
+    if (!respawnOverlay) return;
+    if (killcamKillerName) killcamKillerName.textContent = msg.killer || 'Enemy Warrior';
+    const kClass = msg.killerClass || 'ASSAULT';
+    if (killcamClassBadge) {
+        killcamClassBadge.textContent = kClass;
+        killcamClassBadge.className = `killcam-class-badge class-badge ${kClass.toLowerCase()}`;
+    }
+    if (killcamAvatar) {
+        killcamAvatar.textContent = WARRIOR_CLASSES[kClass]?.icon || (msg.killer === 'THE_STORM' ? '⚡' : (msg.killer === 'VOLATILE_BARREL' ? '💥' : '🤖'));
+    }
+    if (killcamKillerHp) {
+        const hp = msg.killerHealth !== undefined ? msg.killerHealth : 100;
+        const maxHp = msg.killerMaxHealth || 100;
+        const sh = msg.killerShield || 0;
+        const maxSh = msg.killerMaxShield || 50;
+        killcamKillerHp.textContent = `HP: ${hp}/${maxHp} | Shield: ${sh}/${maxSh}`;
+    }
+    if (killcamWeapon) {
+        killcamWeapon.textContent = msg.weaponName || 'Blaster Bolt';
+    }
+    if (killcamDistance) {
+        killcamDistance.textContent = msg.distance ? `${msg.distance}m` : 'Point Blank';
+    }
+    if (killcamDamage) {
+        killcamDamage.textContent = `-${msg.finalDamage || 20} HP`;
+    }
+}
+
 // --- Phase 16 DOM Elements & State: Warrior Classes & Weapon Loadouts ---
 const hudClass = document.getElementById('hudClass');
 const classSelectContainer = document.getElementById('classSelectContainer');
@@ -2900,6 +2944,7 @@ function handleWebSocketMessage(msg) {
                 player.health = 0;
                 player.deaths = msg.victimDeaths;
                 updateHudHealth();
+                showKillcamReview(msg);
                 startRespawnCountdown(msg.respawnDelayMs || 2500);
             } else {
                 const victim = remotePlayers.get(msg.victim);
@@ -3092,18 +3137,31 @@ function startRespawnCountdown(durationMs) {
     }
     respawnOverlay.style.display = 'flex';
     let remaining = durationMs / 1000;
-    respawnCountdown.textContent = `Respawning in ${remaining.toFixed(1)}s...`;
+    respawnCountdown.textContent = `Tactical Respawn in ${remaining.toFixed(1)}s...`;
+
+    if (respawnProgressFill) {
+        respawnProgressFill.style.width = '0%';
+    }
+
+    const totalDuration = durationMs;
+    const startTime = performance.now();
 
     respawnTimerInterval = setInterval(() => {
-        remaining -= 0.1;
+        const elapsed = performance.now() - startTime;
+        const progress = Math.min(100, (elapsed / totalDuration) * 100);
+        if (respawnProgressFill) {
+            respawnProgressFill.style.width = `${progress}%`;
+        }
+
+        remaining = Math.max(0, (totalDuration - elapsed) / 1000);
         if (remaining <= 0) {
             clearInterval(respawnTimerInterval);
             respawnTimerInterval = null;
             respawnCountdown.textContent = 'Respawning now...';
         } else {
-            respawnCountdown.textContent = `Respawning in ${remaining.toFixed(1)}s...`;
+            respawnCountdown.textContent = `Tactical Respawn in ${remaining.toFixed(1)}s...`;
         }
-    }, 100);
+    }, 50);
 }
 
 function clearRespawnCountdown() {
@@ -3117,18 +3175,97 @@ function clearRespawnCountdown() {
 }
 
 function showGameOverModal(msg) {
+    lastMatchSummary = msg;
     const isMeWinner = msg.winner === player.name;
     gameOverTitle.textContent = isMeWinner ? '🏆 VICTORY!' : '🏁 MATCH COMPLETE';
     winnerAnnouncement.textContent = isMeWinner
         ? `Glorious Victory! You reached the target score of ${msg.winningScore || 100}!`
         : `${escapeHtml(msg.winner)} conquered the arena with score ${msg.winningScore || 100}!`;
 
+    // 1. Calculate Accolades / Medals
+    if (matchAccoladesRow) {
+        const accolades = [];
+        accolades.push(`
+            <div class="accolade-badge mvp">
+                <span>👑</span>
+                <span>Champion: ${escapeHtml(msg.winner || 'Unknown')}</span>
+            </div>
+        `);
+
+        let topFragger = null;
+        let maxKills = 0;
+        if (msg.players && Array.isArray(msg.players)) {
+            for (const p of msg.players) {
+                if ((p.kills || 0) > maxKills) {
+                    maxKills = p.kills;
+                    topFragger = p.username;
+                }
+            }
+        }
+        if (topFragger && maxKills > 0) {
+            accolades.push(`
+                <div class="accolade-badge top-frags">
+                    <span>🎯</span>
+                    <span>Apex Eliminator: ${escapeHtml(topFragger)} (${maxKills} Kills)</span>
+                </div>
+            `);
+        }
+
+        if (msg.combatEvents && Array.isArray(msg.combatEvents)) {
+            const fb = msg.combatEvents.find(e => e.type === 'ELIMINATION');
+            if (fb) {
+                accolades.push(`
+                    <div class="accolade-badge first-blood">
+                        <span>🩸</span>
+                        <span>First Blood: ${escapeHtml(fb.killer)}</span>
+                    </div>
+                `);
+            }
+        }
+
+        matchAccoladesRow.innerHTML = accolades.join('');
+    }
+
+    // 2. Render Combat Timeline Highlights
+    if (highlightsList) {
+        if (msg.combatEvents && Array.isArray(msg.combatEvents) && msg.combatEvents.length > 0) {
+            if (matchHighlightsBox) matchHighlightsBox.style.display = 'block';
+            highlightsList.innerHTML = msg.combatEvents.map(ev => {
+                const mins = Math.floor(ev.secondOffset / 60).toString().padStart(2, '0');
+                const secs = (ev.secondOffset % 60).toString().padStart(2, '0');
+                const timeStr = `${mins}:${secs}`;
+                let icon = '⚔️';
+                let desc = '';
+                if (ev.type === 'ELIMINATION') {
+                    icon = '🎯';
+                    desc = `<strong>${escapeHtml(ev.killer)}</strong> eliminated <strong>${escapeHtml(ev.victim)}</strong> with ${escapeHtml(ev.weapon)} (${ev.distance}m)`;
+                } else if (ev.type === 'HAZARD_ELIMINATION') {
+                    icon = '💥';
+                    desc = `<strong>${escapeHtml(ev.victim)}</strong> eliminated by <strong>${escapeHtml(ev.weapon)}</strong>`;
+                } else if (ev.type === 'VICTORY') {
+                    icon = '🏆';
+                    desc = `<strong>${escapeHtml(ev.killer)}</strong> claimed victory!`;
+                }
+                return `
+                    <div class="highlight-entry">
+                        <span class="highlight-time">[${timeStr}]</span>
+                        <span>${icon}</span>
+                        <span>${desc}</span>
+                    </div>
+                `;
+            }).join('');
+        } else {
+            if (matchHighlightsBox) matchHighlightsBox.style.display = 'none';
+        }
+    }
+
+    // 3. Render Final Standings Table
     if (msg.players && Array.isArray(msg.players)) {
         const sorted = [...msg.players].sort((a, b) => (b.score || 0) - (a.score || 0));
         matchSummaryScores.innerHTML = sorted.map(p => `
             <div class="match-summary-row ${p.username === msg.winner ? 'is-winner' : ''}">
                 <span class="name">${p.username === msg.winner ? '👑 ' : ''}${escapeHtml(p.username)}</span>
-                <span class="score">${p.score || 0} pts</span>
+                <span class="score">${p.score || 0} pts (${p.kills || 0} K / ${p.deaths || 0} D)</span>
             </div>
         `).join('');
     }
@@ -3150,6 +3287,30 @@ function showGameOverModal(msg) {
     gameOverModal.style.display = 'flex';
     // Refresh user profile stats
     verifyExistingSession();
+}
+
+function copyBattleReport() {
+    if (!lastMatchSummary) return;
+    const lines = [];
+    lines.push(`🏆 BATTLE ARENA COMBAT REPORT`);
+    lines.push(`Winner: ${lastMatchSummary.winner} (Score: ${lastMatchSummary.winningScore})`);
+    if (lastMatchSummary.players && Array.isArray(lastMatchSummary.players)) {
+        lines.push(`--- STANDINGS ---`);
+        const sorted = [...lastMatchSummary.players].sort((a, b) => (b.score || 0) - (a.score || 0));
+        sorted.forEach((p, idx) => {
+            lines.push(`#${idx + 1} ${p.username}: ${p.score || 0} pts | ${p.kills || 0} Kills | ${p.deaths || 0} Deaths`);
+        });
+    }
+    const reportText = lines.join('\n');
+    navigator.clipboard.writeText(reportText).then(() => {
+        if (copyBattleReportBtn) {
+            const originalText = copyBattleReportBtn.textContent;
+            copyBattleReportBtn.textContent = '✅ Copied to Clipboard!';
+            setTimeout(() => { copyBattleReportBtn.textContent = originalText; }, 2200);
+        }
+    }).catch(() => {
+        alert(reportText);
+    });
 }
 
 function closeGameOverModal() {
@@ -3642,6 +3803,10 @@ function setupLeaderboardEventListeners() {
 
     if (rematchBtn) {
         rematchBtn.addEventListener('click', triggerRematch);
+    }
+
+    if (copyBattleReportBtn) {
+        copyBattleReportBtn.addEventListener('click', copyBattleReport);
     }
 
     returnToLobbyBtn.addEventListener('click', () => {
