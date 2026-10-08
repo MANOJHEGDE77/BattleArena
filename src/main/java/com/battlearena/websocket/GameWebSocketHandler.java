@@ -2,6 +2,7 @@ package com.battlearena.websocket;
 
 import com.battlearena.model.Coin;
 import com.battlearena.model.GamePlayer;
+import com.battlearena.model.Projectile;
 import com.battlearena.model.Room;
 import com.battlearena.model.RoomStatus;
 import com.battlearena.security.JwtUtil;
@@ -20,6 +21,9 @@ import java.net.URI;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Real-time WebSocket Handler managing bidirectional game communication.
@@ -46,6 +50,7 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
     private final ConcurrentMap<String, String> sessionToUser = new ConcurrentHashMap<>();
     private final ConcurrentMap<String, String> sessionToRoom = new ConcurrentHashMap<>();
     private final ConcurrentMap<String, Set<WebSocketSession>> roomSessions = new ConcurrentHashMap<>();
+    private final ScheduledExecutorService respawnScheduler = Executors.newSingleThreadScheduledExecutor();
 
     public GameWebSocketHandler(JwtUtil jwtUtil, RoomService roomService, UserService userService,
                                 com.battlearena.service.MatchService matchService, ObjectMapper mapper) {
@@ -138,6 +143,46 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
                 }
                 break;
             }
+            case "ATTACK": {
+                String username = sessionToUser.get(session.getId());
+                String roomId = sessionToRoom.get(session.getId());
+                if (username != null && roomId != null) {
+                    double heading = root.has("heading") ? root.get("heading").asDouble() : 0.0;
+                    Room room = roomService.getActiveRoom(roomId);
+                    if (room != null && room.getStatus() == RoomStatus.PLAYING) {
+                        Projectile proj = room.fireProjectile(username, heading);
+                        if (proj != null) {
+                            Map<String, Object> payloadMap = new LinkedHashMap<>();
+                            payloadMap.put("type", "PROJECTILE_SPAWNED");
+                            payloadMap.put("id", proj.getId());
+                            payloadMap.put("shooter", proj.getShooterUsername());
+                            payloadMap.put("x", proj.getStartX());
+                            payloadMap.put("y", proj.getStartY());
+                            payloadMap.put("vx", proj.getVx());
+                            payloadMap.put("vy", proj.getVy());
+                            payloadMap.put("heading", proj.getHeading());
+                            payloadMap.put("speed", proj.getSpeed());
+                            payloadMap.put("damage", proj.getDamage());
+                            payloadMap.put("createdAt", proj.getCreatedAt());
+                            broadcastToRoom(roomId, payloadMap);
+                        }
+                    }
+                }
+                break;
+            }
+            case "PROJECTILE_HIT": {
+                String username = sessionToUser.get(session.getId());
+                String roomId = sessionToRoom.get(session.getId());
+                if (username != null && roomId != null && root.has("projectileId") && root.has("targetUsername")) {
+                    String projectileId = root.get("projectileId").asText();
+                    String targetUsername = root.get("targetUsername").asText();
+                    Room room = roomService.getActiveRoom(roomId);
+                    if (room != null && room.getStatus() == RoomStatus.PLAYING) {
+                        handleProjectileHit(room, roomId, projectileId, targetUsername);
+                    }
+                }
+                break;
+            }
             case "PING": {
                 sendDirect(session, Map.of("type", "PONG", "timestamp", System.currentTimeMillis()));
                 break;
@@ -205,6 +250,7 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
                     "roomId", roomId,
                     "coins", activeRoom.getCoins(),
                     "players", activeRoom.getGamePlayers(),
+                    "projectiles", activeRoom.getProjectiles(),
                     "winningScore", Room.getWinningScore()
             ));
         }
@@ -259,34 +305,96 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
 
             // Check if game reached victory condition
             if (room.getStatus() == RoomStatus.FINISHED) {
-                Long matchId = null;
-                try {
-                    com.battlearena.model.GameResult savedMatch = matchService.recordMatch(room);
-                    if (savedMatch != null) {
-                        matchId = savedMatch.getId();
-                    }
-                } catch (Exception e) {
-                    // Ignore match persistence failure
-                }
+                onMatchFinished(room, roomId);
+            }
+        }
+    }
 
-                Map<String, Object> gameOverPayload = new HashMap<>();
-                gameOverPayload.put("type", "GAME_OVER");
-                gameOverPayload.put("winner", room.getWinnerUsername());
-                gameOverPayload.put("winningScore", Room.getWinningScore());
-                gameOverPayload.put("players", room.getGamePlayers());
-                if (matchId != null) {
-                    gameOverPayload.put("matchId", matchId);
-                }
-                broadcastToRoom(roomId, gameOverPayload);
+    private synchronized void handleProjectileHit(Room room, String roomId, String projectileId, String targetUsername) {
+        Room.HitResult hit = room.validateAndApplyHit(projectileId, targetUsername);
+        if (hit.isValid()) {
+            // Broadcast damage event to room
+            broadcastToRoom(roomId, Map.of(
+                    "type", "PLAYER_DAMAGED",
+                    "projectileId", hit.getProjectile().getId(),
+                    "targetUsername", hit.getTarget().getUsername(),
+                    "shooterUsername", hit.getShooter().getUsername(),
+                    "damage", hit.getDamage(),
+                    "currentHealth", hit.getTarget().getHealth(),
+                    "maxHealth", hit.getTarget().getMaxHealth(),
+                    "isEliminated", hit.isEliminated()
+            ));
 
-                // Persist lifetime match scores to MySQL
-                for (GamePlayer gp : room.getGamePlayers()) {
+            if (hit.isEliminated()) {
+                double[] respawnCoords = hit.getRespawnCoords();
+                broadcastToRoom(roomId, Map.of(
+                        "type", "PLAYER_ELIMINATED",
+                        "victim", hit.getTarget().getUsername(),
+                        "killer", hit.getShooter().getUsername(),
+                        "victimDeaths", hit.getTarget().getDeaths(),
+                        "killerKills", hit.getShooter().getKills(),
+                        "killerScore", hit.getShooter().getScore(),
+                        "respawnDelayMs", 2500,
+                        "respawnX", (respawnCoords != null ? respawnCoords[0] : 400.0),
+                        "respawnY", (respawnCoords != null ? respawnCoords[1] : 300.0)
+                ));
+
+                // Schedule automated respawn after 2.5 seconds
+                final String victim = hit.getTarget().getUsername();
+                final double rx = (respawnCoords != null ? respawnCoords[0] : 400.0);
+                final double ry = (respawnCoords != null ? respawnCoords[1] : 300.0);
+                respawnScheduler.schedule(() -> {
                     try {
-                        userService.recordMatchResult(gp.getUsername(), gp.getScore());
+                        Room r = roomService.getActiveRoom(roomId);
+                        if (r != null && r.getStatus() == RoomStatus.PLAYING) {
+                            r.respawnPlayer(victim, rx, ry);
+                            broadcastToRoom(roomId, Map.of(
+                                    "type", "PLAYER_RESPAWNED",
+                                    "username", victim,
+                                    "x", rx,
+                                    "y", ry,
+                                    "health", 100
+                            ));
+                        }
                     } catch (Exception e) {
-                        // Ignore persistence logging
+                        // Ignore scheduler errors
                     }
-                }
+                }, 2500, TimeUnit.MILLISECONDS);
+            }
+
+            if (hit.isMatchFinished()) {
+                onMatchFinished(room, roomId);
+            }
+        }
+    }
+
+    private void onMatchFinished(Room room, String roomId) {
+        Long matchId = null;
+        try {
+            com.battlearena.model.GameResult savedMatch = matchService.recordMatch(room);
+            if (savedMatch != null) {
+                matchId = savedMatch.getId();
+            }
+        } catch (Exception e) {
+            // Ignore match persistence failure
+        }
+
+        Map<String, Object> gameOverPayload = new HashMap<>();
+        gameOverPayload.put("type", "GAME_OVER");
+        gameOverPayload.put("winner", room.getWinnerUsername());
+        gameOverPayload.put("winningScore", Room.getWinningScore());
+        gameOverPayload.put("players", room.getGamePlayers());
+        if (matchId != null) {
+            gameOverPayload.put("matchId", matchId);
+        }
+        broadcastToRoom(roomId, gameOverPayload);
+
+        // Persist lifetime match scores to MySQL
+        for (GamePlayer gp : room.getGamePlayers()) {
+            try {
+                userService.recordMatchResult(gp.getUsername(), gp.getScore());
+            } catch (Exception e) {
+                // Ignore persistence logging
             }
         }
     }

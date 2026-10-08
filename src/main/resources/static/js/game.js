@@ -43,6 +43,17 @@ const profileStatHighScore = document.getElementById('profileStatHighScore');
 const matchMetaPill = document.getElementById('matchMetaPill');
 const rematchBtn = document.getElementById('rematchBtn');
 
+// --- Phase 8 DOM Elements & State: Combat, Projectiles & Health ---
+const hudHp = document.getElementById('hudHp');
+const hudKd = document.getElementById('hudKd');
+const killFeed = document.getElementById('killFeed');
+const respawnOverlay = document.getElementById('respawnOverlay');
+const respawnCountdown = document.getElementById('respawnCountdown');
+
+const projectiles = new Map();
+const ATTACK_COOLDOWN_MS = 350;
+let respawnTimerInterval = null;
+
 // --- Phase 6 State: Collectibles & Authoritative Scoring ---
 const coins = new Map();
 let myScore = 0;
@@ -59,13 +70,24 @@ const player = {
     heading: 0, // radians
     color: '#6366f1',
     accentColor: '#818cf8',
-    name: 'Guest'
+    name: 'Guest',
+    health: 100,
+    maxHealth: 100,
+    alive: true,
+    kills: 0,
+    deaths: 0,
+    lastAttackTime: 0
 };
 
 // --- Input Manager ---
 const activeKeys = new Set();
 
 window.addEventListener('keydown', (e) => {
+    if (e.code === 'Space') {
+        e.preventDefault();
+        fireBlaster();
+        return;
+    }
     const key = e.key.toLowerCase();
     if (['w', 'a', 's', 'd', 'arrowup', 'arrowleft', 'arrowdown', 'arrowright'].includes(key)) {
         activeKeys.add(key);
@@ -80,14 +102,83 @@ window.addEventListener('keyup', (e) => {
     activeKeys.delete(e.key.toLowerCase());
 });
 
+// Canvas pointer down for directional mouse-aim firing
+canvas.addEventListener('pointerdown', (e) => {
+    if (isGameOver || !player.alive) return;
+    const rect = canvas.getBoundingClientRect();
+    const clickX = e.clientX - rect.left;
+    const clickY = e.clientY - rect.top;
+    const heading = Math.atan2(clickY - player.y, clickX - player.x);
+    player.heading = heading;
+    fireBlaster(heading);
+});
+
+function fireBlaster(targetHeading) {
+    if (isGameOver || !player.alive) return;
+    if (!activeRoom || activeRoom.status !== 'PLAYING') return;
+    if (!gameWs || gameWs.readyState !== WebSocket.OPEN) return;
+
+    const now = performance.now();
+    if (now - player.lastAttackTime < ATTACK_COOLDOWN_MS) return;
+    player.lastAttackTime = now;
+
+    const heading = targetHeading !== undefined ? targetHeading : player.heading;
+    gameWs.send(JSON.stringify({
+        type: 'ATTACK',
+        heading: Math.round(heading * 100) / 100
+    }));
+}
+
 // Clear keys if window loses focus to avoid "stuck key" glitch
 window.addEventListener('blur', () => {
     activeKeys.clear();
 });
 
+// Update projectiles flight and client-side hit trigger
+function updateProjectiles(dt) {
+    const now = performance.now();
+    projectiles.forEach((p, id) => {
+        p.x += p.vx * dt;
+        p.y += p.vy * dt;
+
+        // Boundary or lifetime expiration
+        if (p.x < 0 || p.x > canvas.width || p.y < 0 || p.y > canvas.height || (now - p.clientCreatedAt > 2200)) {
+            projectiles.delete(id);
+            return;
+        }
+
+        // Local client hit detection for shooter's own projectiles
+        if (p.shooter === player.name && activeRoom && activeRoom.status === 'PLAYING') {
+            remotePlayers.forEach((rp, uname) => {
+                if (rp.alive !== false) {
+                    const dx = p.x - rp.x;
+                    const dy = p.y - rp.y;
+                    const maxDist = (rp.radius || 16) + (p.radius || 5);
+                    if (dx * dx + dy * dy <= maxDist * maxDist) {
+                        if (gameWs && gameWs.readyState === WebSocket.OPEN) {
+                            gameWs.send(JSON.stringify({
+                                type: 'PROJECTILE_HIT',
+                                projectileId: id,
+                                targetUsername: uname
+                            }));
+                        }
+                        projectiles.delete(id);
+                    }
+                }
+            });
+        }
+    });
+}
+
 // --- Physics & Collision Engine ---
 function updatePhysics(dt) {
     if (isGameOver) return;
+
+    updateProjectiles(dt);
+
+    if (!player.alive) {
+        return;
+    }
 
     let moveX = 0;
     let moveY = 0;
@@ -262,10 +353,62 @@ function renderFloatingTexts(dt) {
 // Remote Multiplayer Entities Map
 const remotePlayers = new Map();
 
+function renderProjectiles() {
+    projectiles.forEach((p) => {
+        ctx.save();
+        ctx.translate(p.x, p.y);
+        ctx.rotate(p.heading);
+
+        // Radiant neon glow
+        ctx.beginPath();
+        ctx.arc(0, 0, 5, 0, Math.PI * 2);
+        ctx.fillStyle = '#38bdf8';
+        ctx.shadowColor = '#38bdf8';
+        ctx.shadowBlur = 8;
+        ctx.fill();
+
+        // Concentrated core
+        ctx.beginPath();
+        ctx.arc(0, 0, 2.5, 0, Math.PI * 2);
+        ctx.fillStyle = '#ffffff';
+        ctx.fill();
+
+        // Speed trail tail
+        ctx.beginPath();
+        ctx.moveTo(1, 0);
+        ctx.lineTo(-12, -2.5);
+        ctx.lineTo(-12, 2.5);
+        ctx.closePath();
+        ctx.fillStyle = 'rgba(56, 189, 248, 0.45)';
+        ctx.fill();
+
+        ctx.restore();
+    });
+}
+
 function renderRemotePlayers() {
     remotePlayers.forEach((rp, username) => {
         ctx.save();
         ctx.translate(rp.x, rp.y);
+
+        if (rp.alive === false) {
+            ctx.globalAlpha = 0.35;
+            ctx.beginPath();
+            ctx.arc(0, 0, rp.radius || 16, 0, Math.PI * 2);
+            ctx.fillStyle = '#475569';
+            ctx.fill();
+
+            ctx.fillStyle = '#ef4444';
+            ctx.font = '14px Outfit, sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillText('☠️', 0, 5);
+
+            ctx.fillStyle = '#94a3b8';
+            ctx.font = '600 11px Outfit, sans-serif';
+            ctx.fillText(`${username} (Dead)`, 0, -(rp.radius || 16) - 6);
+            ctx.restore();
+            return;
+        }
 
         // 1. Remote player outer accent ring
         ctx.beginPath();
@@ -296,11 +439,29 @@ function renderRemotePlayers() {
         ctx.fillStyle = '#ffffff';
         ctx.fill();
 
-        // 5. Remote player name & score tag
+        // 5. Floating Health Bar (Phase 8)
+        const barWidth = 34;
+        const barHeight = 4;
+        const barX = -barWidth / 2;
+        const barY = -(rp.radius || 16) - 16;
+        const hp = rp.health !== undefined ? rp.health : 100;
+        const hpRatio = Math.max(0, Math.min(1, hp / 100));
+
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
+        ctx.fillRect(barX, barY, barWidth, barHeight);
+
+        ctx.fillStyle = hpRatio > 0.5 ? '#10b981' : (hpRatio > 0.25 ? '#f59e0b' : '#ef4444');
+        ctx.fillRect(barX, barY, barWidth * hpRatio, barHeight);
+
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.15)';
+        ctx.lineWidth = 0.5;
+        ctx.strokeRect(barX, barY, barWidth, barHeight);
+
+        // 6. Remote player name & score tag
         ctx.fillStyle = '#6ee7b7';
         ctx.font = '600 11px Outfit, sans-serif';
         ctx.textAlign = 'center';
-        ctx.fillText(`${username} (${rp.score || 0})`, 0, -(rp.radius || 16) - 8);
+        ctx.fillText(`${username} (${rp.score || 0})`, 0, -(rp.radius || 16) - 4);
 
         ctx.restore();
     });
@@ -309,6 +470,25 @@ function renderRemotePlayers() {
 function renderPlayer() {
     ctx.save();
     ctx.translate(player.x, player.y);
+
+    if (!player.alive) {
+        ctx.globalAlpha = 0.35;
+        ctx.beginPath();
+        ctx.arc(0, 0, player.radius, 0, Math.PI * 2);
+        ctx.fillStyle = '#475569';
+        ctx.fill();
+
+        ctx.fillStyle = '#ef4444';
+        ctx.font = '14px Outfit, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText('☠️', 0, 5);
+
+        ctx.fillStyle = '#94a3b8';
+        ctx.font = '600 11px Outfit, sans-serif';
+        ctx.fillText(`${player.name} (Eliminated)`, 0, -player.radius - 6);
+        ctx.restore();
+        return;
+    }
 
     // 1. Outer accent ring
     ctx.beginPath();
@@ -339,11 +519,28 @@ function renderPlayer() {
     ctx.fillStyle = '#ffffff';
     ctx.fill();
 
-    // 5. Name & score tag
+    // 5. Floating Health Bar (Phase 8)
+    const barWidth = 34;
+    const barHeight = 4;
+    const barX = -barWidth / 2;
+    const barY = -player.radius - 16;
+    const hpRatio = Math.max(0, Math.min(1, player.health / player.maxHealth));
+
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
+    ctx.fillRect(barX, barY, barWidth, barHeight);
+
+    ctx.fillStyle = hpRatio > 0.5 ? '#10b981' : (hpRatio > 0.25 ? '#f59e0b' : '#ef4444');
+    ctx.fillRect(barX, barY, barWidth * hpRatio, barHeight);
+
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.15)';
+    ctx.lineWidth = 0.5;
+    ctx.strokeRect(barX, barY, barWidth, barHeight);
+
+    // 6. Name & score tag
     ctx.fillStyle = '#e2e8f0';
     ctx.font = '600 11px Outfit, sans-serif';
     ctx.textAlign = 'center';
-    ctx.fillText(`${player.name} (${myScore})`, 0, -player.radius - 8);
+    ctx.fillText(`${player.name} (${myScore})`, 0, -player.radius - 4);
 
     ctx.restore();
 }
@@ -362,9 +559,10 @@ function gameLoop(currentTime) {
     // Physics update step
     updatePhysics(dt);
 
-    // Visual render step: arena surface -> coins -> remote players -> local player -> floating text
+    // Visual render step: arena surface -> coins -> projectiles -> remote players -> local player -> floating text
     renderArena();
     renderCoins();
+    renderProjectiles();
     renderRemotePlayers();
     renderPlayer();
     renderFloatingTexts(dt);
@@ -773,9 +971,16 @@ function handleWebSocketMessage(msg) {
         case 'GAME_STATE_SNAPSHOT':
             isGameOver = false;
             coins.clear();
+            projectiles.clear();
+            clearRespawnCountdown();
             if (msg.type === 'GAME_START') {
                 myScore = 0;
                 hudScore.textContent = '0';
+                player.kills = 0;
+                player.deaths = 0;
+                player.health = 100;
+                player.alive = true;
+                updateHudHealth();
             }
             if (msg.winningScore) {
                 winningScore = msg.winningScore;
@@ -785,16 +990,37 @@ function handleWebSocketMessage(msg) {
             if (msg.coins && Array.isArray(msg.coins)) {
                 msg.coins.forEach(c => coins.set(c.id, c));
             }
+            if (msg.projectiles && Array.isArray(msg.projectiles)) {
+                msg.projectiles.forEach(p => {
+                    projectiles.set(p.id, {
+                        id: p.id,
+                        shooter: p.shooterUsername || p.shooter,
+                        x: p.startX || p.x,
+                        y: p.startY || p.y,
+                        vx: p.vx,
+                        vy: p.vy,
+                        heading: p.heading,
+                        speed: p.speed,
+                        radius: 5,
+                        clientCreatedAt: performance.now()
+                    });
+                });
+            }
             if (msg.players && Array.isArray(msg.players)) {
                 msg.players.forEach(p => {
                     if (p.username === player.name) {
                         player.x = p.x;
                         player.y = p.y;
                         player.color = p.color;
+                        player.health = p.health !== undefined ? p.health : 100;
+                        player.alive = p.alive !== undefined ? p.alive : true;
+                        player.kills = p.kills || 0;
+                        player.deaths = p.deaths || 0;
                         if (p.score !== undefined) {
                             myScore = p.score;
                             hudScore.textContent = myScore;
                         }
+                        updateHudHealth();
                     } else {
                         remotePlayers.set(p.username, {
                             x: p.x,
@@ -802,7 +1028,11 @@ function handleWebSocketMessage(msg) {
                             heading: p.heading || 0,
                             color: p.color,
                             radius: 16,
-                            score: p.score || 0
+                            score: p.score || 0,
+                            health: p.health !== undefined ? p.health : 100,
+                            alive: p.alive !== undefined ? p.alive : true,
+                            kills: p.kills || 0,
+                            deaths: p.deaths || 0
                         });
                     }
                 });
@@ -815,6 +1045,99 @@ function handleWebSocketMessage(msg) {
             }
             updateLiveScoreboard();
             break;
+        case 'PROJECTILE_SPAWNED':
+            projectiles.set(msg.id, {
+                id: msg.id,
+                shooter: msg.shooter,
+                x: msg.x,
+                y: msg.y,
+                vx: msg.vx,
+                vy: msg.vy,
+                heading: msg.heading,
+                speed: msg.speed,
+                damage: msg.damage,
+                radius: 5,
+                clientCreatedAt: performance.now()
+            });
+            break;
+        case 'PLAYER_DAMAGED': {
+            if (msg.projectileId) {
+                projectiles.delete(msg.projectileId);
+            }
+            const isMe = msg.targetUsername === player.name;
+            const targetX = isMe ? player.x : (remotePlayers.get(msg.targetUsername)?.x || player.x);
+            const targetY = isMe ? player.y : (remotePlayers.get(msg.targetUsername)?.y || player.y);
+
+            addFloatingText(`-${msg.damage}`, targetX, targetY - 14, isMe ? '#ef4444' : '#f87171');
+
+            if (isMe) {
+                player.health = msg.currentHealth;
+                player.alive = !msg.isEliminated;
+                updateHudHealth();
+            } else {
+                const rp = remotePlayers.get(msg.targetUsername);
+                if (rp) {
+                    rp.health = msg.currentHealth;
+                    rp.alive = !msg.isEliminated;
+                }
+            }
+            break;
+        }
+        case 'PLAYER_ELIMINATED': {
+            addKillFeedMessage(msg.killer, msg.victim);
+
+            if (msg.victim === player.name) {
+                player.alive = false;
+                player.health = 0;
+                player.deaths = msg.victimDeaths;
+                updateHudHealth();
+                startRespawnCountdown(msg.respawnDelayMs || 2500);
+            } else {
+                const victim = remotePlayers.get(msg.victim);
+                if (victim) {
+                    victim.alive = false;
+                    victim.health = 0;
+                    victim.deaths = msg.victimDeaths;
+                }
+            }
+
+            if (msg.killer === player.name) {
+                player.kills = msg.killerKills;
+                myScore = msg.killerScore;
+                hudScore.textContent = myScore;
+                updateHudHealth();
+                addFloatingText('+15 KILL!', player.x, player.y - 18, '#fbbf24');
+            } else {
+                const killer = remotePlayers.get(msg.killer);
+                if (killer) {
+                    killer.kills = msg.killerKills;
+                    killer.score = msg.killerScore;
+                }
+            }
+            updateLiveScoreboard();
+            break;
+        }
+        case 'PLAYER_RESPAWNED': {
+            if (msg.username === player.name) {
+                player.x = msg.x;
+                player.y = msg.y;
+                player.health = msg.health || 100;
+                player.alive = true;
+                clearRespawnCountdown();
+                updateHudHealth();
+                addFloatingText('RESPAWNED!', player.x, player.y, '#10b981');
+            } else {
+                const rp = remotePlayers.get(msg.username);
+                if (rp) {
+                    rp.x = msg.x;
+                    rp.y = msg.y;
+                    rp.health = msg.health || 100;
+                    rp.alive = true;
+                    addFloatingText('RESPAWNED!', rp.x, rp.y, '#10b981');
+                }
+            }
+            break;
+        }
         case 'COIN_COLLECTED': {
             const coin = coins.get(msg.coinId);
             const posX = coin ? coin.x : player.x;
@@ -843,6 +1166,8 @@ function handleWebSocketMessage(msg) {
             break;
         case 'GAME_OVER': {
             isGameOver = true;
+            clearRespawnCountdown();
+            projectiles.clear();
             if (activeRoom) {
                 activeRoom.status = 'FINISHED';
                 currentRoomStatus.textContent = 'MATCH FINISHED';
@@ -853,10 +1178,17 @@ function handleWebSocketMessage(msg) {
         }
         case 'REMATCH_RESET': {
             closeGameOverModal();
+            clearRespawnCountdown();
             isGameOver = false;
             coins.clear();
+            projectiles.clear();
             myScore = 0;
             hudScore.textContent = '0';
+            player.health = 100;
+            player.alive = true;
+            player.kills = 0;
+            player.deaths = 0;
+            updateHudHealth();
             if (activeRoom) {
                 activeRoom.status = 'WAITING';
                 currentRoomStatus.textContent = 'WAITING FOR PLAYERS';
@@ -876,10 +1208,10 @@ function updateLiveScoreboard() {
     liveScoreboard.style.display = 'block';
 
     const list = [];
-    list.push({ username: player.name, score: myScore, color: player.color, isMe: true });
+    list.push({ username: player.name, score: myScore, color: player.color, isMe: true, kills: player.kills, deaths: player.deaths });
 
     remotePlayers.forEach((rp, uname) => {
-        list.push({ username: uname, score: rp.score || 0, color: rp.color || '#10b981', isMe: false });
+        list.push({ username: uname, score: rp.score || 0, color: rp.color || '#10b981', isMe: false, kills: rp.kills || 0, deaths: rp.deaths || 0 });
     });
 
     list.sort((a, b) => b.score - a.score);
@@ -890,9 +1222,69 @@ function updateLiveScoreboard() {
                 <span class="scoreboard-dot" style="background-color: ${item.color};"></span>
                 <span>${escapeHtml(item.username)}${item.isMe ? ' (You)' : ''}</span>
             </div>
-            <span class="scoreboard-score">${item.score}</span>
+            <div style="display: flex; gap: 8px; align-items: center;">
+                <span style="font-size: 0.72rem; color: #94a3b8; font-family: monospace;">${item.kills}K/${item.deaths}D</span>
+                <span class="scoreboard-score">${item.score}</span>
+            </div>
         </div>
     `).join('');
+}
+
+function addKillFeedMessage(killer, victim) {
+    if (!killFeed) return;
+    const item = document.createElement('div');
+    item.className = 'kill-feed-item';
+    item.innerHTML = `<span class="killer">${escapeHtml(killer)}</span> ⚔️ <span class="victim">${escapeHtml(victim)}</span> <span class="bonus">(+15 pts)</span>`;
+    killFeed.appendChild(item);
+    setTimeout(() => {
+        if (item.parentNode) {
+            item.remove();
+        }
+    }, 4500);
+}
+
+function updateHudHealth() {
+    if (!hudHp || !hudKd) return;
+    hudHp.textContent = player.health;
+    if (player.health <= 25) {
+        hudHp.className = 'low-hp';
+    } else if (player.health <= 50) {
+        hudHp.className = 'mid-hp';
+    } else {
+        hudHp.className = '';
+    }
+    hudKd.textContent = `${player.kills} / ${player.deaths}`;
+}
+
+function startRespawnCountdown(durationMs) {
+    if (!respawnOverlay || !respawnCountdown) return;
+    if (respawnTimerInterval) {
+        clearInterval(respawnTimerInterval);
+    }
+    respawnOverlay.style.display = 'flex';
+    let remaining = durationMs / 1000;
+    respawnCountdown.textContent = `Respawning in ${remaining.toFixed(1)}s...`;
+
+    respawnTimerInterval = setInterval(() => {
+        remaining -= 0.1;
+        if (remaining <= 0) {
+            clearInterval(respawnTimerInterval);
+            respawnTimerInterval = null;
+            respawnCountdown.textContent = 'Respawning now...';
+        } else {
+            respawnCountdown.textContent = `Respawning in ${remaining.toFixed(1)}s...`;
+        }
+    }, 100);
+}
+
+function clearRespawnCountdown() {
+    if (respawnTimerInterval) {
+        clearInterval(respawnTimerInterval);
+        respawnTimerInterval = null;
+    }
+    if (respawnOverlay) {
+        respawnOverlay.style.display = 'none';
+    }
 }
 
 function showGameOverModal(msg) {

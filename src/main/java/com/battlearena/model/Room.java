@@ -169,11 +169,49 @@ public class Room {
     }
 
     private final ConcurrentMap<String, Coin> coins = new ConcurrentHashMap<>();
+    private final ConcurrentMap<String, Projectile> projectiles = new ConcurrentHashMap<>();
     private final Random random = new Random();
     private static final int TARGET_COIN_COUNT = 6;
     private static final int WINNING_SCORE = 100;
+    public static final int KILL_SCORE_BONUS = 15;
+    public static final long ATTACK_COOLDOWN_MS = 350L;
     private volatile String winnerUsername = null;
     private volatile Instant matchStartedAt = null;
+
+    /**
+     * Hit resolution payload carrying authoritative combat outcome.
+     */
+    public static class HitResult {
+        private final boolean valid;
+        private final Projectile projectile;
+        private final GamePlayer target;
+        private final GamePlayer shooter;
+        private final int damage;
+        private final boolean eliminated;
+        private final boolean matchFinished;
+        private final double[] respawnCoords;
+
+        public HitResult(boolean valid, Projectile projectile, GamePlayer target, GamePlayer shooter,
+                         int damage, boolean eliminated, boolean matchFinished, double[] respawnCoords) {
+            this.valid = valid;
+            this.projectile = projectile;
+            this.target = target;
+            this.shooter = shooter;
+            this.damage = damage;
+            this.eliminated = eliminated;
+            this.matchFinished = matchFinished;
+            this.respawnCoords = respawnCoords;
+        }
+
+        public boolean isValid() { return valid; }
+        public Projectile getProjectile() { return projectile; }
+        public GamePlayer getTarget() { return target; }
+        public GamePlayer getShooter() { return shooter; }
+        public int getDamage() { return damage; }
+        public boolean isEliminated() { return eliminated; }
+        public boolean isMatchFinished() { return matchFinished; }
+        public double[] getRespawnCoords() { return respawnCoords; }
+    }
 
     /**
      * Transitions room status to PLAYING, initializes real-time players, and spawns initial coins.
@@ -184,6 +222,7 @@ public class Room {
         this.matchStartedAt = Instant.now();
         this.gamePlayers.clear();
         this.coins.clear();
+        this.projectiles.clear();
 
         int index = 0;
         for (String username : players.keySet()) {
@@ -276,6 +315,118 @@ public class Room {
         return Collections.unmodifiableCollection(coins.values());
     }
 
+    public Collection<Projectile> getProjectiles() {
+        long now = System.currentTimeMillis();
+        projectiles.values().removeIf(p -> p.isExpired(now));
+        return Collections.unmodifiableCollection(projectiles.values());
+    }
+
+    /**
+     * Spawns an authoritative projectile if player is alive and cooldown has elapsed.
+     */
+    public synchronized Projectile fireProjectile(String shooterUsername, double heading) {
+        if (status != RoomStatus.PLAYING) {
+            return null;
+        }
+        GamePlayer player = gamePlayers.get(shooterUsername);
+        if (player == null || !player.isAlive()) {
+            return null;
+        }
+
+        long now = System.currentTimeMillis();
+        if (!player.canAttack(now, ATTACK_COOLDOWN_MS)) {
+            return null;
+        }
+
+        player.recordAttack(now);
+        String projId = "PROJ-" + UUID.randomUUID().toString().substring(0, 6).toUpperCase();
+        Projectile projectile = new Projectile(projId, shooterUsername, player.getX(), player.getY(), heading);
+        projectiles.put(projId, projectile);
+        return projectile;
+    }
+
+    /**
+     * Server-Authoritative hit verification:
+     * 1. Confirms projectile exists and is within flight window.
+     * 2. Confirms target player is alive and distinct from shooter.
+     * 3. Calculates projectile exact coordinates at verification time.
+     * 4. Enforces radial collision tolerance before applying damage and rewards.
+     */
+    public synchronized HitResult validateAndApplyHit(String projectileId, String targetUsername) {
+        if (status != RoomStatus.PLAYING) {
+            return new HitResult(false, null, null, null, 0, false, false, null);
+        }
+
+        Projectile proj = projectiles.get(projectileId);
+        if (proj == null) {
+            return new HitResult(false, null, null, null, 0, false, false, null);
+        }
+
+        long now = System.currentTimeMillis();
+        if (proj.isExpired(now)) {
+            projectiles.remove(projectileId);
+            return new HitResult(false, null, null, null, 0, false, false, null);
+        }
+
+        // Friendly fire / suicide prevention
+        if (proj.getShooterUsername().equals(targetUsername)) {
+            return new HitResult(false, null, null, null, 0, false, false, null);
+        }
+
+        GamePlayer target = gamePlayers.get(targetUsername);
+        GamePlayer shooter = gamePlayers.get(proj.getShooterUsername());
+        if (target == null || !target.isAlive() || shooter == null) {
+            return new HitResult(false, null, null, null, 0, false, false, null);
+        }
+
+        // Closed-form projectile trajectory position at timestamp 'now'
+        double projX = proj.getCurrentX(now);
+        double projY = proj.getCurrentY(now);
+
+        // Arena boundary collision: remove bullet if outside field
+        if (projX < 0 || projX > 800 || projY < 0 || projY > 600) {
+            projectiles.remove(projectileId);
+            return new HitResult(false, null, null, null, 0, false, false, null);
+        }
+
+        // Radial proximity check: (target radius + proj radius + latency tolerance)^2
+        double dx = projX - target.getX();
+        double dy = projY - target.getY();
+        double maxDist = target.getRadius() + proj.getRadius() + 24.0; // 24px network latency buffer
+
+        if (dx * dx + dy * dy <= maxDist * maxDist) {
+            projectiles.remove(projectileId);
+            boolean eliminated = target.takeDamage(proj.getDamage());
+            double[] respawnCoords = null;
+
+            if (eliminated) {
+                shooter.addKill();
+                shooter.addScore(KILL_SCORE_BONUS);
+                if (shooter.getScore() >= WINNING_SCORE && winnerUsername == null) {
+                    winnerUsername = shooter.getUsername();
+                    status = RoomStatus.FINISHED;
+                }
+                int spawnIdx = Math.abs(random.nextInt()) % SPAWN_POINTS.length;
+                respawnCoords = SPAWN_POINTS[spawnIdx];
+            }
+
+            return new HitResult(true, proj, target, shooter, proj.getDamage(),
+                    eliminated, status == RoomStatus.FINISHED, respawnCoords);
+        }
+
+        return new HitResult(false, null, null, null, 0, false, false, null);
+    }
+
+    /**
+     * Respawns an eliminated player at designated arena coordinates.
+     */
+    public synchronized void respawnPlayer(String username, double x, double y) {
+        GamePlayer player = gamePlayers.get(username);
+        if (player != null && !player.isAlive()) {
+            player.respawn(x, y);
+        }
+    }
+
     public String getWinnerUsername() {
         return winnerUsername;
     }
@@ -294,6 +445,7 @@ public class Room {
         this.matchStartedAt = null;
         this.gamePlayers.clear();
         this.coins.clear();
+        this.projectiles.clear();
         for (PlayerRoomState state : players.values()) {
             if (!state.isHost()) {
                 state.setReady(false);

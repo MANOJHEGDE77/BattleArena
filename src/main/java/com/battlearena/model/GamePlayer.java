@@ -20,6 +20,11 @@ public class GamePlayer {
     private final String color;
     private volatile int score;
     private volatile boolean alive;
+    private volatile int health;
+    private static final int MAX_HEALTH = 100;
+    private volatile int kills;
+    private volatile int deaths;
+    private volatile long lastAttackTime;
     private volatile Instant lastUpdate;
 
     public GamePlayer(String username, double x, double y, String color) {
@@ -32,6 +37,10 @@ public class GamePlayer {
         this.color = color;
         this.score = 0;
         this.alive = true;
+        this.health = MAX_HEALTH;
+        this.kills = 0;
+        this.deaths = 0;
+        this.lastAttackTime = 0L;
         this.lastUpdate = Instant.now();
     }
 
@@ -101,6 +110,86 @@ public class GamePlayer {
 
     public void setLastUpdate(Instant lastUpdate) {
         this.lastUpdate = lastUpdate;
+    }
+
+    public int getHealth() {
+        return health;
+    }
+
+    public void setHealth(int health) {
+        this.health = Math.max(0, Math.min(MAX_HEALTH, health));
+    }
+
+    public int getMaxHealth() {
+        return MAX_HEALTH;
+    }
+
+    public int getKills() {
+        return kills;
+    }
+
+    public void addKill() {
+        this.kills++;
+    }
+
+    public int getDeaths() {
+        return deaths;
+    }
+
+    public void addDeath() {
+        this.deaths++;
+    }
+
+    public long getLastAttackTime() {
+        return lastAttackTime;
+    }
+
+    public boolean canAttack(long now, long cooldownMs) {
+        return alive && (now - lastAttackTime >= cooldownMs);
+    }
+
+    public void recordAttack(long now) {
+        this.lastAttackTime = now;
+    }
+
+    /**
+     * Atomically applies damage to the player.
+     * Returns true if this damage instance eliminated the player.
+     */
+    public synchronized boolean takeDamage(int amount) {
+        if (!alive) {
+            return false;
+        }
+        this.health = Math.max(0, this.health - amount);
+        if (this.health == 0) {
+            this.alive = false;
+            this.deaths++;
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * Respawns player at specified coordinates with full health.
+     */
+    public synchronized void respawn(double newX, double newY) {
+        this.x = newX;
+        this.y = newY;
+        this.health = MAX_HEALTH;
+        this.alive = true;
+        this.lastUpdate = Instant.now();
+    }
+
+    /**
+     * Resets combat state for a fresh match/rematch.
+     */
+    public synchronized void resetCombatStats() {
+        this.health = MAX_HEALTH;
+        this.alive = true;
+        this.kills = 0;
+        this.deaths = 0;
+        this.score = 0;
+        this.lastAttackTime = 0L;
     }
 
     /**
