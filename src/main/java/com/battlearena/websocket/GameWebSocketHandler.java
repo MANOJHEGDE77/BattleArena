@@ -2,6 +2,7 @@ package com.battlearena.websocket;
 
 import com.battlearena.model.Coin;
 import com.battlearena.model.GamePlayer;
+import com.battlearena.model.Obstacle;
 import com.battlearena.model.Projectile;
 import com.battlearena.model.Room;
 import com.battlearena.model.RoomStatus;
@@ -224,6 +225,25 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
                 }
                 break;
             }
+            case "PROJECTILE_OBSTACLE_HIT": {
+                String roomId = sessionToRoom.get(session.getId());
+                if (roomId != null && root.has("projectileId")) {
+                    String projectileId = root.get("projectileId").asText();
+                    Room room = roomService.getActiveRoom(roomId);
+                    if (room != null && room.getStatus() == RoomStatus.PLAYING) {
+                        Obstacle obs = room.checkProjectileObstacleCollision(projectileId);
+                        if (obs != null) {
+                            broadcastToRoom(roomId, Map.of(
+                                    "type", "PROJECTILE_BLOCKED",
+                                    "projectileId", projectileId,
+                                    "obstacleId", obs.getId(),
+                                    "reason", "OBSTACLE_IMPACT"
+                            ));
+                        }
+                    }
+                }
+                break;
+            }
             case "PING": {
                 sendDirect(session, Map.of("type", "PONG", "timestamp", System.currentTimeMillis()));
                 break;
@@ -266,6 +286,7 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
                     "roomId", roomId,
                     "coins", activeRoom.getCoins(),
                     "players", activeRoom.getGamePlayers(),
+                    "obstacles", activeRoom.getObstacles(),
                     "projectiles", activeRoom.getProjectiles(),
                     "winningScore", Room.getWinningScore()
             ));
@@ -381,6 +402,13 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
             if (hit.isMatchFinished()) {
                 onMatchFinished(room, roomId);
             }
+        } else if (hit.isBlockedByCover()) {
+            broadcastToRoom(roomId, Map.of(
+                    "type", "PROJECTILE_BLOCKED",
+                    "projectileId", projectileId,
+                    "targetUsername", targetUsername,
+                    "reason", "OBSTACLE_COVER"
+            ));
         }
     }
 

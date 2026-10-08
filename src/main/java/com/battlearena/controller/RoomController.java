@@ -130,6 +130,7 @@ public class RoomController {
         if (room != null) {
             payload.put("coins", room.getCoins());
             payload.put("players", room.getGamePlayers());
+            payload.put("obstacles", room.getObstacles());
             payload.put("winningScore", Room.getWinningScore());
         }
         webSocketHandler.broadcastToRoom(roomId, payload);

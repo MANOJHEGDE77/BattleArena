@@ -55,6 +55,9 @@ const projectiles = new Map();
 const ATTACK_COOLDOWN_MS = 350;
 let respawnTimerInterval = null;
 
+// --- Phase 10 State: Obstacles & Tactical Cover ---
+const obstacles = [];
+
 // --- Phase 6 State: Collectibles & Authoritative Scoring ---
 const coins = new Map();
 let myScore = 0;
@@ -148,6 +151,24 @@ function updateProjectiles(dt) {
             return;
         }
 
+        // Obstacle cover interception: bullet blocked by obstacle box
+        if (obstacles.length > 0) {
+            for (const obs of obstacles) {
+                if (p.x >= obs.x && p.x <= obs.x + obs.width && p.y >= obs.y && p.y <= obs.y + obs.height) {
+                    addFloatingText('✦', p.x, p.y, '#38bdf8');
+                    if (p.shooter === player.name && gameWs && gameWs.readyState === WebSocket.OPEN) {
+                        gameWs.send(JSON.stringify({
+                            type: 'PROJECTILE_OBSTACLE_HIT',
+                            projectileId: id,
+                            obstacleId: obs.id
+                        }));
+                    }
+                    projectiles.delete(id);
+                    return;
+                }
+            }
+        }
+
         // Local client hit detection for shooter's own projectiles
         if (p.shooter === player.name && activeRoom && activeRoom.status === 'PLAYING') {
             remotePlayers.forEach((rp, uname) => {
@@ -210,6 +231,9 @@ function updatePhysics(dt) {
 
         player.x = Math.max(minX, Math.min(maxX, player.x));
         player.y = Math.max(minY, Math.min(maxY, player.y));
+
+        // Smooth obstacle collision resolution: slide along barrier surfaces
+        resolveObstacleCollisions(player);
 
         broadcastPlayerMovement();
 
@@ -274,6 +298,114 @@ function renderArena() {
     ctx.strokeStyle = '#4338ca';
     ctx.lineWidth = 4;
     ctx.strokeRect(2, 2, canvas.width - 4, canvas.height - 4);
+}
+
+// Circle vs AABB obstacle collision resolution
+function resolveObstacleCollisions(p) {
+    if (!obstacles || obstacles.length === 0) return;
+    for (const obs of obstacles) {
+        const nx = Math.max(obs.x, Math.min(p.x, obs.x + obs.width));
+        const ny = Math.max(obs.y, Math.min(p.y, obs.y + obs.height));
+        const dx = p.x - nx;
+        const dy = p.y - ny;
+        const distSq = dx * dx + dy * dy;
+        const r = p.radius || 16;
+        if (distSq < r * r) {
+            if (distSq > 1e-6) {
+                const dist = Math.sqrt(distSq);
+                const overlap = r - dist;
+                p.x += (dx / dist) * overlap;
+                p.y += (dy / dist) * overlap;
+            } else {
+                const distLeft = p.x - obs.x;
+                const distRight = (obs.x + obs.width) - p.x;
+                const distTop = p.y - obs.y;
+                const distBottom = (obs.y + obs.height) - p.y;
+                const minDist = Math.min(distLeft, distRight, distTop, distBottom);
+                if (minDist === distLeft) p.x = obs.x - r;
+                else if (minDist === distRight) p.x = obs.x + obs.width + r;
+                else if (minDist === distTop) p.y = obs.y - r;
+                else p.y = obs.y + obs.height + r;
+            }
+        }
+    }
+}
+
+// Render Tactical Cover Obstacles (Pure Vector 2D, Zero External Assets)
+function renderObstacles() {
+    if (!obstacles || obstacles.length === 0) return;
+
+    obstacles.forEach(obs => {
+        ctx.save();
+
+        // 1. Cyber Drop Shadow & Ambient Glow
+        ctx.shadowColor = obs.type === 'BUNKER' ? 'rgba(99, 102, 241, 0.45)' : 'rgba(14, 165, 233, 0.4)';
+        ctx.shadowBlur = 10;
+        ctx.shadowOffsetX = 0;
+        ctx.shadowOffsetY = 0;
+
+        // 2. Base Hull Fill with rounded corners
+        ctx.fillStyle = '#0f172a';
+        ctx.beginPath();
+        if (ctx.roundRect) {
+            ctx.roundRect(obs.x, obs.y, obs.width, obs.height, 6);
+        } else {
+            ctx.rect(obs.x, obs.y, obs.width, obs.height);
+        }
+        ctx.fill();
+
+        // 3. Subtle Inner Gradient Surface
+        ctx.shadowBlur = 0;
+        const grad = ctx.createLinearGradient(obs.x, obs.y, obs.x + obs.width, obs.y + obs.height);
+        if (obs.type === 'BUNKER') {
+            grad.addColorStop(0, 'rgba(99, 102, 241, 0.22)');
+            grad.addColorStop(1, 'rgba(30, 27, 75, 0.9)');
+        } else {
+            grad.addColorStop(0, 'rgba(14, 165, 233, 0.18)');
+            grad.addColorStop(1, 'rgba(15, 23, 42, 0.9)');
+        }
+        ctx.fillStyle = grad;
+        ctx.fill();
+
+        // 4. Tech Border Outline
+        ctx.strokeStyle = obs.type === 'BUNKER' ? '#6366f1' : '#38bdf8';
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+
+        // 5. Tactical Inner Hazard Hatch / Tech Stripes
+        ctx.save();
+        ctx.clip(); // clip to obstacle bounding box
+
+        ctx.strokeStyle = obs.type === 'BUNKER' ? 'rgba(99, 102, 241, 0.15)' : 'rgba(56, 189, 248, 0.12)';
+        ctx.lineWidth = 2;
+        const step = 14;
+        for (let i = -obs.height; i < obs.width + obs.height; i += step) {
+            ctx.beginPath();
+            ctx.moveTo(obs.x + i, obs.y);
+            ctx.lineTo(obs.x + i + obs.height, obs.y + obs.height);
+            ctx.stroke();
+        }
+
+        ctx.restore(); // restore clip
+
+        // 6. Corner Tech Brackets & Core Marker
+        ctx.fillStyle = obs.type === 'BUNKER' ? '#818cf8' : '#38bdf8';
+        ctx.fillRect(obs.x + 3, obs.y + 3, 3, 3);
+        ctx.fillRect(obs.x + obs.width - 6, obs.y + obs.height - 6, 3, 3);
+
+        if (obs.type === 'BUNKER') {
+            // Central core fortress emblem
+            ctx.beginPath();
+            ctx.arc(obs.x + obs.width / 2, obs.y + obs.height / 2, 7, 0, Math.PI * 2);
+            ctx.fillStyle = 'rgba(99, 102, 241, 0.4)';
+            ctx.fill();
+            ctx.strokeStyle = '#a5b4fc';
+            ctx.lineWidth = 1;
+            ctx.stroke();
+        }
+
+        ctx.restore();
+    });
 }
 
 // Render Collectible Coins (Pure Vector 2D)
@@ -560,8 +692,9 @@ function gameLoop(currentTime) {
     // Physics update step
     updatePhysics(dt);
 
-    // Visual render step: arena surface -> coins -> projectiles -> remote players -> local player -> floating text
+    // Visual render step: arena surface -> obstacles -> coins -> projectiles -> remote players -> local player -> floating text
     renderArena();
+    renderObstacles();
     renderCoins();
     renderProjectiles();
     renderRemotePlayers();
@@ -1015,6 +1148,10 @@ function handleWebSocketMessage(msg) {
             if (msg.coins && Array.isArray(msg.coins)) {
                 msg.coins.forEach(c => coins.set(c.id, c));
             }
+            if (msg.obstacles && Array.isArray(msg.obstacles)) {
+                obstacles.length = 0;
+                obstacles.push(...msg.obstacles);
+            }
             if (msg.projectiles && Array.isArray(msg.projectiles)) {
                 msg.projectiles.forEach(p => {
                     projectiles.set(p.id, {
@@ -1084,6 +1221,14 @@ function handleWebSocketMessage(msg) {
                 radius: 5,
                 clientCreatedAt: performance.now()
             });
+            break;
+        case 'PROJECTILE_BLOCKED':
+            if (msg.projectileId) {
+                projectiles.delete(msg.projectileId);
+            }
+            if (msg.reason === 'OBSTACLE_COVER') {
+                addFloatingText('BLOCKED!', player.x, player.y - 18, '#94a3b8');
+            }
             break;
         case 'PLAYER_DAMAGED': {
             if (msg.projectileId) {

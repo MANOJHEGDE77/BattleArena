@@ -179,6 +179,47 @@ public class Room {
     private volatile String winnerUsername = null;
     private volatile Instant matchStartedAt = null;
 
+    private static final List<Obstacle> ARENA_OBSTACLES = List.of(
+            // Central Tech Bunker / Core Fortress
+            new Obstacle("OBS-CENTER", 360.0, 260.0, 80.0, 80.0, "BUNKER"),
+            // Flank cover barriers (horizontal / vertical tactical shields)
+            new Obstacle("OBS-TL", 240.0, 110.0, 30.0, 100.0, "BARRIER"),
+            new Obstacle("OBS-TR", 530.0, 110.0, 30.0, 100.0, "BARRIER"),
+            new Obstacle("OBS-BL", 240.0, 390.0, 30.0, 100.0, "BARRIER"),
+            new Obstacle("OBS-BR", 530.0, 390.0, 30.0, 100.0, "BARRIER")
+    );
+
+    public List<Obstacle> getObstacles() {
+        return ARENA_OBSTACLES;
+    }
+
+    public boolean isPositionInsideAnyObstacle(double x, double y, double radius) {
+        for (Obstacle obs : ARENA_OBSTACLES) {
+            if (obs.intersectsCircle(x, y, radius)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public Obstacle checkProjectileObstacleCollision(String projectileId) {
+        Projectile proj = projectiles.get(projectileId);
+        if (proj == null) {
+            return null;
+        }
+        long now = System.currentTimeMillis();
+        double px = proj.getCurrentX(now);
+        double py = proj.getCurrentY(now);
+        for (Obstacle obs : ARENA_OBSTACLES) {
+            if (obs.intersectsSegment(proj.getStartX(), proj.getStartY(), px, py) ||
+                    obs.intersectsCircle(px, py, proj.getRadius())) {
+                projectiles.remove(projectileId);
+                return obs;
+            }
+        }
+        return null;
+    }
+
     /**
      * Hit resolution payload carrying authoritative combat outcome.
      */
@@ -191,9 +232,16 @@ public class Room {
         private final boolean eliminated;
         private final boolean matchFinished;
         private final double[] respawnCoords;
+        private final boolean blockedByCover;
 
         public HitResult(boolean valid, Projectile projectile, GamePlayer target, GamePlayer shooter,
                          int damage, boolean eliminated, boolean matchFinished, double[] respawnCoords) {
+            this(valid, projectile, target, shooter, damage, eliminated, matchFinished, respawnCoords, false);
+        }
+
+        public HitResult(boolean valid, Projectile projectile, GamePlayer target, GamePlayer shooter,
+                         int damage, boolean eliminated, boolean matchFinished, double[] respawnCoords,
+                         boolean blockedByCover) {
             this.valid = valid;
             this.projectile = projectile;
             this.target = target;
@@ -202,6 +250,7 @@ public class Room {
             this.eliminated = eliminated;
             this.matchFinished = matchFinished;
             this.respawnCoords = respawnCoords;
+            this.blockedByCover = blockedByCover;
         }
 
         public boolean isValid() { return valid; }
@@ -212,6 +261,7 @@ public class Room {
         public boolean isEliminated() { return eliminated; }
         public boolean isMatchFinished() { return matchFinished; }
         public double[] getRespawnCoords() { return respawnCoords; }
+        public boolean isBlockedByCover() { return blockedByCover; }
     }
 
     /**
@@ -256,8 +306,14 @@ public class Room {
 
     private Coin generateRandomCoin() {
         String coinId = "COIN-" + UUID.randomUUID().toString().substring(0, 6).toUpperCase();
-        double x = 60 + random.nextDouble() * (800 - 120);
-        double y = 60 + random.nextDouble() * (600 - 120);
+        double x, y;
+        int attempts = 0;
+        do {
+            x = 60 + random.nextDouble() * (800 - 120);
+            y = 60 + random.nextDouble() * (600 - 120);
+            attempts++;
+        } while (isPositionInsideAnyObstacle(x, y, 16.0) && attempts < 20);
+
         // 20% chance of high-value bonus gold coin
         int value = (random.nextInt(5) == 0) ? 25 : 10;
         Coin coin = new Coin(coinId, x, y, value);
@@ -390,7 +446,16 @@ public class Room {
             return new HitResult(false, null, null, null, 0, false, false, null);
         }
 
-        // Radial proximity check: (target radius + proj radius + latency tolerance)^2
+        // 1. Raycast Cover Check: ensure direct line of sight between projectile start and target isn't blocked by obstacles
+        for (Obstacle obs : ARENA_OBSTACLES) {
+            if (obs.intersectsSegment(proj.getStartX(), proj.getStartY(), target.getX(), target.getY())) {
+                // Blocked by cover obstacle! Consume projectile with no damage dealt.
+                projectiles.remove(projectileId);
+                return new HitResult(false, proj, target, shooter, 0, false, false, null, true);
+            }
+        }
+
+        // 2. Radial proximity check: (target radius + proj radius + latency tolerance)^2
         double dx = projX - target.getX();
         double dy = projY - target.getY();
         double maxDist = target.getRadius() + proj.getRadius() + 24.0; // 24px network latency buffer
@@ -457,7 +522,11 @@ public class Room {
     public void updatePlayerPosition(String username, double x, double y, double heading) {
         GamePlayer player = gamePlayers.get(username);
         if (player != null) {
-            player.updatePosition(x, y, heading);
+            double[] pos = new double[]{ x, y };
+            for (Obstacle obs : ARENA_OBSTACLES) {
+                obs.resolveCircle(pos, player.getRadius());
+            }
+            player.updatePosition(pos[0], pos[1], heading);
         }
     }
 }
