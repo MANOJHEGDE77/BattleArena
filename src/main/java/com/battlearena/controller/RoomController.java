@@ -177,4 +177,34 @@ public class RoomController {
         ));
         return ResponseEntity.ok(response);
     }
+
+    /**
+     * Spawns an autonomous AI combat bot in the room (host only).
+     * POST /api/rooms/{roomId}/bot
+     */
+    @PostMapping("/{roomId}/bot")
+    public ResponseEntity<RoomResponse> addBot(@PathVariable String roomId, Authentication authentication) {
+        RoomResponse response = roomService.addBot(roomId, authentication.getName());
+        webSocketHandler.broadcastToRoom(roomId, Map.of(
+                "type", "ROOM_UPDATED",
+                "roomId", roomId
+        ));
+        return ResponseEntity.ok(response);
+    }
+
+    /**
+     * Removes an AI combat bot from the room (host only).
+     * DELETE /api/rooms/{roomId}/bot/{botName}
+     */
+    @DeleteMapping("/{roomId}/bot/{botName}")
+    public ResponseEntity<RoomResponse> removeBot(@PathVariable String roomId,
+                                                  @PathVariable String botName,
+                                                  Authentication authentication) {
+        RoomResponse response = roomService.removeBot(roomId, botName, authentication.getName());
+        webSocketHandler.broadcastToRoom(roomId, Map.of(
+                "type", "ROOM_UPDATED",
+                "roomId", roomId
+        ));
+        return ResponseEntity.ok(response);
+    }
 }

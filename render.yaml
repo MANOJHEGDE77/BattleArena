@@ -1,0 +1,23 @@
+services:
+  - type: web
+    name: cyber-battle-arena
+    env: docker
+    dockerfilePath: Dockerfile
+    plan: free
+    region: oregon
+    healthCheckPath: /api/health
+    envVars:
+      - key: PORT
+        value: 10000
+      - key: SPRING_DATASOURCE_URL
+        fromDatabase:
+          name: battle-arena-db
+          property: connectionString
+      - key: JWT_SECRET
+        generateValue: true
+
+databases:
+  - name: battle-arena-db
+    databaseName: battle_arena
+    plan: free
+    region: oregon

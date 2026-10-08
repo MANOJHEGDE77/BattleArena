@@ -197,7 +197,7 @@ public class RoomService {
                 .sorted(Comparator.comparing(PlayerRoomState::isHost).reversed()
                         .thenComparing(PlayerRoomState::getJoinedAt))
                 .map(p -> new PlayerRoomDTO(p.getUsername(), p.isReady(), p.isHost(), p.isSpectator(),
-                        p.getWarriorClass() != null ? p.getWarriorClass().name() : "ASSAULT"))
+                        p.getWarriorClass() != null ? p.getWarriorClass().name() : "ASSAULT", p.isBot()))
                 .toList();
 
         return new RoomResponse(
@@ -210,5 +210,49 @@ public class RoomService {
                 playerList,
                 room.canStart(requestingUser)
         );
+    }
+
+    /**
+     * Spawns an autonomous AI combat bot into the room lobby (host only).
+     */
+    public RoomResponse addBot(String roomId, String requestingUser) {
+        Room room = findRoomOrThrow(roomId);
+        if (!room.getHostUsername().equals(requestingUser)) {
+            throw new IllegalArgumentException("Only the room host can add AI Bots.");
+        }
+        if (room.getStatus() != com.battlearena.model.RoomStatus.WAITING) {
+            throw new IllegalArgumentException("Cannot add bots once match is in progress.");
+        }
+
+        String[] botNames = {"BOT-APEX", "BOT-TITAN", "BOT-VALKYRIE", "BOT-PHANTOM", "BOT-CIPHER", "BOT-VORTEX", "BOT-NEXUS", "BOT-STORM"};
+        WarriorClass[] classes = WarriorClass.values();
+        String chosenName = null;
+        for (String candidate : botNames) {
+            if (!room.hasPlayer(candidate)) {
+                chosenName = candidate;
+                break;
+            }
+        }
+        if (chosenName == null) {
+            chosenName = "BOT-" + (room.getPlayerCount() + 1);
+        }
+        WarriorClass randomClass = classes[new Random().nextInt(classes.length)];
+        boolean added = room.addBot(chosenName, randomClass);
+        if (!added) {
+            throw new IllegalArgumentException("Room capacity reached. Cannot add more bots.");
+        }
+        return toRoomResponse(room, requestingUser);
+    }
+
+    /**
+     * Removes an AI combat bot from the room (host only).
+     */
+    public RoomResponse removeBot(String roomId, String botName, String requestingUser) {
+        Room room = findRoomOrThrow(roomId);
+        if (!room.getHostUsername().equals(requestingUser)) {
+            throw new IllegalArgumentException("Only the room host can remove AI Bots.");
+        }
+        room.removeBot(botName);
+        return toRoomResponse(room, requestingUser);
     }
 }

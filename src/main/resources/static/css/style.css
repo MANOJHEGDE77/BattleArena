@@ -2474,6 +2474,54 @@ input:checked + .slider.round:before {
     }
 }
 
+/* AI Combat Bot Styling */
+.btn-secondary {
+    background: linear-gradient(135deg, #0284c7, #0369a1);
+    color: #fff;
+    border: 1px solid #38bdf8;
+    padding: 8px 14px;
+    font-size: 0.85rem;
+    font-weight: 700;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+.btn-secondary:hover:not(:disabled) {
+    background: linear-gradient(135deg, #0ea5e9, #0284c7);
+    box-shadow: 0 0 12px rgba(56, 189, 248, 0.4);
+    transform: translateY(-1px);
+}
+.btn-secondary:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.player-status-tag.bot-tag {
+    background: rgba(56, 189, 248, 0.18);
+    color: #38bdf8;
+    border: 1px solid rgba(56, 189, 248, 0.4);
+}
+
+.btn-remove-bot {
+    background: transparent;
+    border: none;
+    color: #f87171;
+    font-size: 0.78rem;
+    cursor: pointer;
+    margin-left: 6px;
+    padding: 2px 4px;
+    border-radius: 4px;
+    transition: background 0.15s;
+}
+.btn-remove-bot:hover {
+    background: rgba(239, 68, 68, 0.25);
+    color: #ef4444;
+}
+
+
 
 
 

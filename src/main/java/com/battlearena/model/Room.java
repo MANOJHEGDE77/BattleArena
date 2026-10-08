@@ -133,6 +133,35 @@ public class Room {
     }
 
     /**
+     * Atomically adds an autonomous AI bot combatant to the room lobby.
+     */
+    public synchronized boolean addBot(String botName, WarriorClass warriorClass) {
+        if (status != RoomStatus.WAITING) {
+            return false;
+        }
+        long combatants = players.values().stream().filter(p -> !p.isSpectator()).count();
+        if (combatants >= maxPlayers) {
+            return false;
+        }
+        WarriorClass wc = (warriorClass != null) ? warriorClass : WarriorClass.ASSAULT;
+        players.put(botName, new PlayerRoomState(botName, false, false, wc, true));
+        return true;
+    }
+
+    /**
+     * Atomically removes an AI bot combatant from the room.
+     */
+    public synchronized boolean removeBot(String botName) {
+        PlayerRoomState state = players.get(botName);
+        if (state != null && state.isBot()) {
+            players.remove(botName);
+            gamePlayers.remove(botName);
+            return true;
+        }
+        return false;
+    }
+
+    /**
      * Atomically removes a player. If the host leaves, assigns host to the next player.
      * Returns true if the room is now empty and should be cleaned up.
      */
@@ -615,7 +644,9 @@ public class Room {
                 double[] spawn = SPAWN_POINTS[index % SPAWN_POINTS.length];
                 String color = PALETTE[index % PALETTE.length];
                 WarriorClass wc = entry.getValue().getWarriorClass();
-                gamePlayers.put(entry.getKey(), new GamePlayer(entry.getKey(), spawn[0], spawn[1], color, wc));
+                GamePlayer gp = new GamePlayer(entry.getKey(), spawn[0], spawn[1], color, wc);
+                gp.setBot(entry.getValue().isBot());
+                gamePlayers.put(entry.getKey(), gp);
                 index++;
             }
         }

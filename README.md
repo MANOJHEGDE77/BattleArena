@@ -695,7 +695,26 @@ http://localhost:8080
 6. Ready up.
 7. Start the match.
 
-For local multiplayer testing, open the application in multiple browser windows.
+For local multiplayer testing, open the application in multiple browser windows. Alternatively, spawn autonomous AI Combat Bots to practice solo!
+
+### 7. Run with Docker Compose (1-Click Full Stack Deployment)
+
+```bash
+docker compose up --build
+```
+
+This automatically starts a health-checked MySQL 8.0 container, builds the lightweight multi-stage Alpine container, and serves the game at:
+
+```text
+http://localhost:8080
+```
+
+### 8. Cloud PaaS Deployment (Render / Railway / Fly.io / Heroku)
+
+- **Render**: Connect repository and deploy via the included `render.yaml` Blueprint or as a Web Service. Health check path: `/api/health`.
+- **Railway**: Connect repository; Railway automatically recognizes the `Dockerfile` and deploys with liveness probing.
+- **Heroku / Dokku**: Uses the included `Procfile` configured with container memory optimization flags (`-XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0`).
+- **Dynamic Port**: Dynamic cloud port binding via `${PORT}` is automatically handled.
 
 ---
 

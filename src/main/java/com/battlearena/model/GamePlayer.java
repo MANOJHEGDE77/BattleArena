@@ -30,6 +30,7 @@ public class GamePlayer {
     private volatile int kills;
     private volatile int deaths;
     private volatile long lastAttackTime;
+    private volatile boolean bot;
     private volatile Instant lastUpdate;
 
     public GamePlayer(String username, double x, double y, String color) {
@@ -297,5 +298,13 @@ public class GamePlayer {
         this.y = Math.max(minY, Math.min(maxY, newY));
         this.heading = newHeading;
         this.lastUpdate = Instant.now();
+    }
+
+    public boolean isBot() {
+        return bot;
+    }
+
+    public void setBot(boolean bot) {
+        this.bot = bot;
     }
 }

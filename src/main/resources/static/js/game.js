@@ -2624,6 +2624,7 @@ const playersRoster = document.getElementById('playersRoster');
 const leaveRoomBtn = document.getElementById('leaveRoomBtn');
 const readyBtn = document.getElementById('readyBtn');
 const startGameBtn = document.getElementById('startGameBtn');
+const addBotBtn = document.getElementById('addBotBtn');
 
 let activeRoom = null;
 let roomPollingInterval = null;
@@ -3807,17 +3808,31 @@ function renderActiveRoom(room) {
         }
 
         const chip = document.createElement('div');
-        chip.className = `player-chip ${p.isHost ? 'is-host' : ''} ${p.spectator ? 'spectator' : ''}`;
+        chip.className = `player-chip ${p.isHost ? 'is-host' : ''} ${p.spectator ? 'spectator' : ''} ${p.bot ? 'is-bot' : ''}`;
         const pClass = p.warriorClass || 'ASSAULT';
         const classMeta = WARRIOR_CLASSES[pClass] || WARRIOR_CLASSES.ASSAULT;
         const classBadgeHtml = p.spectator ? '' : `<span class="class-badge class-${pClass.toLowerCase()}">${classMeta.icon} ${pClass}</span>`;
+        const removeBotHtml = (p.bot && isMyUserHost && !isPlaying)
+            ? `<button type="button" class="btn-remove-bot" data-bot-name="${escapeHtml(p.username)}" title="Remove Bot">✕</button>`
+            : '';
+
         chip.innerHTML = `
-            <span class="player-chip-name">${p.isHost ? '👑 ' : (p.spectator ? '👁️ ' : '')}${escapeHtml(p.username)}</span>
+            <span class="player-chip-name">${p.bot ? '🤖 ' : (p.isHost ? '👑 ' : (p.spectator ? '👁️ ' : ''))}${escapeHtml(p.username)}</span>
             ${classBadgeHtml}
-            <span class="player-status-tag ${p.spectator ? 'spectator-tag' : (p.isReady ? 'ready' : 'waiting')}">
-                ${p.spectator ? 'Spectator' : (p.isHost ? 'Host' : p.isReady ? '✓ Ready' : '⏳ Waiting')}
+            <span class="player-status-tag ${p.bot ? 'bot-tag' : (p.spectator ? 'spectator-tag' : (p.isReady ? 'ready' : 'waiting'))}">
+                ${p.bot ? '🤖 AI Bot' : (p.spectator ? 'Spectator' : (p.isHost ? 'Host' : p.isReady ? '✓ Ready' : '⏳ Waiting'))}
             </span>
+            ${removeBotHtml}
         `;
+
+        const rmBtn = chip.querySelector('.btn-remove-bot');
+        if (rmBtn) {
+            rmBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                removeBot(p.username);
+            });
+        }
+
         playersRoster.appendChild(chip);
     });
 
@@ -3833,6 +3848,7 @@ function renderActiveRoom(room) {
     if (isSpectator) {
         readyBtn.style.display = 'none';
         startGameBtn.style.display = 'none';
+        if (addBotBtn) addBotBtn.style.display = 'none';
         if (isPlaying && spectatorBanner) {
             spectatorBanner.style.display = 'flex';
             updateSpectatorTargetDisplay();
@@ -3845,8 +3861,15 @@ function renderActiveRoom(room) {
             startGameBtn.style.display = isPlaying ? 'none' : 'inline-block';
             startGameBtn.disabled = !room.canStart;
             startGameBtn.title = room.canStart ? 'Launch the match' : 'Waiting for all players to be ready';
+            if (addBotBtn) {
+                addBotBtn.style.display = isPlaying ? 'none' : 'inline-block';
+                const combatants = room.currentPlayers || (room.players ? room.players.filter(p => !p.spectator).length : 0);
+                addBotBtn.disabled = combatants >= room.maxPlayers;
+                addBotBtn.title = combatants >= room.maxPlayers ? 'Room capacity reached' : 'Spawn an AI Combat Bot';
+            }
         } else {
             startGameBtn.style.display = 'none';
+            if (addBotBtn) addBotBtn.style.display = 'none';
             readyBtn.style.display = isPlaying ? 'none' : 'inline-block';
             readyBtn.textContent = myUserReady ? 'Unready' : 'Ready Up';
             readyBtn.className = myUserReady ? 'btn-secondary' : 'btn-warning';
@@ -3978,6 +4001,41 @@ async function startGame() {
     }
 }
 
+async function addBot() {
+    if (!activeRoom) return;
+    try {
+        const res = await fetch(`/api/rooms/${activeRoom.roomId}/bot`, {
+            method: 'POST',
+            headers: getAuthHeaders()
+        });
+        if (res.ok) {
+            const data = await res.json();
+            renderActiveRoom(data);
+        } else {
+            const err = await res.json();
+            alert(err.error || 'Cannot add AI bot');
+        }
+    } catch (err) {
+        console.error('Error adding bot:', err);
+    }
+}
+
+async function removeBot(botName) {
+    if (!activeRoom) return;
+    try {
+        const res = await fetch(`/api/rooms/${activeRoom.roomId}/bot/${encodeURIComponent(botName)}`, {
+            method: 'DELETE',
+            headers: getAuthHeaders()
+        });
+        if (res.ok) {
+            const data = await res.json();
+            renderActiveRoom(data);
+        }
+    } catch (err) {
+        console.error('Error removing bot:', err);
+    }
+}
+
 function escapeHtml(str) {
     if (!str) return '';
     return str.replace(/[&<>"']/g, m => ({
@@ -4010,6 +4068,7 @@ function setupRoomEventListeners() {
     leaveRoomBtn.addEventListener('click', leaveRoom);
     readyBtn.addEventListener('click', toggleReady);
     startGameBtn.addEventListener('click', startGame);
+    if (addBotBtn) addBotBtn.addEventListener('click', addBot);
 
     if (classCardsGrid) {
         classCardsGrid.querySelectorAll('.class-card').forEach(card => {

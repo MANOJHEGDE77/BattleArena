@@ -10,24 +10,30 @@ public class PlayerRoomDTO {
     private boolean isHost;
     private boolean spectator;
     private String warriorClass;
+    private boolean bot;
 
     public PlayerRoomDTO() {
     }
 
     public PlayerRoomDTO(String username, boolean isReady, boolean isHost) {
-        this(username, isReady, isHost, false, "ASSAULT");
+        this(username, isReady, isHost, false, "ASSAULT", false);
     }
 
     public PlayerRoomDTO(String username, boolean isReady, boolean isHost, boolean spectator) {
-        this(username, isReady, isHost, spectator, "ASSAULT");
+        this(username, isReady, isHost, spectator, "ASSAULT", false);
     }
 
     public PlayerRoomDTO(String username, boolean isReady, boolean isHost, boolean spectator, String warriorClass) {
+        this(username, isReady, isHost, spectator, warriorClass, false);
+    }
+
+    public PlayerRoomDTO(String username, boolean isReady, boolean isHost, boolean spectator, String warriorClass, boolean bot) {
         this.username = username;
         this.isReady = isReady;
         this.isHost = isHost;
         this.spectator = spectator;
         this.warriorClass = warriorClass;
+        this.bot = bot;
     }
 
     public String getUsername() {
@@ -76,5 +82,13 @@ public class PlayerRoomDTO {
 
     public void setWarriorClass(String warriorClass) {
         this.warriorClass = warriorClass;
+    }
+
+    public boolean isBot() {
+        return bot;
+    }
+
+    public void setBot(boolean bot) {
+        this.bot = bot;
     }
 }

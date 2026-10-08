@@ -630,12 +630,14 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
         broadcastToRoom(roomId, gameOverPayload);
         broadcastSystemAnnouncement(room, roomId, "🏆 VICTORY: " + room.getWinnerUsername() + " won the arena match!");
 
-        // Persist lifetime match scores to MySQL
+        // Persist lifetime match scores to MySQL (human players only)
         for (GamePlayer gp : room.getGamePlayers()) {
-            try {
-                userService.recordMatchResult(gp.getUsername(), gp.getScore());
-            } catch (Exception e) {
-                // Ignore persistence logging
+            if (!gp.isBot()) {
+                try {
+                    userService.recordMatchResult(gp.getUsername(), gp.getScore());
+                } catch (Exception e) {
+                    // Ignore persistence logging
+                }
             }
         }
     }
@@ -878,9 +880,127 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
 
                     // 6. Respawn explosive barrels if timer elapsed
                     room.tickBarrelRespawns();
+
+                    // 7. Tick autonomous Cyber AI Combat Bots
+                    tickBots(room, roomId);
                 }
             } catch (Exception ignored) {
                 // Ignore transient ticker error
+            }
+        }
+    }
+
+    private void tickBots(Room room, String roomId) {
+        if (room == null || room.getStatus() != RoomStatus.PLAYING) return;
+
+        Collection<GamePlayer> allPlayers = room.getGamePlayers();
+        List<GamePlayer> bots = allPlayers.stream()
+                .filter(GamePlayer::isBot)
+                .filter(GamePlayer::isAlive)
+                .toList();
+
+        if (bots.isEmpty()) return;
+
+        List<GamePlayer> humanOpponents = allPlayers.stream()
+                .filter(p -> p.isAlive() && !p.isBot())
+                .toList();
+
+        Random rnd = new Random();
+
+        for (GamePlayer bot : bots) {
+            List<GamePlayer> candidates = !humanOpponents.isEmpty() ? humanOpponents :
+                    allPlayers.stream().filter(p -> p.isAlive() && !p.getUsername().equals(bot.getUsername())).toList();
+
+            GamePlayer target = null;
+            double minDist = Double.MAX_VALUE;
+            for (GamePlayer cand : candidates) {
+                double d = Math.hypot(cand.getX() - bot.getX(), cand.getY() - bot.getY());
+                if (d < minDist) {
+                    minDist = d;
+                    target = cand;
+                }
+            }
+
+            double newX = bot.getX();
+            double newY = bot.getY();
+            double heading = bot.getHeading();
+
+            if (target != null) {
+                double dx = target.getX() - bot.getX();
+                double dy = target.getY() - bot.getY();
+                heading = Math.atan2(dy, dx);
+
+                // Tactical Navigation
+                double moveSpeed = bot.getSpeed() * 0.45;
+                double stepX = 0;
+                double stepY = 0;
+
+                double distFromCenter = Math.hypot(bot.getX() - 400.0, bot.getY() - 300.0);
+                double currentRadius = room.getCurrentSafeZoneRadius();
+
+                if (distFromCenter > currentRadius * 0.8) {
+                    double centerAngle = Math.atan2(300.0 - bot.getY(), 400.0 - bot.getX());
+                    stepX = Math.cos(centerAngle) * moveSpeed;
+                    stepY = Math.sin(centerAngle) * moveSpeed;
+                    heading = centerAngle;
+                } else if (minDist > 250.0) {
+                    stepX = Math.cos(heading) * moveSpeed;
+                    stepY = Math.sin(heading) * moveSpeed;
+                } else if (minDist < 120.0) {
+                    stepX = -Math.cos(heading) * (moveSpeed * 0.6);
+                    stepY = -Math.sin(heading) * (moveSpeed * 0.6);
+                } else {
+                    double strafeAngle = heading + (rnd.nextBoolean() ? Math.PI / 2 : -Math.PI / 2);
+                    stepX = Math.cos(strafeAngle) * (moveSpeed * 0.7);
+                    stepY = Math.sin(strafeAngle) * (moveSpeed * 0.7);
+                }
+
+                double candX = Math.max(30.0, Math.min(770.0, bot.getX() + stepX));
+                double candY = Math.max(30.0, Math.min(570.0, bot.getY() + stepY));
+
+                if (!room.isPositionInsideAnyObstacle(candX, candY, bot.getRadius())) {
+                    newX = candX;
+                    newY = candY;
+                } else if (!room.isPositionInsideAnyObstacle(candX, bot.getY(), bot.getRadius())) {
+                    newX = candX;
+                } else if (!room.isPositionInsideAnyObstacle(bot.getX(), candY, bot.getRadius())) {
+                    newY = candY;
+                }
+
+                room.updatePlayerPosition(bot.getUsername(), newX, newY, heading);
+
+                broadcastToRoom(roomId, Map.of(
+                        "type", "PLAYER_MOVED",
+                        "username", bot.getUsername(),
+                        "x", newX,
+                        "y", newY,
+                        "heading", heading,
+                        "warriorClass", bot.getWarriorClass().name()
+                ));
+
+                checkCoinCollisions(room, roomId, bot.getUsername());
+                checkPowerUpCollisions(room, roomId, bot.getUsername());
+
+                if (minDist <= 420.0) {
+                    double aimHeading = heading + (rnd.nextDouble() - 0.5) * 0.15;
+                    List<Projectile> projs = room.fireProjectiles(bot.getUsername(), aimHeading);
+                    for (Projectile proj : projs) {
+                        Map<String, Object> payloadMap = new LinkedHashMap<>();
+                        payloadMap.put("type", "PROJECTILE_SPAWNED");
+                        payloadMap.put("id", proj.getId());
+                        payloadMap.put("shooter", proj.getShooterUsername());
+                        payloadMap.put("x", proj.getStartX());
+                        payloadMap.put("y", proj.getStartY());
+                        payloadMap.put("vx", proj.getVx());
+                        payloadMap.put("vy", proj.getVy());
+                        payloadMap.put("heading", proj.getHeading());
+                        payloadMap.put("speed", proj.getSpeed());
+                        payloadMap.put("damage", proj.getDamage());
+                        payloadMap.put("radius", proj.getRadius());
+                        payloadMap.put("createdAt", proj.getCreatedAt());
+                        broadcastToRoom(roomId, payloadMap);
+                    }
+                }
             }
         }
     }
