@@ -82,8 +82,15 @@ public class RoomController {
      * POST /api/rooms/{roomId}/join
      */
     @PostMapping("/{roomId}/join")
-    public ResponseEntity<RoomResponse> joinRoom(@PathVariable String roomId, Authentication authentication) {
-        RoomResponse response = roomService.joinRoom(roomId, authentication.getName());
+    public ResponseEntity<RoomResponse> joinRoom(@PathVariable String roomId,
+                                                  @RequestParam(required = false, defaultValue = "false") boolean spectator,
+                                                  @RequestBody(required = false) Map<String, Object> body,
+                                                  Authentication authentication) {
+        boolean isSpec = spectator;
+        if (body != null && body.containsKey("spectator")) {
+            isSpec = Boolean.parseBoolean(String.valueOf(body.get("spectator")));
+        }
+        RoomResponse response = roomService.joinRoom(roomId, authentication.getName(), isSpec);
         return ResponseEntity.ok(response);
     }
 
@@ -124,21 +131,7 @@ public class RoomController {
     public ResponseEntity<RoomResponse> startGame(@PathVariable String roomId, Authentication authentication) {
         RoomResponse response = roomService.startGame(roomId, authentication.getName());
         Room room = roomService.getActiveRoom(roomId);
-        Map<String, Object> payload = new HashMap<>();
-        payload.put("type", "GAME_START");
-        payload.put("roomId", roomId);
-        if (room != null) {
-            payload.put("coins", room.getCoins());
-            payload.put("powerUps", room.getPowerUps());
-            payload.put("players", room.getGamePlayers());
-            payload.put("obstacles", room.getObstacles());
-            payload.put("winningScore", Room.getWinningScore());
-            payload.put("matchDurationSeconds", Room.MATCH_DURATION_SECONDS);
-            payload.put("timeRemaining", room.getTimeRemainingSeconds());
-            payload.put("safeZoneRadius", room.getCurrentSafeZoneRadius());
-            payload.put("suddenDeath", room.isSuddenDeathActive());
-        }
-        webSocketHandler.broadcastToRoom(roomId, payload);
+        webSocketHandler.broadcastGameStart(room, roomId);
         webSocketHandler.broadcastSystemAnnouncement(room, roomId, "⚔️ Match started! Battle for arena supremacy!");
         return ResponseEntity.ok(response);
     }

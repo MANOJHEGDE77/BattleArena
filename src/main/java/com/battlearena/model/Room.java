@@ -92,18 +92,44 @@ public class Room {
      * Returns true if joined, false if room is full or not in WAITING state.
      */
     public synchronized boolean addPlayer(String username) {
+        return addPlayer(username, false);
+    }
+
+    public synchronized boolean addPlayer(String username, boolean asSpectator) {
+        if (players.containsKey(username)) {
+            return true;
+        }
+        if (asSpectator) {
+            if (status == RoomStatus.FINISHED) {
+                return false;
+            }
+            players.put(username, new PlayerRoomState(username, false, true));
+            return true;
+        }
+
         if (status != RoomStatus.WAITING) {
             return false;
         }
-        if (players.size() >= maxPlayers) {
+        long combatants = players.values().stream().filter(p -> !p.isSpectator()).count();
+        if (combatants >= maxPlayers) {
             return false;
         }
-        if (players.containsKey(username)) {
-            return true; // Already joined
-        }
 
-        players.put(username, new PlayerRoomState(username, false));
+        players.put(username, new PlayerRoomState(username, false, false));
         return true;
+    }
+
+    public int getCombatantCount() {
+        return (int) players.values().stream().filter(p -> !p.isSpectator()).count();
+    }
+
+    public int getSpectatorCount() {
+        return (int) players.values().stream().filter(PlayerRoomState::isSpectator).count();
+    }
+
+    public boolean isSpectator(String username) {
+        PlayerRoomState state = players.get(username);
+        return state != null && state.isSpectator();
     }
 
     /**
@@ -174,7 +200,9 @@ public class Room {
         if (players.isEmpty()) {
             return false;
         }
-        return players.values().stream().allMatch(PlayerRoomState::isReady);
+        return players.values().stream()
+                .filter(p -> !p.isSpectator())
+                .allMatch(PlayerRoomState::isReady);
     }
 
     private final ConcurrentMap<String, Coin> coins = new ConcurrentHashMap<>();
@@ -395,11 +423,13 @@ public class Room {
         this.powerUps.clear();
 
         int index = 0;
-        for (String username : players.keySet()) {
-            double[] spawn = SPAWN_POINTS[index % SPAWN_POINTS.length];
-            String color = PALETTE[index % PALETTE.length];
-            gamePlayers.put(username, new GamePlayer(username, spawn[0], spawn[1], color));
-            index++;
+        for (Map.Entry<String, PlayerRoomState> entry : players.entrySet()) {
+            if (!entry.getValue().isSpectator()) {
+                double[] spawn = SPAWN_POINTS[index % SPAWN_POINTS.length];
+                String color = PALETTE[index % PALETTE.length];
+                gamePlayers.put(entry.getKey(), new GamePlayer(entry.getKey(), spawn[0], spawn[1], color));
+                index++;
+            }
         }
 
         spawnInitialCoins();

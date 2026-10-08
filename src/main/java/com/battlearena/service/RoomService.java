@@ -80,14 +80,20 @@ public class RoomService {
      * Adds an authenticated player to an existing room.
      */
     public RoomResponse joinRoom(String roomId, String username) {
+        return joinRoom(roomId, username, false);
+    }
+
+    public RoomResponse joinRoom(String roomId, String username, boolean asSpectator) {
         // Leave any existing room before joining
         leaveCurrentRoom(username);
 
         Room room = findRoomOrThrow(roomId);
-        boolean joined = room.addPlayer(username);
+        boolean joined = room.addPlayer(username, asSpectator);
 
         if (!joined) {
-            throw new IllegalArgumentException("Cannot join room: room is either full or the match is already in progress.");
+            throw new IllegalArgumentException(asSpectator ?
+                    "Cannot spectate room: match has already finished." :
+                    "Cannot join room: room is either full or the match is already in progress.");
         }
 
         playerToRoom.put(username, roomId);
@@ -180,7 +186,7 @@ public class RoomService {
         List<PlayerRoomDTO> playerList = room.getPlayers().stream()
                 .sorted(Comparator.comparing(PlayerRoomState::isHost).reversed()
                         .thenComparing(PlayerRoomState::getJoinedAt))
-                .map(p -> new PlayerRoomDTO(p.getUsername(), p.isReady(), p.isHost()))
+                .map(p -> new PlayerRoomDTO(p.getUsername(), p.isReady(), p.isHost(), p.isSpectator()))
                 .toList();
 
         return new RoomResponse(
@@ -188,7 +194,7 @@ public class RoomService {
                 room.getName(),
                 room.getHostUsername(),
                 room.getMaxPlayers(),
-                room.getPlayerCount(),
+                room.getCombatantCount(),
                 room.getStatus().name(),
                 playerList,
                 room.canStart(requestingUser)

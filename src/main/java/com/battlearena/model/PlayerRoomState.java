@@ -13,12 +13,18 @@ public class PlayerRoomState {
     private final String username;
     private volatile boolean isReady;
     private volatile boolean isHost;
+    private volatile boolean spectator;
     private final Instant joinedAt;
 
     public PlayerRoomState(String username, boolean isHost) {
+        this(username, isHost, false);
+    }
+
+    public PlayerRoomState(String username, boolean isHost, boolean spectator) {
         this.username = username;
         this.isHost = isHost;
-        this.isReady = isHost; // Host is considered ready by default
+        this.spectator = spectator;
+        this.isReady = isHost || spectator; // Hosts & spectators don't block match start
         this.joinedAt = Instant.now();
     }
 
@@ -40,6 +46,14 @@ public class PlayerRoomState {
 
     public void setHost(boolean host) {
         this.isHost = host;
+    }
+
+    public boolean isSpectator() {
+        return spectator;
+    }
+
+    public void setSpectator(boolean spectator) {
+        this.spectator = spectator;
     }
 
     public Instant getJoinedAt() {

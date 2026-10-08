@@ -155,7 +155,7 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
                     double heading = root.has("heading") ? root.get("heading").asDouble() : 0.0;
 
                     Room room = roomService.getActiveRoom(roomId);
-                    if (room != null) {
+                    if (room != null && !room.isSpectator(username)) {
                         room.updatePlayerPosition(username, x, y, heading);
 
                         // Broadcast movement update to all other room members
@@ -183,7 +183,7 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
                 if (username != null && roomId != null && root.has("coinId")) {
                     String coinId = root.get("coinId").asText();
                     Room room = roomService.getActiveRoom(roomId);
-                    if (room != null && room.getStatus() == RoomStatus.PLAYING) {
+                    if (room != null && room.getStatus() == RoomStatus.PLAYING && !room.isSpectator(username)) {
                         handleCoinCollection(room, roomId, username, coinId);
                     }
                 }
@@ -195,7 +195,7 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
                 if (username != null && roomId != null && root.has("powerUpId")) {
                     String powerUpId = root.get("powerUpId").asText();
                     Room room = roomService.getActiveRoom(roomId);
-                    if (room != null && room.getStatus() == RoomStatus.PLAYING) {
+                    if (room != null && room.getStatus() == RoomStatus.PLAYING && !room.isSpectator(username)) {
                         handlePowerUpCollection(room, roomId, username, powerUpId);
                     }
                 }
@@ -207,7 +207,7 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
                 if (username != null && roomId != null) {
                     double heading = root.has("heading") ? root.get("heading").asDouble() : 0.0;
                     Room room = roomService.getActiveRoom(roomId);
-                    if (room != null && room.getStatus() == RoomStatus.PLAYING) {
+                    if (room != null && room.getStatus() == RoomStatus.PLAYING && !room.isSpectator(username)) {
                         List<Projectile> projs = room.fireProjectiles(username, heading);
                         for (Projectile proj : projs) {
                             Map<String, Object> payloadMap = new LinkedHashMap<>();
@@ -235,7 +235,7 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
                     String projectileId = root.get("projectileId").asText();
                     String targetUsername = root.get("targetUsername").asText();
                     Room room = roomService.getActiveRoom(roomId);
-                    if (room != null && room.getStatus() == RoomStatus.PLAYING) {
+                    if (room != null && room.getStatus() == RoomStatus.PLAYING && !room.isSpectator(username)) {
                         handleProjectileHit(room, roomId, projectileId, targetUsername);
                     }
                 }
@@ -333,14 +333,17 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
             snapshot.put("safeZoneRadius", activeRoom.getCurrentSafeZoneRadius());
             snapshot.put("suddenDeath", activeRoom.isSuddenDeathActive());
             snapshot.put("chatHistory", activeRoom.getChatHistory());
+            snapshot.put("isSpectator", activeRoom.isSpectator(username));
             sendDirect(session, snapshot);
         }
 
         // Notify other room participants
-        broadcastToRoomExcept(roomId, Map.of(
-                "type", "PLAYER_JOINED",
-                "username", username
-        ), session.getId());
+        boolean isSpectator = activeRoom != null && activeRoom.isSpectator(username);
+        Map<String, Object> joinPayload = new HashMap<>();
+        joinPayload.put("type", "PLAYER_JOINED");
+        joinPayload.put("username", username);
+        joinPayload.put("spectator", isSpectator);
+        broadcastToRoomExcept(roomId, joinPayload, session.getId());
     }
 
     private void checkPowerUpCollisions(Room room, String roomId, String username) {
@@ -574,6 +577,36 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
             }
         } catch (Exception e) {
             // Log serialization failure
+        }
+    }
+
+    public void broadcastGameStart(Room room, String roomId) {
+        Set<WebSocketSession> set = roomSessions.get(roomId);
+        if (set == null || set.isEmpty()) {
+            return;
+        }
+
+        for (WebSocketSession s : set) {
+            String uname = sessionToUser.get(s.getId());
+            boolean isSpectator = (room != null && uname != null && room.isSpectator(uname));
+
+            Map<String, Object> payload = new LinkedHashMap<>();
+            payload.put("type", "GAME_START");
+            payload.put("roomId", roomId);
+            if (room != null) {
+                payload.put("coins", room.getCoins());
+                payload.put("powerUps", room.getPowerUps());
+                payload.put("players", room.getGamePlayers());
+                payload.put("obstacles", room.getObstacles());
+                payload.put("winningScore", Room.getWinningScore());
+                payload.put("matchDurationSeconds", Room.MATCH_DURATION_SECONDS);
+                payload.put("timeRemaining", room.getTimeRemainingSeconds());
+                payload.put("safeZoneRadius", room.getCurrentSafeZoneRadius());
+                payload.put("suddenDeath", room.isSuddenDeathActive());
+            }
+            payload.put("isSpectator", isSpectator);
+
+            sendDirect(s, payload);
         }
     }
 

@@ -8,14 +8,20 @@ public class PlayerRoomDTO {
     private String username;
     private boolean isReady;
     private boolean isHost;
+    private boolean spectator;
 
     public PlayerRoomDTO() {
     }
 
     public PlayerRoomDTO(String username, boolean isReady, boolean isHost) {
+        this(username, isReady, isHost, false);
+    }
+
+    public PlayerRoomDTO(String username, boolean isReady, boolean isHost, boolean spectator) {
         this.username = username;
         this.isReady = isReady;
         this.isHost = isHost;
+        this.spectator = spectator;
     }
 
     public String getUsername() {
@@ -31,7 +37,7 @@ public class PlayerRoomDTO {
     }
 
     public void setReady(boolean ready) {
-        isReady = ready;
+        this.isReady = ready;
     }
 
     public boolean isHost() {
@@ -39,6 +45,14 @@ public class PlayerRoomDTO {
     }
 
     public void setHost(boolean host) {
-        isHost = host;
+        this.isHost = host;
+    }
+
+    public boolean isSpectator() {
+        return spectator;
+    }
+
+    public void setSpectator(boolean spectator) {
+        this.spectator = spectator;
     }
 }

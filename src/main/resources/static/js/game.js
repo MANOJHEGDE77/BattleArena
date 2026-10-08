@@ -78,6 +78,22 @@ function appendChatMessage(msg) {
     chatMessages.scrollTop = chatMessages.scrollHeight;
 }
 
+// --- Phase 15 DOM Elements & State: Spectator Mode & Free Camera Observer ---
+const spectatorBanner = document.getElementById('spectatorBanner');
+const spectatorTargetText = document.getElementById('spectatorTargetText');
+let isSpectator = false;
+let spectateTargetUsername = null;
+
+function updateSpectatorTargetDisplay() {
+    if (!spectatorTargetText) return;
+    if (spectateTargetUsername && remotePlayers.has(spectateTargetUsername)) {
+        spectatorTargetText.textContent = `Tracking: ${spectateTargetUsername} ([Space] Free Cam)`;
+    } else {
+        spectateTargetUsername = null;
+        spectatorTargetText.textContent = 'Free Cam (WASD Pan, [1-8] Track, [Space] Center)';
+    }
+}
+
 // --- Phase 13: Procedural Synthetic Audio Engine (Zero audio files/bandwidth) ---
 class SoundEngine {
     constructor() {
@@ -368,10 +384,28 @@ window.addEventListener('keydown', (e) => {
         if (chatInput) chatInput.focus();
         return;
     }
-    if (e.code === 'Space') {
-        e.preventDefault();
-        fireBlaster();
-        return;
+    if (isSpectator) {
+        if (e.code === 'Space') {
+            e.preventDefault();
+            spectateTargetUsername = null;
+            updateSpectatorTargetDisplay();
+            return;
+        }
+        if (e.key >= '1' && e.key <= '8') {
+            const index = parseInt(e.key, 10) - 1;
+            const remoteNames = Array.from(remotePlayers.keys());
+            if (index < remoteNames.length) {
+                spectateTargetUsername = remoteNames[index];
+                updateSpectatorTargetDisplay();
+            }
+            return;
+        }
+    } else {
+        if (e.code === 'Space') {
+            e.preventDefault();
+            fireBlaster();
+            return;
+        }
     }
     const key = e.key.toLowerCase();
     if (['w', 'a', 's', 'd', 'arrowup', 'arrowleft', 'arrowdown', 'arrowright'].includes(key)) {
@@ -389,7 +423,7 @@ window.addEventListener('keyup', (e) => {
 
 // Canvas pointer down for directional mouse-aim firing
 canvas.addEventListener('pointerdown', (e) => {
-    if (isGameOver || !player.alive) return;
+    if (isGameOver || !player.alive || isSpectator) return;
     const rect = canvas.getBoundingClientRect();
     const clickX = e.clientX - rect.left;
     const clickY = e.clientY - rect.top;
@@ -399,7 +433,7 @@ canvas.addEventListener('pointerdown', (e) => {
 });
 
 function fireBlaster(targetHeading) {
-    if (isGameOver || !player.alive) return;
+    if (isGameOver || !player.alive || isSpectator) return;
     if (!activeRoom || activeRoom.status !== 'PLAYING') return;
     if (!gameWs || gameWs.readyState !== WebSocket.OPEN) return;
 
@@ -481,6 +515,22 @@ function updatePhysics(dt) {
 
     updateProjectiles(dt);
 
+    if (isSpectator) {
+        if (spectateTargetUsername) {
+            const tracked = remotePlayers.get(spectateTargetUsername);
+            if (tracked) {
+                hudPos.textContent = `Observing: ${spectateTargetUsername} (${Math.round(tracked.x)}, ${Math.round(tracked.y)})`;
+            } else {
+                spectateTargetUsername = null;
+                updateSpectatorTargetDisplay();
+                hudPos.textContent = 'Spectator: Free Cam';
+            }
+        } else {
+            hudPos.textContent = 'Spectator: Free Cam';
+        }
+        return;
+    }
+
     if (!player.alive) {
         return;
     }
@@ -554,7 +604,7 @@ function updatePhysics(dt) {
 
 let lastBroadcastTime = 0;
 function broadcastPlayerMovement() {
-    if (!gameWs || gameWs.readyState !== WebSocket.OPEN) return;
+    if (!gameWs || gameWs.readyState !== WebSocket.OPEN || isSpectator) return;
     const now = performance.now();
     // Throttle to ~30 updates/sec to minimize bandwidth and CPU
     if (now - lastBroadcastTime < 33) return;
@@ -1014,11 +1064,31 @@ function renderRemotePlayers() {
         ctx.textAlign = 'center';
         ctx.fillText(`${username} (${rp.score || 0})`, 0, -(rp.radius || 16) - 4);
 
+        // 7. Observer target reticle for tracked player (Phase 15)
+        if (isSpectator && spectateTargetUsername === username) {
+            const r = (rp.radius || 16) + 12;
+            ctx.save();
+            ctx.strokeStyle = '#c084fc';
+            ctx.lineWidth = 2.5;
+            ctx.shadowColor = '#c084fc';
+            ctx.shadowBlur = 10;
+            ctx.beginPath();
+            ctx.arc(0, 0, r, -Math.PI / 4, Math.PI / 4);
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.arc(0, 0, r, 3 * Math.PI / 4, 5 * Math.PI / 4);
+            ctx.stroke();
+            ctx.restore();
+        }
+
         ctx.restore();
     });
 }
 
 function renderPlayer() {
+    if (isSpectator) {
+        return; // Spectators have no physical combat avatar
+    }
     ctx.save();
     ctx.translate(player.x, player.y);
 
@@ -1411,15 +1481,25 @@ async function fetchRoomsList() {
                 <div class="room-card-title">${escapeHtml(room.name)}</div>
                 <div class="room-card-footer">
                     <span class="room-host">Host: ${escapeHtml(room.hostUsername)}</span>
-                    <button class="room-join-btn" data-room-id="${escapeHtml(room.roomId)}" ${!canJoin ? 'disabled style="opacity:0.5;cursor:not-allowed"' : ''}>
-                        ${isPlaying ? 'In Game' : isFull ? 'Full' : 'Join'}
-                    </button>
+                    <div class="room-card-actions">
+                        <button class="room-join-btn" data-room-id="${escapeHtml(room.roomId)}" ${!canJoin ? 'disabled style="opacity:0.5;cursor:not-allowed"' : ''}>
+                            ${isPlaying ? 'In Game' : isFull ? 'Full' : 'Join'}
+                        </button>
+                        <button class="btn-spectate room-spectate-btn" data-room-id="${escapeHtml(room.roomId)}" title="Watch live match as observer">
+                            👁️ Spectate
+                        </button>
+                    </div>
                 </div>
             `;
 
             const joinBtn = card.querySelector('.room-join-btn');
             if (canJoin) {
-                joinBtn.addEventListener('click', () => joinRoom(room.roomId));
+                joinBtn.addEventListener('click', () => joinRoom(room.roomId, false));
+            }
+
+            const spectateBtn = card.querySelector('.room-spectate-btn');
+            if (spectateBtn) {
+                spectateBtn.addEventListener('click', () => joinRoom(room.roomId, true));
             }
 
             roomsContainer.appendChild(card);
@@ -1659,11 +1739,20 @@ function handleWebSocketMessage(msg) {
                     }
                 });
             }
+            if (msg.isSpectator !== undefined) {
+                isSpectator = !!msg.isSpectator;
+            }
+            if (isSpectator) {
+                if (spectatorBanner) spectatorBanner.style.display = 'flex';
+                updateSpectatorTargetDisplay();
+            } else {
+                if (spectatorBanner) spectatorBanner.style.display = 'none';
+            }
             if (activeRoom) {
                 activeRoom.status = 'PLAYING';
                 currentRoomStatus.textContent = 'MATCH IN PROGRESS';
                 currentRoomStatus.className = 'room-status-badge playing';
-                hudState.textContent = 'Real-time Arena Match';
+                hudState.textContent = isSpectator ? 'Spectator Mode (Observer)' : 'Real-time Arena Match';
             }
             if (msg.timeRemaining !== undefined) {
                 matchTimeRemaining = msg.timeRemaining;
@@ -2190,6 +2279,9 @@ async function fetchRoomDetails(roomId) {
 
 function switchToLobbyBrowser() {
     activeRoom = null;
+    isSpectator = false;
+    spectateTargetUsername = null;
+    if (spectatorBanner) spectatorBanner.style.display = 'none';
     isGameOver = false;
     coins.clear();
     myScore = 0;
@@ -2227,35 +2319,51 @@ function renderActiveRoom(room) {
     const myUsername = usernameDisplay.textContent;
     let isMyUserHost = false;
     let myUserReady = false;
+    let amISpectator = false;
 
     room.players.forEach(p => {
         if (p.username === myUsername) {
             if (p.isHost) isMyUserHost = true;
             if (p.isReady) myUserReady = true;
+            if (p.spectator) amISpectator = true;
         }
 
         const chip = document.createElement('div');
-        chip.className = `player-chip ${p.isHost ? 'is-host' : ''}`;
+        chip.className = `player-chip ${p.isHost ? 'is-host' : ''} ${p.spectator ? 'spectator' : ''}`;
         chip.innerHTML = `
-            <span class="player-chip-name">${p.isHost ? '👑 ' : ''}${escapeHtml(p.username)}</span>
-            <span class="player-status-tag ${p.isReady ? 'ready' : 'waiting'}">
-                ${p.isHost ? 'Host' : p.isReady ? '✓ Ready' : '⏳ Waiting'}
+            <span class="player-chip-name">${p.isHost ? '👑 ' : (p.spectator ? '👁️ ' : '')}${escapeHtml(p.username)}</span>
+            <span class="player-status-tag ${p.spectator ? 'spectator-tag' : (p.isReady ? 'ready' : 'waiting')}">
+                ${p.spectator ? 'Spectator' : (p.isHost ? 'Host' : p.isReady ? '✓ Ready' : '⏳ Waiting')}
             </span>
         `;
         playersRoster.appendChild(chip);
     });
 
-    // Control buttons visibility
-    if (isMyUserHost) {
+    if (amISpectator) {
+        isSpectator = true;
+    }
+
+    if (isSpectator) {
         readyBtn.style.display = 'none';
-        startGameBtn.style.display = isPlaying ? 'none' : 'inline-block';
-        startGameBtn.disabled = !room.canStart;
-        startGameBtn.title = room.canStart ? 'Launch the match' : 'Waiting for all players to be ready';
-    } else {
         startGameBtn.style.display = 'none';
-        readyBtn.style.display = isPlaying ? 'none' : 'inline-block';
-        readyBtn.textContent = myUserReady ? 'Unready' : 'Ready Up';
-        readyBtn.className = myUserReady ? 'btn-secondary' : 'btn-warning';
+        if (isPlaying && spectatorBanner) {
+            spectatorBanner.style.display = 'flex';
+            updateSpectatorTargetDisplay();
+        }
+    } else {
+        if (spectatorBanner) spectatorBanner.style.display = 'none';
+        // Control buttons visibility
+        if (isMyUserHost) {
+            readyBtn.style.display = 'none';
+            startGameBtn.style.display = isPlaying ? 'none' : 'inline-block';
+            startGameBtn.disabled = !room.canStart;
+            startGameBtn.title = room.canStart ? 'Launch the match' : 'Waiting for all players to be ready';
+        } else {
+            startGameBtn.style.display = 'none';
+            readyBtn.style.display = isPlaying ? 'none' : 'inline-block';
+            readyBtn.textContent = myUserReady ? 'Unready' : 'Ready Up';
+            readyBtn.className = myUserReady ? 'btn-secondary' : 'btn-warning';
+        }
     }
 
     startRoomPolling(room.roomId);
@@ -2308,7 +2416,7 @@ async function createRoom(name, maxPlayers) {
     }
 }
 
-async function joinRoom(roomId) {
+async function joinRoom(roomId, asSpectator = false) {
     if (!isAuthenticated()) {
         openModal();
         showAuthAlert('Please log in or register to join an arena', true);
@@ -2316,12 +2424,14 @@ async function joinRoom(roomId) {
     }
 
     try {
-        const response = await fetch(`/api/rooms/${roomId}/join`, {
+        const response = await fetch(`/api/rooms/${roomId}/join${asSpectator ? '?spectator=true' : ''}`, {
             method: 'POST',
-            headers: getAuthHeaders()
+            headers: getAuthHeaders(),
+            body: JSON.stringify({ spectator: asSpectator })
         });
         const data = await response.json();
         if (response.ok) {
+            isSpectator = !!asSpectator;
             renderActiveRoom(data);
         } else {
             alert(data.error || 'Could not join arena');
