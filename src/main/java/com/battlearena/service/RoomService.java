@@ -4,6 +4,7 @@ import com.battlearena.dto.*;
 import com.battlearena.exception.ResourceNotFoundException;
 import com.battlearena.model.PlayerRoomState;
 import com.battlearena.model.Room;
+import com.battlearena.model.WarriorClass;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
@@ -182,11 +183,21 @@ public class RoomService {
         return id;
     }
 
+    /**
+     * Updates the warrior class specialization for a player in a room.
+     */
+    public RoomResponse selectWarriorClass(String roomId, String username, WarriorClass warriorClass) {
+        Room room = findRoomOrThrow(roomId);
+        room.setPlayerWarriorClass(username, warriorClass);
+        return toRoomResponse(room, username);
+    }
+
     private RoomResponse toRoomResponse(Room room, String requestingUser) {
         List<PlayerRoomDTO> playerList = room.getPlayers().stream()
                 .sorted(Comparator.comparing(PlayerRoomState::isHost).reversed()
                         .thenComparing(PlayerRoomState::getJoinedAt))
-                .map(p -> new PlayerRoomDTO(p.getUsername(), p.isReady(), p.isHost(), p.isSpectator()))
+                .map(p -> new PlayerRoomDTO(p.getUsername(), p.isReady(), p.isHost(), p.isSpectator(),
+                        p.getWarriorClass() != null ? p.getWarriorClass().name() : "ASSAULT"))
                 .toList();
 
         return new RoomResponse(

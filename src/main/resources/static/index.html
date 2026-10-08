@@ -70,6 +70,52 @@
                         <!-- Player cards rendered dynamically -->
                     </div>
 
+                    <!-- Phase 16: Warrior Class Specialization Selector -->
+                    <div class="class-selection-container" id="classSelectContainer">
+                        <div class="class-selection-header">
+                            <span class="class-section-title">⚡ WARRIOR CLASS & WEAPON LOADOUT</span>
+                            <span class="class-selected-badge" id="currentSelectedClassBadge">ASSAULT (Pulse Blaster)</span>
+                        </div>
+                        <div class="class-cards-grid" id="classCardsGrid">
+                            <div class="class-card selected" data-class="ASSAULT">
+                                <div class="class-card-icon">🛡️</div>
+                                <div class="class-card-body">
+                                    <div class="class-card-name">ASSAULT</div>
+                                    <div class="class-card-desc">Balanced Vanguard</div>
+                                    <div class="class-stat-row"><span>HP: 100</span><span>SPD: 240</span></div>
+                                    <div class="class-weapon-tag">Pulse Blaster (20 DMG)</div>
+                                </div>
+                            </div>
+                            <div class="class-card" data-class="JUGGERNAUT">
+                                <div class="class-card-icon">🦾</div>
+                                <div class="class-card-body">
+                                    <div class="class-card-name">JUGGERNAUT</div>
+                                    <div class="class-card-desc">Heavy Armored Titan</div>
+                                    <div class="class-stat-row"><span>HP: 150</span><span>SPD: 195</span></div>
+                                    <div class="class-weapon-tag">Plasma Cannon (35 DMG)</div>
+                                </div>
+                            </div>
+                            <div class="class-card" data-class="SCOUT">
+                                <div class="class-card-icon">⚡</div>
+                                <div class="class-card-body">
+                                    <div class="class-card-name">SCOUT</div>
+                                    <div class="class-card-desc">Agile Skirmisher</div>
+                                    <div class="class-stat-row"><span>HP: 75</span><span>SPD: 290</span></div>
+                                    <div class="class-weapon-tag">Twin Needles (14 DMG)</div>
+                                </div>
+                            </div>
+                            <div class="class-card" data-class="SNIPER">
+                                <div class="class-card-icon">🎯</div>
+                                <div class="class-card-body">
+                                    <div class="class-card-name">SNIPER</div>
+                                    <div class="class-card-desc">Precision Marksman</div>
+                                    <div class="class-stat-row"><span>HP: 85</span><span>SPD: 220</span></div>
+                                    <div class="class-weapon-tag">Hyper Railgun (45 DMG)</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
                     <div class="room-controls">
                         <button class="btn-danger" id="leaveRoomBtn">Leave Room</button>
                         <div class="room-primary-actions">
@@ -82,14 +128,15 @@
 
             <div class="hud-bar">
                 <div class="hud-item"><span class="hud-label">PLAYER:</span> <span id="hudPlayer">Guest</span></div>
-                <div class="hud-item hud-hp"><span class="hud-label">HP:</span> <span id="hudHp">100</span> / 100</div>
+                <div class="hud-item hud-class"><span class="hud-label">CLASS:</span> <span id="hudClass">ASSAULT</span></div>
+                <div class="hud-item hud-hp"><span class="hud-label">HP:</span> <span id="hudHp">100</span> / <span id="hudMaxHp">100</span></div>
                 <div class="hud-item hud-timer"><span class="hud-label">TIME:</span> <span id="hudTimer">02:00</span></div>
                 <div class="hud-item hud-score"><span class="hud-label">SCORE:</span> <span id="hudScore">0</span> / <span id="hudTarget">100</span></div>
                 <div class="hud-item"><span class="hud-label">K / D:</span> <span id="hudKd">0 / 0</span></div>
                 <div class="hud-item"><span class="hud-label">ROOM:</span> <span id="hudRoom">None (Lobby)</span></div>
                 <div class="hud-item"><span class="hud-label">POS:</span> <span id="hudPos">X: 0, Y: 0</span></div>
                 <div class="hud-item"><span class="hud-label">FPS:</span> <span id="hudFps">60</span></div>
-                <div class="hud-item"><span class="hud-label">STATUS:</span> <span id="hudState">Phase 8: Combat & Elimination</span></div>
+                <div class="hud-item"><span class="hud-label">STATUS:</span> <span id="hudState">Phase 16: Warrior Classes & Loadouts</span></div>
             </div>
 
             <div class="canvas-container">

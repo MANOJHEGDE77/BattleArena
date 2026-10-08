@@ -8,6 +8,7 @@ import com.battlearena.model.PowerUp;
 import com.battlearena.model.Projectile;
 import com.battlearena.model.Room;
 import com.battlearena.model.RoomStatus;
+import com.battlearena.model.WarriorClass;
 import com.battlearena.security.JwtUtil;
 import com.battlearena.service.RoomService;
 import com.battlearena.service.UserService;
@@ -221,6 +222,7 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
                             payloadMap.put("heading", proj.getHeading());
                             payloadMap.put("speed", proj.getSpeed());
                             payloadMap.put("damage", proj.getDamage());
+                            payloadMap.put("radius", proj.getRadius());
                             payloadMap.put("createdAt", proj.getCreatedAt());
                             broadcastToRoom(roomId, payloadMap);
                         }
@@ -282,6 +284,27 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
                 }
                 break;
             }
+            case "SELECT_CLASS": {
+                String username = sessionToUser.get(session.getId());
+                String roomId = sessionToRoom.get(session.getId());
+                if (username != null && roomId != null && root.has("warriorClass")) {
+                    String className = root.get("warriorClass").asText();
+                    try {
+                        WarriorClass wc = WarriorClass.valueOf(className.toUpperCase());
+                        Room r = roomService.getActiveRoom(roomId);
+                        if (r != null && r.getStatus() != RoomStatus.PLAYING) {
+                            r.setPlayerWarriorClass(username, wc);
+                            broadcastToRoom(roomId, Map.of(
+                                    "type", "ROOM_UPDATED",
+                                    "roomId", roomId,
+                                    "username", username,
+                                    "warriorClass", wc.name()
+                            ));
+                        }
+                    } catch (Exception ignored) {}
+                }
+                break;
+            }
             case "PING": {
                 sendDirect(session, Map.of("type", "PONG", "timestamp", System.currentTimeMillis()));
                 break;
@@ -339,10 +362,13 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
 
         // Notify other room participants
         boolean isSpectator = activeRoom != null && activeRoom.isSpectator(username);
+        com.battlearena.model.PlayerRoomState prs = (activeRoom != null) ? activeRoom.getPlayerState(username) : null;
+        String wClass = (prs != null && prs.getWarriorClass() != null) ? prs.getWarriorClass().name() : "ASSAULT";
         Map<String, Object> joinPayload = new HashMap<>();
         joinPayload.put("type", "PLAYER_JOINED");
         joinPayload.put("username", username);
         joinPayload.put("spectator", isSpectator);
+        joinPayload.put("warriorClass", wClass);
         broadcastToRoomExcept(roomId, joinPayload, session.getId());
     }
 

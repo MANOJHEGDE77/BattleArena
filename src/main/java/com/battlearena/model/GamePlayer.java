@@ -6,12 +6,13 @@ import java.time.Instant;
  * Real-time gameplay state of a player inside an active match arena.
  *
  * Layer: Domain / Model (Game State)
- * Responsibility: Tracks current coordinate position, heading angle, collision bounds,
- * color styling, and in-game score for real-time synchronization.
+ * Responsibility: Tracks coordinate position, heading angle, collision bounds,
+ * warrior class specialization, stats, and in-game score for real-time synchronization.
  */
 public class GamePlayer {
 
     private final String username;
+    private final WarriorClass warriorClass;
     private volatile double x;
     private volatile double y;
     private volatile double heading;
@@ -21,9 +22,9 @@ public class GamePlayer {
     private volatile int score;
     private volatile boolean alive;
     private volatile int health;
-    private static final int MAX_HEALTH = 100;
+    private final int maxHealth;
     private volatile int shield;
-    private static final int MAX_SHIELD = 50;
+    private final int maxShield;
     private volatile long speedBoostUntil;
     private volatile long spreadShotUntil;
     private volatile int kills;
@@ -32,16 +33,23 @@ public class GamePlayer {
     private volatile Instant lastUpdate;
 
     public GamePlayer(String username, double x, double y, String color) {
+        this(username, x, y, color, WarriorClass.ASSAULT);
+    }
+
+    public GamePlayer(String username, double x, double y, String color, WarriorClass warriorClass) {
         this.username = username;
+        this.warriorClass = (warriorClass != null) ? warriorClass : WarriorClass.ASSAULT;
         this.x = x;
         this.y = y;
         this.heading = 0.0;
         this.radius = 16;
-        this.speed = 240;
+        this.speed = this.warriorClass.getSpeed();
         this.color = color;
         this.score = 0;
         this.alive = true;
-        this.health = MAX_HEALTH;
+        this.maxHealth = this.warriorClass.getMaxHealth();
+        this.maxShield = this.warriorClass.getMaxShield();
+        this.health = this.maxHealth;
         this.shield = 0;
         this.speedBoostUntil = 0L;
         this.spreadShotUntil = 0L;
@@ -53,6 +61,10 @@ public class GamePlayer {
 
     public String getUsername() {
         return username;
+    }
+
+    public WarriorClass getWarriorClass() {
+        return warriorClass;
     }
 
     public double getX() {
@@ -124,11 +136,15 @@ public class GamePlayer {
     }
 
     public void setHealth(int health) {
-        this.health = Math.max(0, Math.min(MAX_HEALTH, health));
+        this.health = Math.max(0, Math.min(this.maxHealth, health));
     }
 
     public int getMaxHealth() {
-        return MAX_HEALTH;
+        return maxHealth;
+    }
+
+    public int getMaxShield() {
+        return maxShield;
     }
 
     public int getKills() {
@@ -190,7 +206,7 @@ public class GamePlayer {
     public synchronized void applyPowerUp(PowerUp powerUp) {
         long now = System.currentTimeMillis();
         switch (powerUp.getType()) {
-            case SHIELD -> this.shield = Math.min(MAX_SHIELD, this.shield + 50);
+            case SHIELD -> this.shield = Math.min(this.maxShield, this.shield + 50);
             case SPEED_BOOST -> this.speedBoostUntil = Math.max(now, this.speedBoostUntil) + powerUp.getDurationMs();
             case SPREAD_SHOT -> this.spreadShotUntil = Math.max(now, this.spreadShotUntil) + powerUp.getDurationMs();
         }
@@ -234,12 +250,12 @@ public class GamePlayer {
     }
 
     /**
-     * Respawns player at specified coordinates with full health and cleared buffs.
+     * Respawns player at specified coordinates with full class health and cleared buffs.
      */
     public synchronized void respawn(double newX, double newY) {
         this.x = newX;
         this.y = newY;
-        this.health = MAX_HEALTH;
+        this.health = this.maxHealth;
         this.shield = 0;
         this.speedBoostUntil = 0L;
         this.spreadShotUntil = 0L;
@@ -251,7 +267,7 @@ public class GamePlayer {
      * Resets combat state for a fresh match/rematch.
      */
     public synchronized void resetCombatStats() {
-        this.health = MAX_HEALTH;
+        this.health = this.maxHealth;
         this.shield = 0;
         this.speedBoostUntil = 0L;
         this.spreadShotUntil = 0L;

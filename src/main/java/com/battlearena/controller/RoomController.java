@@ -124,6 +124,34 @@ public class RoomController {
     }
 
     /**
+     * Updates warrior class specialization for a player.
+     * POST /api/rooms/{roomId}/class
+     */
+    @PostMapping("/{roomId}/class")
+    public ResponseEntity<RoomResponse> selectClass(
+            @PathVariable String roomId,
+            @RequestBody(required = false) Map<String, String> body,
+            Authentication authentication) {
+        String className = (body != null && body.containsKey("warriorClass"))
+                ? body.get("warriorClass")
+                : "ASSAULT";
+        com.battlearena.model.WarriorClass warriorClass;
+        try {
+            warriorClass = com.battlearena.model.WarriorClass.valueOf(className.toUpperCase());
+        } catch (Exception e) {
+            warriorClass = com.battlearena.model.WarriorClass.ASSAULT;
+        }
+        RoomResponse response = roomService.selectWarriorClass(roomId, authentication.getName(), warriorClass);
+        webSocketHandler.broadcastToRoom(roomId, Map.of(
+                "type", "ROOM_UPDATED",
+                "roomId", roomId,
+                "username", authentication.getName(),
+                "warriorClass", warriorClass.name()
+        ));
+        return ResponseEntity.ok(response);
+    }
+
+    /**
      * Starts the game match (host only).
      * POST /api/rooms/{roomId}/start
      */

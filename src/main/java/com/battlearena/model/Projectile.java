@@ -27,18 +27,23 @@ public class Projectile {
     private final long maxLifeMs;
 
     public Projectile(String id, String shooterUsername, double startX, double startY, double heading) {
+        this(id, shooterUsername, startX, startY, heading, 520.0, 20, 5);
+    }
+
+    public Projectile(String id, String shooterUsername, double startX, double startY, double heading,
+                      double speed, int damage, int radius) {
         this.id = id;
         this.shooterUsername = shooterUsername;
         this.startX = startX;
         this.startY = startY;
         this.heading = heading;
-        this.speed = 420.0; // 420 pixels per second
-        this.damage = 25;   // 4 hits to eliminate a 100 HP player
-        this.radius = 5;    // 5px radius collision sphere
+        this.speed = speed;
+        this.damage = damage;
+        this.radius = radius;
         this.vx = Math.cos(heading) * this.speed;
         this.vy = Math.sin(heading) * this.speed;
         this.createdAt = System.currentTimeMillis();
-        this.maxLifeMs = 2000L; // 2 seconds flight duration (~840px range)
+        this.maxLifeMs = 2200L;
     }
 
     public String getId() {

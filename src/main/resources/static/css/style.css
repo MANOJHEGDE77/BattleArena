@@ -1519,5 +1519,190 @@ body {
     margin-left: 6px;
 }
 
+/* Phase 16: Warrior Classes & Weapon Loadouts */
+.class-selection-container {
+    background: rgba(15, 23, 42, 0.65);
+    backdrop-filter: blur(8px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 10px;
+    padding: 12px 14px;
+    margin: 8px 0 12px 0;
+}
+
+.class-selection-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+}
+
+.class-section-title {
+    font-size: 0.78rem;
+    font-weight: 700;
+    letter-spacing: 0.8px;
+    color: var(--text-secondary);
+}
+
+.class-selected-badge {
+    background: rgba(16, 185, 129, 0.15);
+    color: #34d399;
+    border: 1px solid rgba(16, 185, 129, 0.35);
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.class-cards-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+}
+
+.class-card {
+    background: rgba(30, 41, 59, 0.5);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    padding: 10px 8px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    user-select: none;
+    position: relative;
+    text-align: center;
+}
+
+.class-card:hover {
+    background: rgba(30, 41, 59, 0.85);
+    transform: translateY(-2px);
+    border-color: rgba(255, 255, 255, 0.25);
+}
+
+.class-card-icon {
+    font-size: 1.4rem;
+    margin-bottom: 4px;
+}
+
+.class-card-name {
+    font-size: 0.82rem;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    color: #fff;
+}
+
+.class-card-desc {
+    font-size: 0.68rem;
+    color: var(--text-secondary);
+    margin-bottom: 6px;
+}
+
+.class-stat-row {
+    display: flex;
+    justify-content: space-between;
+    width: 100%;
+    font-size: 0.68rem;
+    color: #94a3b8;
+    background: rgba(0, 0, 0, 0.25);
+    padding: 2px 6px;
+    border-radius: 4px;
+    margin-bottom: 5px;
+}
+
+.class-weapon-tag {
+    font-size: 0.66rem;
+    font-weight: 600;
+    color: #cbd5e1;
+    background: rgba(255, 255, 255, 0.05);
+    padding: 2px 4px;
+    border-radius: 4px;
+    width: 100%;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Distinct Class Selection Highlight Styles */
+.class-card[data-class="ASSAULT"].selected {
+    border-color: #10b981;
+    background: rgba(16, 185, 129, 0.15);
+    box-shadow: 0 0 14px rgba(16, 185, 129, 0.35);
+}
+.class-card[data-class="ASSAULT"].selected .class-card-name {
+    color: #34d399;
+}
+
+.class-card[data-class="JUGGERNAUT"].selected {
+    border-color: #f59e0b;
+    background: rgba(245, 158, 11, 0.15);
+    box-shadow: 0 0 14px rgba(245, 158, 11, 0.35);
+}
+.class-card[data-class="JUGGERNAUT"].selected .class-card-name {
+    color: #fbbf24;
+}
+
+.class-card[data-class="SCOUT"].selected {
+    border-color: #a855f7;
+    background: rgba(168, 85, 247, 0.15);
+    box-shadow: 0 0 14px rgba(168, 85, 247, 0.35);
+}
+.class-card[data-class="SCOUT"].selected .class-card-name {
+    color: #c084fc;
+}
+
+.class-card[data-class="SNIPER"].selected {
+    border-color: #06b6d4;
+    background: rgba(6, 182, 212, 0.15);
+    box-shadow: 0 0 14px rgba(6, 182, 212, 0.35);
+}
+.class-card[data-class="SNIPER"].selected .class-card-name {
+    color: #22d3ee;
+}
+
+/* Roster Class Badges */
+.class-badge {
+    font-size: 0.68rem;
+    font-weight: 700;
+    padding: 2px 6px;
+    border-radius: 4px;
+    margin-left: 6px;
+    letter-spacing: 0.3px;
+}
+
+.class-badge.assault {
+    background: rgba(16, 185, 129, 0.18);
+    color: #34d399;
+    border: 1px solid rgba(16, 185, 129, 0.4);
+}
+
+.class-badge.juggernaut {
+    background: rgba(245, 158, 11, 0.18);
+    color: #fbbf24;
+    border: 1px solid rgba(245, 158, 11, 0.4);
+}
+
+.class-badge.scout {
+    background: rgba(168, 85, 247, 0.18);
+    color: #c084fc;
+    border: 1px solid rgba(168, 85, 247, 0.4);
+}
+
+.class-badge.sniper {
+    background: rgba(6, 182, 212, 0.18);
+    color: #22d3ee;
+    border: 1px solid rgba(6, 182, 212, 0.4);
+}
+
+.hud-item.hud-class {
+    background: rgba(16, 185, 129, 0.12);
+    border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+.hud-item.hud-class #hudClass {
+    color: #34d399;
+    font-weight: 700;
+}
+
 
 

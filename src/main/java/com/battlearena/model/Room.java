@@ -427,7 +427,8 @@ public class Room {
             if (!entry.getValue().isSpectator()) {
                 double[] spawn = SPAWN_POINTS[index % SPAWN_POINTS.length];
                 String color = PALETTE[index % PALETTE.length];
-                gamePlayers.put(entry.getKey(), new GamePlayer(entry.getKey(), spawn[0], spawn[1], color));
+                WarriorClass wc = entry.getValue().getWarriorClass();
+                gamePlayers.put(entry.getKey(), new GamePlayer(entry.getKey(), spawn[0], spawn[1], color, wc));
                 index++;
             }
         }
@@ -600,6 +601,7 @@ public class Room {
 
     /**
      * Spawns authoritative projectile(s), including spread shot volleys if buffed.
+     * Takes weapon attributes (speed, damage, radius) from the player's selected warrior class.
      */
     public synchronized List<Projectile> fireProjectiles(String shooterUsername, double heading) {
         if (status != RoomStatus.PLAYING) {
@@ -611,27 +613,48 @@ public class Room {
         }
 
         long now = System.currentTimeMillis();
-        if (!player.canAttack(now, ATTACK_COOLDOWN_MS)) {
+        long cooldown = (player.getWarriorClass() != null)
+                ? player.getWarriorClass().getAttackCooldownMs()
+                : ATTACK_COOLDOWN_MS;
+        if (!player.canAttack(now, cooldown)) {
             return Collections.emptyList();
         }
 
         player.recordAttack(now);
         List<Projectile> fired = new ArrayList<>();
+        WarriorClass wc = (player.getWarriorClass() != null) ? player.getWarriorClass() : WarriorClass.ASSAULT;
+        double speed = wc.getProjectileSpeed();
+        int damage = wc.getDamage();
+        int radius = wc.getProjectileRadius();
+
         if (player.hasSpreadShot(now)) {
             double[] angles = new double[]{ heading - 0.22, heading, heading + 0.22 };
             for (double angle : angles) {
                 String projId = "PROJ-" + UUID.randomUUID().toString().substring(0, 6).toUpperCase();
-                Projectile projectile = new Projectile(projId, shooterUsername, player.getX(), player.getY(), angle);
+                Projectile projectile = new Projectile(projId, shooterUsername, player.getX(), player.getY(), angle, speed, damage, radius);
                 projectiles.put(projId, projectile);
                 fired.add(projectile);
             }
         } else {
             String projId = "PROJ-" + UUID.randomUUID().toString().substring(0, 6).toUpperCase();
-            Projectile projectile = new Projectile(projId, shooterUsername, player.getX(), player.getY(), heading);
+            Projectile projectile = new Projectile(projId, shooterUsername, player.getX(), player.getY(), heading, speed, damage, radius);
             projectiles.put(projId, projectile);
             fired.add(projectile);
         }
         return fired;
+    }
+
+    public synchronized boolean setPlayerWarriorClass(String username, WarriorClass warriorClass) {
+        PlayerRoomState state = players.get(username);
+        if (state == null) {
+            return false;
+        }
+        state.setWarriorClass(warriorClass);
+        return true;
+    }
+
+    public synchronized PlayerRoomState getPlayerState(String username) {
+        return players.get(username);
     }
 
     /**

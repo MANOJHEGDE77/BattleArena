@@ -94,6 +94,109 @@ function updateSpectatorTargetDisplay() {
     }
 }
 
+// --- Phase 16 DOM Elements & State: Warrior Classes & Weapon Loadouts ---
+const hudClass = document.getElementById('hudClass');
+const classSelectContainer = document.getElementById('classSelectContainer');
+const currentSelectedClassBadge = document.getElementById('currentSelectedClassBadge');
+const classCardsGrid = document.getElementById('classCardsGrid');
+
+const WARRIOR_CLASSES = {
+    ASSAULT: {
+        name: 'ASSAULT',
+        badgeText: 'ASSAULT (Pulse Blaster)',
+        icon: '🛡️',
+        maxHp: 100,
+        maxShield: 50,
+        speed: 240,
+        cooldownMs: 320,
+        weaponName: 'Pulse Blaster',
+        color: '#10b981',
+        accentColor: '#34d399',
+        projectileRadius: 5
+    },
+    JUGGERNAUT: {
+        name: 'JUGGERNAUT',
+        badgeText: 'JUGGERNAUT (Plasma Cannon)',
+        icon: '🦾',
+        maxHp: 150,
+        maxShield: 75,
+        speed: 195,
+        cooldownMs: 480,
+        weaponName: 'Plasma Cannon',
+        color: '#f59e0b',
+        accentColor: '#fbbf24',
+        projectileRadius: 8
+    },
+    SCOUT: {
+        name: 'SCOUT',
+        badgeText: 'SCOUT (Twin Needles)',
+        icon: '⚡',
+        maxHp: 75,
+        maxShield: 35,
+        speed: 290,
+        cooldownMs: 240,
+        weaponName: 'Twin Needles',
+        color: '#a855f7',
+        accentColor: '#c084fc',
+        projectileRadius: 4
+    },
+    SNIPER: {
+        name: 'SNIPER',
+        badgeText: 'SNIPER (Hyper Railgun)',
+        icon: '🎯',
+        maxHp: 85,
+        maxShield: 40,
+        speed: 220,
+        cooldownMs: 620,
+        weaponName: 'Hyper Railgun',
+        color: '#06b6d4',
+        accentColor: '#22d3ee',
+        projectileRadius: 4
+    }
+};
+
+let mySelectedClass = 'ASSAULT';
+
+async function selectWarriorClass(className, notifyServer = true) {
+    if (!WARRIOR_CLASSES[className]) return;
+    mySelectedClass = className;
+    player.warriorClass = className;
+    const cInfo = WARRIOR_CLASSES[className];
+    player.maxHealth = cInfo.maxHp;
+    player.maxShield = cInfo.maxShield;
+    player.speed = cInfo.speed;
+
+    if (currentSelectedClassBadge) {
+        currentSelectedClassBadge.textContent = cInfo.badgeText;
+    }
+    if (classCardsGrid) {
+        classCardsGrid.querySelectorAll('.class-card').forEach(card => {
+            if (card.getAttribute('data-class') === className) {
+                card.classList.add('selected');
+            } else {
+                card.classList.remove('selected');
+            }
+        });
+    }
+    if (hudClass) {
+        hudClass.textContent = `${cInfo.icon} ${className}`;
+        hudClass.title = cInfo.weaponName;
+    }
+
+    if (notifyServer && activeRoom && activeRoom.status !== 'PLAYING') {
+        try {
+            await fetch(`/api/rooms/${activeRoom.roomId}/class`, {
+                method: 'POST',
+                headers: getAuthHeaders(),
+                body: JSON.stringify({ warriorClass: className })
+            });
+            if (gameWs && gameWs.readyState === WebSocket.OPEN) {
+                gameWs.send(JSON.stringify({ type: 'SELECT_CLASS', warriorClass: className }));
+            }
+        } catch {}
+    }
+}
+
 // --- Phase 13: Procedural Synthetic Audio Engine (Zero audio files/bandwidth) ---
 class SoundEngine {
     constructor() {
@@ -124,7 +227,7 @@ class SoundEngine {
         return this.muted;
     }
 
-    playLaser(isSpread = false) {
+    playLaser(isSpread = false, warriorClass = 'ASSAULT') {
         if (this.muted) return;
         this.init();
         if (!this.ctx) return;
@@ -133,19 +236,52 @@ class SoundEngine {
             const osc = this.ctx.createOscillator();
             const gain = this.ctx.createGain();
 
-            osc.type = isSpread ? 'sawtooth' : 'triangle';
-            const startFreq = isSpread ? 1040 : 880;
-            osc.frequency.setValueAtTime(startFreq, now);
-            osc.frequency.exponentialRampToValueAtTime(110, now + 0.12);
-
-            gain.gain.setValueAtTime(this.masterVolume * 0.7, now);
-            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
-
-            osc.connect(gain);
-            gain.connect(this.ctx.destination);
-
-            osc.start(now);
-            osc.stop(now + 0.13);
+            if (warriorClass === 'JUGGERNAUT') {
+                // Heavy plasma acoustic boom
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(220, now);
+                osc.frequency.exponentialRampToValueAtTime(35, now + 0.22);
+                gain.gain.setValueAtTime(this.masterVolume * 0.9, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.22);
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start(now);
+                osc.stop(now + 0.23);
+            } else if (warriorClass === 'SCOUT') {
+                // High-velocity needle chirp
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(1450, now);
+                osc.frequency.exponentialRampToValueAtTime(450, now + 0.08);
+                gain.gain.setValueAtTime(this.masterVolume * 0.55, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start(now);
+                osc.stop(now + 0.09);
+            } else if (warriorClass === 'SNIPER') {
+                // Intense hyper railgun shockwave crack
+                osc.type = 'square';
+                osc.frequency.setValueAtTime(1250, now);
+                osc.frequency.exponentialRampToValueAtTime(90, now + 0.18);
+                gain.gain.setValueAtTime(this.masterVolume * 0.85, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.18);
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start(now);
+                osc.stop(now + 0.19);
+            } else {
+                // Standard Assault Pulse Blaster
+                osc.type = isSpread ? 'sawtooth' : 'triangle';
+                const startFreq = isSpread ? 1040 : 880;
+                osc.frequency.setValueAtTime(startFreq, now);
+                osc.frequency.exponentialRampToValueAtTime(110, now + 0.12);
+                gain.gain.setValueAtTime(this.masterVolume * 0.7, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start(now);
+                osc.stop(now + 0.13);
+            }
         } catch {}
     }
 
@@ -361,6 +497,7 @@ const player = {
     heading: 0, // radians
     color: '#6366f1',
     accentColor: '#818cf8',
+    warriorClass: 'ASSAULT',
     name: 'Guest',
     health: 100,
     maxHealth: 100,
@@ -437,11 +574,15 @@ function fireBlaster(targetHeading) {
     if (!activeRoom || activeRoom.status !== 'PLAYING') return;
     if (!gameWs || gameWs.readyState !== WebSocket.OPEN) return;
 
+    const currentClass = player.warriorClass || mySelectedClass || 'ASSAULT';
+    const classInfo = WARRIOR_CLASSES[currentClass] || WARRIOR_CLASSES.ASSAULT;
+    const cooldown = classInfo.cooldownMs;
+
     const now = performance.now();
-    if (now - player.lastAttackTime < ATTACK_COOLDOWN_MS) return;
+    if (now - player.lastAttackTime < cooldown) return;
     player.lastAttackTime = now;
 
-    soundEngine.playLaser(player.spreadShotUntil > Date.now());
+    soundEngine.playLaser(player.spreadShotUntil > Date.now(), currentClass);
 
     const heading = targetHeading !== undefined ? targetHeading : player.heading;
     gameWs.send(JSON.stringify({
@@ -940,28 +1081,101 @@ function renderProjectiles() {
         ctx.translate(p.x, p.y);
         ctx.rotate(p.heading);
 
-        // Radiant neon glow
-        ctx.beginPath();
-        ctx.arc(0, 0, 5, 0, Math.PI * 2);
-        ctx.fillStyle = '#38bdf8';
-        ctx.shadowColor = '#38bdf8';
-        ctx.shadowBlur = 8;
-        ctx.fill();
+        const r = p.radius || 5;
+        if (r >= 7) {
+            // JUGGERNAUT Plasma Cannon Orb (Heavy fiery projectile)
+            const pulse = Math.sin(performance.now() * 0.02) * 1.5;
+            ctx.beginPath();
+            ctx.arc(0, 0, r + 4 + pulse, 0, Math.PI * 2);
+            ctx.fillStyle = 'rgba(245, 158, 11, 0.25)';
+            ctx.fill();
 
-        // Concentrated core
-        ctx.beginPath();
-        ctx.arc(0, 0, 2.5, 0, Math.PI * 2);
-        ctx.fillStyle = '#ffffff';
-        ctx.fill();
+            ctx.beginPath();
+            ctx.arc(0, 0, r, 0, Math.PI * 2);
+            ctx.fillStyle = '#f59e0b';
+            ctx.shadowColor = '#fbbf24';
+            ctx.shadowBlur = 12;
+            ctx.fill();
 
-        // Speed trail tail
-        ctx.beginPath();
-        ctx.moveTo(1, 0);
-        ctx.lineTo(-12, -2.5);
-        ctx.lineTo(-12, 2.5);
-        ctx.closePath();
-        ctx.fillStyle = 'rgba(56, 189, 248, 0.45)';
-        ctx.fill();
+            ctx.beginPath();
+            ctx.arc(0, 0, r * 0.55, 0, Math.PI * 2);
+            ctx.fillStyle = '#fef08a';
+            ctx.fill();
+
+            ctx.beginPath();
+            ctx.moveTo(r * 0.4, 0);
+            ctx.lineTo(-r * 2.2, -r * 0.6);
+            ctx.lineTo(-r * 2.2, r * 0.6);
+            ctx.closePath();
+            ctx.fillStyle = 'rgba(245, 158, 11, 0.5)';
+            ctx.fill();
+        } else if (p.speed >= 700 || p.damage >= 40) {
+            // SNIPER Hyper Railgun Slug (Supersonic high-velocity beam)
+            ctx.beginPath();
+            ctx.arc(0, 0, 4, 0, Math.PI * 2);
+            ctx.fillStyle = '#06b6d4';
+            ctx.shadowColor = '#22d3ee';
+            ctx.shadowBlur = 14;
+            ctx.fill();
+
+            ctx.beginPath();
+            ctx.moveTo(6, 0);
+            ctx.lineTo(-24, -2);
+            ctx.lineTo(-24, 2);
+            ctx.closePath();
+            ctx.fillStyle = 'rgba(34, 211, 238, 0.8)';
+            ctx.fill();
+
+            ctx.beginPath();
+            ctx.moveTo(4, 0);
+            ctx.lineTo(-14, -1);
+            ctx.lineTo(-14, 1);
+            ctx.closePath();
+            ctx.fillStyle = '#ffffff';
+            ctx.fill();
+        } else if (p.speed >= 580 || r <= 4) {
+            // SCOUT Twin Needles Dart (Rapid needle dart)
+            ctx.beginPath();
+            ctx.arc(0, 0, 3.5, 0, Math.PI * 2);
+            ctx.fillStyle = '#a855f7';
+            ctx.shadowColor = '#c084fc';
+            ctx.shadowBlur = 9;
+            ctx.fill();
+
+            ctx.beginPath();
+            ctx.moveTo(3, 0);
+            ctx.lineTo(-14, -2);
+            ctx.lineTo(-14, 2);
+            ctx.closePath();
+            ctx.fillStyle = 'rgba(192, 132, 252, 0.6)';
+            ctx.fill();
+
+            ctx.beginPath();
+            ctx.arc(0, 0, 1.8, 0, Math.PI * 2);
+            ctx.fillStyle = '#f3e8ff';
+            ctx.fill();
+        } else {
+            // ASSAULT Pulse Blaster (Balanced pulse bolt)
+            ctx.beginPath();
+            ctx.arc(0, 0, 5, 0, Math.PI * 2);
+            ctx.fillStyle = '#10b981';
+            ctx.shadowColor = '#34d399';
+            ctx.shadowBlur = 10;
+            ctx.fill();
+
+            ctx.beginPath();
+            ctx.arc(0, 0, 2.5, 0, Math.PI * 2);
+            ctx.fillStyle = '#ecfdf5';
+            ctx.fill();
+
+            ctx.beginPath();
+            ctx.moveTo(2, 0);
+            ctx.lineTo(-15, -2.5);
+            ctx.lineTo(-15, 2.5);
+            ctx.closePath();
+            ctx.fillStyle = 'rgba(16, 185, 129, 0.45)';
+            ctx.fill();
+        }
 
         ctx.restore();
     });
@@ -991,27 +1205,78 @@ function renderRemotePlayers() {
             return;
         }
 
-        // 1. Remote player outer accent ring
+        const wClass = rp.warriorClass || 'ASSAULT';
+        const classInfo = WARRIOR_CLASSES[wClass] || WARRIOR_CLASSES.ASSAULT;
+        const mainColor = classInfo.color;
+        const pRadius = rp.radius || 16;
+
+        // 1. Remote player outer accent ring with class styling
         ctx.beginPath();
-        ctx.arc(0, 0, (rp.radius || 16) + 2, 0, Math.PI * 2);
-        ctx.strokeStyle = 'rgba(16, 185, 129, 0.35)';
-        ctx.lineWidth = 1.5;
+        ctx.arc(0, 0, pRadius + 2.5, 0, Math.PI * 2);
+        ctx.strokeStyle = classInfo.accentColor;
+        ctx.lineWidth = 1.8;
         ctx.stroke();
 
-        // 2. Remote player body
+        // 2. Class-specific vector chassis styling
+        if (wClass === 'JUGGERNAUT') {
+            ctx.fillStyle = '#334155';
+            ctx.fillRect(pRadius * 0.4, -7, 12, 4);
+            ctx.fillRect(pRadius * 0.4, 3, 12, 4);
+            ctx.beginPath();
+            for (let a = 0; a < 6; a++) {
+                const angle = (a * Math.PI) / 3;
+                const hx = Math.cos(angle) * (pRadius + 3);
+                const hy = Math.sin(angle) * (pRadius + 3);
+                if (a === 0) ctx.moveTo(hx, hy);
+                else ctx.lineTo(hx, hy);
+            }
+            ctx.closePath();
+            ctx.strokeStyle = 'rgba(245, 158, 11, 0.45)';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+        } else if (wClass === 'SCOUT') {
+            ctx.fillStyle = 'rgba(168, 85, 247, 0.4)';
+            ctx.beginPath();
+            ctx.moveTo(-4, -pRadius - 6);
+            ctx.lineTo(8, -pRadius + 2);
+            ctx.lineTo(-8, 0);
+            ctx.closePath();
+            ctx.fill();
+            ctx.beginPath();
+            ctx.moveTo(-4, pRadius + 6);
+            ctx.lineTo(8, pRadius - 2);
+            ctx.lineTo(-8, 0);
+            ctx.closePath();
+            ctx.fill();
+            ctx.fillStyle = '#e2e8f0';
+            ctx.fillRect(pRadius * 0.5, -3, 8, 2);
+            ctx.fillRect(pRadius * 0.5, 1, 8, 2);
+        } else if (wClass === 'SNIPER') {
+            ctx.fillStyle = '#1e293b';
+            ctx.fillRect(pRadius * 0.4, -2.5, 16, 5);
+            ctx.fillStyle = '#22d3ee';
+            ctx.fillRect(pRadius * 0.4 + 14, -1.5, 6, 3);
+        } else {
+            ctx.fillStyle = '#1e293b';
+            ctx.fillRect(pRadius * 0.4, -3, 10, 6);
+            ctx.fillStyle = '#34d399';
+            ctx.fillRect(pRadius * 0.4 + 8, -2, 4, 4);
+        }
+
+        // 3. Remote player body
         ctx.beginPath();
-        ctx.arc(0, 0, rp.radius || 16, 0, Math.PI * 2);
-        ctx.fillStyle = rp.color || '#10b981';
+        ctx.arc(0, 0, pRadius, 0, Math.PI * 2);
+        ctx.fillStyle = mainColor;
         ctx.fill();
 
-        // 3. Remote player core
+        // 4. Remote player core
         ctx.beginPath();
-        ctx.arc(0, 0, (rp.radius || 16) * 0.5, 0, Math.PI * 2);
+        ctx.arc(0, 0, pRadius * 0.5, 0, Math.PI * 2);
         ctx.fillStyle = '#ffffff';
         ctx.fill();
 
-        // 4. Directional heading indicator
-        const pointerDist = (rp.radius || 16) + 4;
+        // 5. Directional heading indicator
+        const pointerDist = pRadius + 4;
         const pointerX = Math.cos(rp.heading || 0) * pointerDist;
         const pointerY = Math.sin(rp.heading || 0) * pointerDist;
 
@@ -1020,15 +1285,16 @@ function renderRemotePlayers() {
         ctx.fillStyle = '#ffffff';
         ctx.fill();
 
-        // 5. Floating Health & Shield Bar (Phase 8 & 11)
-        const barWidth = 34;
+        // 6. Floating Health & Shield Bar
+        const barWidth = 36;
         const barHeight = 4;
         const barX = -barWidth / 2;
-        const barY = -(rp.radius || 16) - 16;
-        const hp = rp.health !== undefined ? rp.health : 100;
-        const hpRatio = Math.max(0, Math.min(1, hp / 100));
+        const barY = -pRadius - 16;
+        const hp = rp.health !== undefined ? rp.health : classInfo.maxHp;
+        const maxHp = rp.maxHealth || classInfo.maxHp;
+        const hpRatio = Math.max(0, Math.min(1, hp / maxHp));
 
-        ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.65)';
         ctx.fillRect(barX, barY, barWidth, barHeight);
 
         ctx.fillStyle = hpRatio > 0.5 ? '#10b981' : (hpRatio > 0.25 ? '#f59e0b' : '#ef4444');
@@ -1040,14 +1306,14 @@ function renderRemotePlayers() {
 
         // Remote shield bar & aura
         if (rp.shield && rp.shield > 0) {
-            const shieldRatio = Math.max(0, Math.min(1, rp.shield / 50));
+            const maxShield = rp.maxShield || classInfo.maxShield;
+            const shieldRatio = Math.max(0, Math.min(1, rp.shield / maxShield));
             ctx.fillStyle = '#06b6d4';
             ctx.fillRect(barX, barY - 4, barWidth * shieldRatio, 2.5);
 
-            // Radiant cyan shield bubble
             const sPulse = Math.sin(performance.now() * 0.008) * 1.5;
             ctx.beginPath();
-            ctx.arc(0, 0, (rp.radius || 16) + 7 + sPulse, 0, Math.PI * 2);
+            ctx.arc(0, 0, pRadius + 7 + sPulse, 0, Math.PI * 2);
             ctx.strokeStyle = '#22d3ee';
             ctx.lineWidth = 2;
             ctx.shadowColor = '#06b6d4';
@@ -1058,15 +1324,15 @@ function renderRemotePlayers() {
             ctx.shadowBlur = 0;
         }
 
-        // 6. Remote player name & score tag
-        ctx.fillStyle = '#6ee7b7';
+        // 7. Remote player name & score tag with class badge
+        ctx.fillStyle = classInfo.accentColor;
         ctx.font = '600 11px Outfit, sans-serif';
         ctx.textAlign = 'center';
-        ctx.fillText(`${username} (${rp.score || 0})`, 0, -(rp.radius || 16) - 4);
+        ctx.fillText(`${username} [${wClass}] (${rp.score || 0})`, 0, -pRadius - 4);
 
-        // 7. Observer target reticle for tracked player (Phase 15)
+        // 8. Observer target reticle for tracked player (Phase 15)
         if (isSpectator && spectateTargetUsername === username) {
-            const r = (rp.radius || 16) + 12;
+            const r = pRadius + 12;
             ctx.save();
             ctx.strokeStyle = '#c084fc';
             ctx.lineWidth = 2.5;
@@ -1111,27 +1377,77 @@ function renderPlayer() {
         return;
     }
 
+    const currentClass = player.warriorClass || mySelectedClass || 'ASSAULT';
+    const classInfo = WARRIOR_CLASSES[currentClass] || WARRIOR_CLASSES.ASSAULT;
+    const pRadius = player.radius;
+
     // 1. Outer accent ring
     ctx.beginPath();
-    ctx.arc(0, 0, player.radius + 3, 0, Math.PI * 2);
-    ctx.strokeStyle = 'rgba(99, 102, 241, 0.35)';
+    ctx.arc(0, 0, pRadius + 3, 0, Math.PI * 2);
+    ctx.strokeStyle = classInfo.accentColor;
     ctx.lineWidth = 2;
     ctx.stroke();
 
-    // 2. Player body
+    // 2. Class-specific vector chassis styling
+    if (currentClass === 'JUGGERNAUT') {
+        ctx.fillStyle = '#334155';
+        ctx.fillRect(pRadius * 0.4, -7, 12, 4);
+        ctx.fillRect(pRadius * 0.4, 3, 12, 4);
+        ctx.beginPath();
+        for (let a = 0; a < 6; a++) {
+            const angle = (a * Math.PI) / 3;
+            const hx = Math.cos(angle) * (pRadius + 3.5);
+            const hy = Math.sin(angle) * (pRadius + 3.5);
+            if (a === 0) ctx.moveTo(hx, hy);
+            else ctx.lineTo(hx, hy);
+        }
+        ctx.closePath();
+        ctx.strokeStyle = 'rgba(245, 158, 11, 0.5)';
+        ctx.lineWidth = 2.5;
+        ctx.stroke();
+    } else if (currentClass === 'SCOUT') {
+        ctx.fillStyle = 'rgba(168, 85, 247, 0.45)';
+        ctx.beginPath();
+        ctx.moveTo(-4, -pRadius - 7);
+        ctx.lineTo(9, -pRadius + 2);
+        ctx.lineTo(-8, 0);
+        ctx.closePath();
+        ctx.fill();
+        ctx.beginPath();
+        ctx.moveTo(-4, pRadius + 7);
+        ctx.lineTo(9, pRadius - 2);
+        ctx.lineTo(-8, 0);
+        ctx.closePath();
+        ctx.fill();
+        ctx.fillStyle = '#e2e8f0';
+        ctx.fillRect(pRadius * 0.5, -3, 9, 2);
+        ctx.fillRect(pRadius * 0.5, 1, 9, 2);
+    } else if (currentClass === 'SNIPER') {
+        ctx.fillStyle = '#1e293b';
+        ctx.fillRect(pRadius * 0.4, -2.5, 17, 5);
+        ctx.fillStyle = '#22d3ee';
+        ctx.fillRect(pRadius * 0.4 + 15, -1.5, 6, 3);
+    } else {
+        ctx.fillStyle = '#1e293b';
+        ctx.fillRect(pRadius * 0.4, -3, 11, 6);
+        ctx.fillStyle = '#34d399';
+        ctx.fillRect(pRadius * 0.4 + 9, -2, 4, 4);
+    }
+
+    // 3. Player body
     ctx.beginPath();
-    ctx.arc(0, 0, player.radius, 0, Math.PI * 2);
-    ctx.fillStyle = player.color;
+    ctx.arc(0, 0, pRadius, 0, Math.PI * 2);
+    ctx.fillStyle = classInfo.color;
     ctx.fill();
 
-    // 3. Inner core
+    // 4. Inner core
     ctx.beginPath();
-    ctx.arc(0, 0, player.radius * 0.5, 0, Math.PI * 2);
-    ctx.fillStyle = player.accentColor;
+    ctx.arc(0, 0, pRadius * 0.5, 0, Math.PI * 2);
+    ctx.fillStyle = '#ffffff';
     ctx.fill();
 
-    // 4. Directional heading indicator (vector pointer)
-    const pointerDist = player.radius + 4;
+    // 5. Directional heading indicator (vector pointer)
+    const pointerDist = pRadius + 4;
     const pointerX = Math.cos(player.heading) * pointerDist;
     const pointerY = Math.sin(player.heading) * pointerDist;
 
@@ -1140,14 +1456,15 @@ function renderPlayer() {
     ctx.fillStyle = '#ffffff';
     ctx.fill();
 
-    // 5. Floating Health Bar (Phase 8) & Shield Bar (Phase 11)
-    const barWidth = 34;
+    // 6. Floating Health Bar & Shield Bar
+    const barWidth = 36;
     const barHeight = 4;
     const barX = -barWidth / 2;
-    const barY = -player.radius - 16;
-    const hpRatio = Math.max(0, Math.min(1, player.health / player.maxHealth));
+    const barY = -pRadius - 16;
+    const maxHp = player.maxHealth || classInfo.maxHp;
+    const hpRatio = Math.max(0, Math.min(1, player.health / maxHp));
 
-    ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.65)';
     ctx.fillRect(barX, barY, barWidth, barHeight);
 
     ctx.fillStyle = hpRatio > 0.5 ? '#10b981' : (hpRatio > 0.25 ? '#f59e0b' : '#ef4444');
@@ -1157,15 +1474,16 @@ function renderPlayer() {
     ctx.lineWidth = 0.5;
     ctx.strokeRect(barX, barY, barWidth, barHeight);
 
-    // Active Energy Shield Bubble & Floating Shield Bar (Phase 11)
+    // Active Energy Shield Bubble & Floating Shield Bar
     if (player.shield > 0) {
-        const shieldRatio = Math.max(0, Math.min(1, player.shield / player.maxShield));
+        const maxShield = player.maxShield || classInfo.maxShield;
+        const shieldRatio = Math.max(0, Math.min(1, player.shield / maxShield));
         ctx.fillStyle = '#06b6d4';
         ctx.fillRect(barX, barY - 4, barWidth * shieldRatio, 2.5);
 
         const shieldPulse = Math.sin(performance.now() * 0.008) * 1.5;
         ctx.beginPath();
-        ctx.arc(0, 0, player.radius + 7 + shieldPulse, 0, Math.PI * 2);
+        ctx.arc(0, 0, pRadius + 7 + shieldPulse, 0, Math.PI * 2);
         ctx.strokeStyle = '#22d3ee';
         ctx.lineWidth = 2.5;
         ctx.shadowColor = '#06b6d4';
@@ -1176,11 +1494,11 @@ function renderPlayer() {
         ctx.shadowBlur = 0;
     }
 
-    // 6. Name & score tag
-    ctx.fillStyle = '#e2e8f0';
+    // 7. Name & score tag with class badge
+    ctx.fillStyle = classInfo.accentColor;
     ctx.font = '600 11px Outfit, sans-serif';
     ctx.textAlign = 'center';
-    ctx.fillText(`${player.name} (${myScore})`, 0, -player.radius - 4);
+    ctx.fillText(`${player.name} [${currentClass}] (${myScore})`, 0, -pRadius - 4);
 
     ctx.restore();
 }
@@ -1601,12 +1919,20 @@ function handleWebSocketMessage(msg) {
             if (msg.username !== player.name) {
                 let rp = remotePlayers.get(msg.username);
                 if (!rp) {
+                    const rpClass = msg.warriorClass || 'ASSAULT';
+                    const rpMeta = WARRIOR_CLASSES[rpClass] || WARRIOR_CLASSES.ASSAULT;
                     rp = {
+                        username: msg.username,
                         x: msg.x,
                         y: msg.y,
                         heading: msg.heading,
-                        color: '#10b981',
+                        color: msg.color || rpMeta.color,
+                        warriorClass: rpClass,
                         radius: 16,
+                        health: rpMeta.maxHp,
+                        maxHealth: rpMeta.maxHp,
+                        shield: 0,
+                        maxShield: rpMeta.maxShield,
                         score: 0
                     };
                     remotePlayers.set(msg.username, rp);
@@ -1614,6 +1940,13 @@ function handleWebSocketMessage(msg) {
                     rp.x = msg.x;
                     rp.y = msg.y;
                     rp.heading = msg.heading;
+                    if (msg.warriorClass && msg.warriorClass !== rp.warriorClass) {
+                        rp.warriorClass = msg.warriorClass;
+                        const rpMeta = WARRIOR_CLASSES[msg.warriorClass] || WARRIOR_CLASSES.ASSAULT;
+                        rp.maxHealth = rpMeta.maxHp;
+                        rp.maxShield = rpMeta.maxShield;
+                        rp.color = rpMeta.color;
+                    }
                 }
             }
             break;
@@ -1664,8 +1997,13 @@ function handleWebSocketMessage(msg) {
                 hudScore.textContent = '0';
                 player.kills = 0;
                 player.deaths = 0;
-                player.health = 100;
+                const cName = player.warriorClass || mySelectedClass || 'ASSAULT';
+                const cInfo = WARRIOR_CLASSES[cName] || WARRIOR_CLASSES.ASSAULT;
+                player.health = cInfo.maxHp;
+                player.maxHealth = cInfo.maxHp;
                 player.shield = 0;
+                player.maxShield = cInfo.maxShield;
+                player.speed = cInfo.speed;
                 player.speedBoostUntil = 0;
                 player.spreadShotUntil = 0;
                 player.alive = true;
@@ -1708,7 +2046,14 @@ function handleWebSocketMessage(msg) {
                         player.x = p.x;
                         player.y = p.y;
                         player.color = p.color;
-                        player.health = p.health !== undefined ? p.health : 100;
+                        if (p.warriorClass) {
+                            player.warriorClass = p.warriorClass;
+                            const cInfo = WARRIOR_CLASSES[p.warriorClass] || WARRIOR_CLASSES.ASSAULT;
+                            player.maxHealth = p.maxHealth || cInfo.maxHp;
+                            player.maxShield = p.maxShield || cInfo.maxShield;
+                            player.speed = cInfo.speed;
+                        }
+                        player.health = p.health !== undefined ? p.health : (player.maxHealth || 100);
                         player.shield = p.shield !== undefined ? p.shield : 0;
                         player.speedBoostUntil = p.speedBoostUntil || 0;
                         player.spreadShotUntil = p.spreadShotUntil || 0;
@@ -1721,15 +2066,21 @@ function handleWebSocketMessage(msg) {
                         }
                         updateHudHealth();
                     } else {
+                        const rpClass = p.warriorClass || 'ASSAULT';
+                        const rpMeta = WARRIOR_CLASSES[rpClass] || WARRIOR_CLASSES.ASSAULT;
                         remotePlayers.set(p.username, {
+                            username: p.username,
                             x: p.x,
                             y: p.y,
                             heading: p.heading || 0,
-                            color: p.color,
-                            radius: 16,
+                            color: p.color || rpMeta.color,
+                            warriorClass: rpClass,
+                            radius: p.radius || 16,
                             score: p.score || 0,
-                            health: p.health !== undefined ? p.health : 100,
+                            health: p.health !== undefined ? p.health : rpMeta.maxHp,
+                            maxHealth: p.maxHealth || rpMeta.maxHp,
                             shield: p.shield !== undefined ? p.shield : 0,
+                            maxShield: p.maxShield || rpMeta.maxShield,
                             speedBoostUntil: p.speedBoostUntil || 0,
                             spreadShotUntil: p.spreadShotUntil || 0,
                             alive: p.alive !== undefined ? p.alive : true,
@@ -1834,7 +2185,8 @@ function handleWebSocketMessage(msg) {
         }
         case 'PROJECTILE_SPAWNED':
             if (msg.shooter !== player.name) {
-                soundEngine.playLaser();
+                const shooterClass = remotePlayers.get(msg.shooter)?.warriorClass || 'ASSAULT';
+                soundEngine.playLaser(false, shooterClass);
             }
             projectiles.set(msg.id, {
                 id: msg.id,
@@ -1846,7 +2198,7 @@ function handleWebSocketMessage(msg) {
                 heading: msg.heading,
                 speed: msg.speed,
                 damage: msg.damage,
-                radius: 5,
+                radius: msg.radius || 5,
                 clientCreatedAt: performance.now()
             });
             break;
@@ -1932,7 +2284,8 @@ function handleWebSocketMessage(msg) {
             if (msg.username === player.name) {
                 player.x = msg.x;
                 player.y = msg.y;
-                player.health = msg.health || 100;
+                player.health = msg.health !== undefined ? msg.health : player.maxHealth;
+                player.shield = 0;
                 player.alive = true;
                 clearRespawnCountdown();
                 updateHudHealth();
@@ -1942,7 +2295,8 @@ function handleWebSocketMessage(msg) {
                 if (rp) {
                     rp.x = msg.x;
                     rp.y = msg.y;
-                    rp.health = msg.health || 100;
+                    rp.health = msg.health !== undefined ? msg.health : (rp.maxHealth || 100);
+                    rp.shield = 0;
                     rp.alive = true;
                     addFloatingText('RESPAWNED!', rp.x, rp.y, '#10b981');
                 }
@@ -2059,17 +2413,30 @@ function addKillFeedMessage(killer, victim) {
     }, 4500);
 }
 
+const hudMaxHp = document.getElementById('hudMaxHp');
+
 function updateHudHealth() {
     if (!hudHp || !hudKd) return;
+    const maxHp = player.maxHealth || 100;
     hudHp.textContent = player.health;
-    if (player.health <= 25) {
+    if (hudMaxHp) hudMaxHp.textContent = maxHp;
+
+    const hpRatio = player.health / maxHp;
+    if (hpRatio <= 0.25) {
         hudHp.className = 'low-hp';
-    } else if (player.health <= 50) {
+    } else if (hpRatio <= 0.5) {
         hudHp.className = 'mid-hp';
     } else {
         hudHp.className = '';
     }
     hudKd.textContent = `${player.kills} / ${player.deaths}`;
+
+    if (hudClass) {
+        const cName = player.warriorClass || mySelectedClass || 'ASSAULT';
+        const cInfo = WARRIOR_CLASSES[cName] || WARRIOR_CLASSES.ASSAULT;
+        hudClass.textContent = `${cInfo.icon} ${cInfo.name}`;
+        hudClass.title = cInfo.weaponName;
+    }
 }
 
 function startRespawnCountdown(durationMs) {
@@ -2326,12 +2693,19 @@ function renderActiveRoom(room) {
             if (p.isHost) isMyUserHost = true;
             if (p.isReady) myUserReady = true;
             if (p.spectator) amISpectator = true;
+            if (p.warriorClass && p.warriorClass !== mySelectedClass) {
+                selectWarriorClass(p.warriorClass, false);
+            }
         }
 
         const chip = document.createElement('div');
         chip.className = `player-chip ${p.isHost ? 'is-host' : ''} ${p.spectator ? 'spectator' : ''}`;
+        const pClass = p.warriorClass || 'ASSAULT';
+        const classMeta = WARRIOR_CLASSES[pClass] || WARRIOR_CLASSES.ASSAULT;
+        const classBadgeHtml = p.spectator ? '' : `<span class="class-badge class-${pClass.toLowerCase()}">${classMeta.icon} ${pClass}</span>`;
         chip.innerHTML = `
             <span class="player-chip-name">${p.isHost ? '👑 ' : (p.spectator ? '👁️ ' : '')}${escapeHtml(p.username)}</span>
+            ${classBadgeHtml}
             <span class="player-status-tag ${p.spectator ? 'spectator-tag' : (p.isReady ? 'ready' : 'waiting')}">
                 ${p.spectator ? 'Spectator' : (p.isHost ? 'Host' : p.isReady ? '✓ Ready' : '⏳ Waiting')}
             </span>
@@ -2341,6 +2715,11 @@ function renderActiveRoom(room) {
 
     if (amISpectator) {
         isSpectator = true;
+    }
+
+    // Toggle Class Selection Container (visible in lobby for non-spectators)
+    if (classSelectContainer) {
+        classSelectContainer.style.display = (isSpectator || isPlaying) ? 'none' : 'block';
     }
 
     if (isSpectator) {
@@ -2523,6 +2902,17 @@ function setupRoomEventListeners() {
     leaveRoomBtn.addEventListener('click', leaveRoom);
     readyBtn.addEventListener('click', toggleReady);
     startGameBtn.addEventListener('click', startGame);
+
+    if (classCardsGrid) {
+        classCardsGrid.querySelectorAll('.class-card').forEach(card => {
+            card.addEventListener('click', () => {
+                const chosenClass = card.getAttribute('data-class');
+                if (chosenClass) {
+                    selectWarriorClass(chosenClass, true);
+                }
+            });
+        });
+    }
 }
 
 function setupAuthEventListeners() {
