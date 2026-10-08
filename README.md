@@ -1,5 +1,7 @@
 # Cyber Battle Arena
 
+[![Play Game](https://img.shields.io/badge/🎮%20Play%20Game-Local%20Live%20Server-00f2fe?style=for-the-badge&logo=googlechrome&logoColor=white)](http://localhost:8080)
+[![GitHub Pages Demo](https://img.shields.io/badge/🌐%20Web%20Client-GitHub%20Pages%20Demo-8b5cf6?style=for-the-badge&logo=github&logoColor=white)](https://manojhegde77.github.io/BattleArena/)
 [![GitHub Repo](https://img.shields.io/badge/GitHub-Repository-181717?style=for-the-badge&logo=github&logoColor=white)](https://github.com/MANOJHEGDE77/BattleArena)
 [![Java 21](https://img.shields.io/badge/Java-21-ED8B00?style=for-the-badge&logo=openjdk&logoColor=white)](https://github.com/MANOJHEGDE77/BattleArena)
 [![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.2.5-6DB33F?style=for-the-badge&logo=springboot&logoColor=white)](https://github.com/MANOJHEGDE77/BattleArena)
@@ -7,7 +9,20 @@
 [![MySQL 8](https://img.shields.io/badge/MySQL-8.0-4479A1?style=for-the-badge&logo=mysql&logoColor=white)](https://github.com/MANOJHEGDE77/BattleArena)
 [![WebSockets](https://img.shields.io/badge/Networking-WebSockets%20(WSS)-00f2fe?style=for-the-badge)](https://github.com/MANOJHEGDE77/BattleArena)
 
-> **Repository URL:** [https://github.com/MANOJHEGDE77/BattleArena](https://github.com/MANOJHEGDE77/BattleArena)
+---
+
+## 🎮 Play & Live Access Links
+
+| Environment | Direct Access Link | Details |
+|---|---|---|
+| 🕹️ **Local Playable Game** | [**http://localhost:8080**](http://localhost:8080) | **Full Production Game:** Real-time multiplayer, WebSockets, dynamic procedural Web Audio synth, warrior classes, bot combatants, leaderboard & killcam. |
+| 🌐 **GitHub Pages Web Demo** | [**https://manojhegde77.github.io/BattleArena/**](https://manojhegde77.github.io/BattleArena/) | **Client UI & Sound Preview:** Instant browser preview of the cockpit HUD, warrior class loadouts, audio synthesizer, and arena interface. |
+| 🩺 **Backend Health API** | [**http://localhost:8080/api/health**](http://localhost:8080/api/health) | Backend health diagnostic and real-time game status endpoint. |
+| 📁 **GitHub Repository** | [**https://github.com/MANOJHEGDE77/BattleArena**](https://github.com/MANOJHEGDE77/BattleArena) | Source repository, commit logs, issue tracker, and project documentation. |
+
+> 💡 **Quick Launch:** To play locally right now, run `mvn spring-boot:run` in terminal and navigate to [**http://localhost:8080**](http://localhost:8080).
+
+---
 
 A real-time, server-authoritative multiplayer 2D arena shooter built using Java 21, Spring Boot, WebSockets, MySQL, HTML5 Canvas, and the Web Audio API.
 
