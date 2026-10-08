@@ -8,16 +8,24 @@
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='46' fill='%230f172a' stroke='%2306b6d4' stroke-width='4'/%3E%3Ccircle cx='50' cy='50' r='26' fill='none' stroke='%238b5cf6' stroke-width='3' stroke-dasharray='4 2'/%3E%3Ccircle cx='50' cy='50' r='8' fill='%23ef4444'/%3E%3Cline x1='50' y1='10' x2='50' y2='30' stroke='%2306b6d4' stroke-width='4'/%3E%3Cline x1='50' y1='70' x2='50' y2='90' stroke='%2306b6d4' stroke-width='4'/%3E%3Cline x1='10' y1='50' x2='30' y2='50' stroke='%2306b6d4' stroke-width='4'/%3E%3Cline x1='70' y1='50' x2='90' y2='50' stroke='%2306b6d4' stroke-width='4'/%3E%3C/svg%3E">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;600;700;800;900&family=Outfit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
 </head>
 <body>
     <div class="app-container">
         <header class="app-header">
             <div class="logo">
                 <span class="icon">⚔️</span>
-                <h1>Battle Arena</h1>
+                <div class="logo-text">
+                    <h1>CYBER ARENA</h1>
+                    <span class="logo-sub">AUTHORITATIVE REAL-TIME SHOOTER</span>
+                </div>
             </div>
             <div class="header-right">
+                <a href="https://github.com/MANOJHEGDE77/BattleArena" target="_blank" rel="noopener noreferrer" class="btn-github" id="githubRepoLink" title="View Source on GitHub">
+                    <svg height="15" width="15" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+                    <span>GitHub</span>
+                    <span class="gh-star-badge">★</span>
+                </a>
                 <button class="btn-intel" id="openIntelBtn" title="Controls & Tactical Intel [H]">❓ Guide [H]</button>
                 <button class="btn-settings" id="openSettingsBtn" title="Audio & Match Settings">⚙️ Settings</button>
                 <button class="btn-sound-toggle" id="soundToggleBtn" title="Toggle Audio Synthesizer [M]">🔊 Sound: ON</button>
@@ -85,8 +93,19 @@
                                 <div class="class-card-body">
                                     <div class="class-card-name">ASSAULT</div>
                                     <div class="class-card-desc">Balanced Vanguard</div>
-                                    <div class="class-stat-row"><span>HP: 100</span><span>SPD: 240</span></div>
-                                    <div class="class-weapon-tag">Pulse Blaster (20 DMG)</div>
+                                    <div class="class-stat-bars">
+                                        <div class="class-stat-bar-item">
+                                            <span class="stat-name">HP</span>
+                                            <div class="stat-meter"><div class="stat-fill hp-fill-meter" style="width: 66%;"></div></div>
+                                            <span class="stat-val">100</span>
+                                        </div>
+                                        <div class="class-stat-bar-item">
+                                            <span class="stat-name">SPD</span>
+                                            <div class="stat-meter"><div class="stat-fill spd-fill-meter" style="width: 82%;"></div></div>
+                                            <span class="stat-val">240</span>
+                                        </div>
+                                    </div>
+                                    <div class="class-weapon-tag">⚡ Pulse Blaster (20 DMG)</div>
                                 </div>
                             </div>
                             <div class="class-card" data-class="JUGGERNAUT">
@@ -94,8 +113,19 @@
                                 <div class="class-card-body">
                                     <div class="class-card-name">JUGGERNAUT</div>
                                     <div class="class-card-desc">Heavy Armored Titan</div>
-                                    <div class="class-stat-row"><span>HP: 150</span><span>SPD: 195</span></div>
-                                    <div class="class-weapon-tag">Plasma Cannon (35 DMG)</div>
+                                    <div class="class-stat-bars">
+                                        <div class="class-stat-bar-item">
+                                            <span class="stat-name">HP</span>
+                                            <div class="stat-meter"><div class="stat-fill hp-fill-meter" style="width: 100%;"></div></div>
+                                            <span class="stat-val">150</span>
+                                        </div>
+                                        <div class="class-stat-bar-item">
+                                            <span class="stat-name">SPD</span>
+                                            <div class="stat-meter"><div class="stat-fill spd-fill-meter" style="width: 67%;"></div></div>
+                                            <span class="stat-val">195</span>
+                                        </div>
+                                    </div>
+                                    <div class="class-weapon-tag">💥 Plasma Cannon (35 DMG)</div>
                                 </div>
                             </div>
                             <div class="class-card" data-class="SCOUT">
@@ -103,8 +133,19 @@
                                 <div class="class-card-body">
                                     <div class="class-card-name">SCOUT</div>
                                     <div class="class-card-desc">Agile Skirmisher</div>
-                                    <div class="class-stat-row"><span>HP: 75</span><span>SPD: 290</span></div>
-                                    <div class="class-weapon-tag">Twin Needles (14 DMG)</div>
+                                    <div class="class-stat-bars">
+                                        <div class="class-stat-bar-item">
+                                            <span class="stat-name">HP</span>
+                                            <div class="stat-meter"><div class="stat-fill hp-fill-meter" style="width: 50%;"></div></div>
+                                            <span class="stat-val">75</span>
+                                        </div>
+                                        <div class="class-stat-bar-item">
+                                            <span class="stat-name">SPD</span>
+                                            <div class="stat-meter"><div class="stat-fill spd-fill-meter" style="width: 100%;"></div></div>
+                                            <span class="stat-val">290</span>
+                                        </div>
+                                    </div>
+                                    <div class="class-weapon-tag">✦ Twin Needles (14 DMG)</div>
                                 </div>
                             </div>
                             <div class="class-card" data-class="SNIPER">
@@ -112,8 +153,19 @@
                                 <div class="class-card-body">
                                     <div class="class-card-name">SNIPER</div>
                                     <div class="class-card-desc">Precision Marksman</div>
-                                    <div class="class-stat-row"><span>HP: 85</span><span>SPD: 220</span></div>
-                                    <div class="class-weapon-tag">Hyper Railgun (45 DMG)</div>
+                                    <div class="class-stat-bars">
+                                        <div class="class-stat-bar-item">
+                                            <span class="stat-name">HP</span>
+                                            <div class="stat-meter"><div class="stat-fill hp-fill-meter" style="width: 56%;"></div></div>
+                                            <span class="stat-val">85</span>
+                                        </div>
+                                        <div class="class-stat-bar-item">
+                                            <span class="stat-name">SPD</span>
+                                            <div class="stat-meter"><div class="stat-fill spd-fill-meter" style="width: 75%;"></div></div>
+                                            <span class="stat-val">220</span>
+                                        </div>
+                                    </div>
+                                    <div class="class-weapon-tag">🔭 Hyper Railgun (45 DMG)</div>
                                 </div>
                             </div>
                         </div>
@@ -131,17 +183,64 @@
             </section>
 
             <div class="hud-bar">
-                <div class="hud-item"><span class="hud-label">PLAYER:</span> <span id="hudPlayer">Guest</span></div>
-                <div class="hud-item hud-class"><span class="hud-label">CLASS:</span> <span id="hudClass">ASSAULT</span></div>
-                <div class="hud-item hud-hp"><span class="hud-label">HP:</span> <span id="hudHp">100</span> / <span id="hudMaxHp">100</span></div>
-                <div class="hud-item hud-timer"><span class="hud-label">TIME:</span> <span id="hudTimer">02:00</span></div>
-                <div class="hud-item hud-score"><span class="hud-label">SCORE:</span> <span id="hudScore">0</span> / <span id="hudTarget">100</span></div>
-                <div class="hud-item"><span class="hud-label">K / D:</span> <span id="hudKd">0 / 0</span></div>
-                <div class="hud-item"><span class="hud-label">ROOM:</span> <span id="hudRoom">None (Lobby)</span></div>
-                <div class="hud-item"><span class="hud-label">POS:</span> <span id="hudPos">X: 0, Y: 0</span></div>
-                <div class="hud-item"><span class="hud-label">FPS:</span> <span id="hudFps">60</span></div>
-                <div class="hud-item hud-ping"><span class="hud-label">PING:</span> <span id="hudPing">-- ms</span></div>
-                <div class="hud-item"><span class="hud-label">STATUS:</span> <span id="hudState">Phase 20: 100% Production Release</span></div>
+                <div class="hud-item hud-pilot-item">
+                    <span class="hud-label">PILOT</span>
+                    <span id="hudPlayer" class="hud-val-bold">Guest</span>
+                </div>
+                <div class="hud-item hud-class-item">
+                    <span class="hud-label">CLASS</span>
+                    <span id="hudClass" class="hud-val-class">ASSAULT</span>
+                </div>
+                <div class="hud-item hud-vitals-item">
+                    <div class="hud-vital-row">
+                        <span class="hud-label-mini">HP</span>
+                        <div class="hud-bar-track hp-track">
+                            <div class="hud-bar-fill hp-fill" id="hudHpFill" style="width: 100%;"></div>
+                        </div>
+                        <span class="hud-num"><span id="hudHp">100</span>/<span id="hudMaxHp">100</span></span>
+                    </div>
+                    <div class="hud-vital-row shield-row">
+                        <span class="hud-label-mini">SHD</span>
+                        <div class="hud-bar-track shield-track">
+                            <div class="hud-bar-fill shield-fill" id="hudShieldFill" style="width: 0%;"></div>
+                        </div>
+                        <span class="hud-num"><span id="hudShield">0</span></span>
+                    </div>
+                </div>
+                <div class="hud-item hud-timer-item">
+                    <span class="hud-label">TIMER</span>
+                    <span id="hudTimer" class="hud-timer-num">02:00</span>
+                </div>
+                <div class="hud-item hud-score-item">
+                    <div class="hud-score-top">
+                        <span class="hud-label-mini">SCORE</span>
+                        <span class="hud-num"><span id="hudScore">0</span> / <span id="hudTarget">100</span></span>
+                    </div>
+                    <div class="hud-bar-track score-track">
+                        <div class="hud-bar-fill score-fill" id="hudScoreFill" style="width: 0%;"></div>
+                    </div>
+                </div>
+                <div class="hud-item hud-kd-item">
+                    <span class="hud-label">K / D</span>
+                    <span id="hudKd" class="hud-kd-val">0 / 0</span>
+                </div>
+                <div class="hud-item hud-room-item">
+                    <span class="hud-label">ARENA</span>
+                    <span id="hudRoom" class="hud-room-val">None (Lobby)</span>
+                </div>
+                <div class="hud-item hud-pos-item">
+                    <span class="hud-label">GRID</span>
+                    <span id="hudPos">X: 0, Y: 0</span>
+                </div>
+                <div class="hud-item hud-perf-item">
+                    <span id="hudFps">60 FPS</span>
+                    <span class="hud-perf-sep">|</span>
+                    <span id="hudPing" class="hud-ping-val">-- ms</span>
+                </div>
+                <div class="hud-item hud-status-item">
+                    <span class="status-live-dot"></span>
+                    <span id="hudState">Combat Ready</span>
+                </div>
                 <button type="button" class="hud-emote-trigger-btn" id="hudEmoteTriggerBtn" title="Press T or Click for Callout Wheel">💬 Callouts [T]</button>
             </div>
 

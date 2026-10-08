@@ -1,5 +1,14 @@
 # Cyber Battle Arena
 
+[![GitHub Repo](https://img.shields.io/badge/GitHub-Repository-181717?style=for-the-badge&logo=github&logoColor=white)](https://github.com/MANOJHEGDE77/BattleArena)
+[![Java 21](https://img.shields.io/badge/Java-21-ED8B00?style=for-the-badge&logo=openjdk&logoColor=white)](https://github.com/MANOJHEGDE77/BattleArena)
+[![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.2.5-6DB33F?style=for-the-badge&logo=springboot&logoColor=white)](https://github.com/MANOJHEGDE77/BattleArena)
+[![Docker](https://img.shields.io/badge/Docker-Ready-2496ED?style=for-the-badge&logo=docker&logoColor=white)](https://github.com/MANOJHEGDE77/BattleArena)
+[![MySQL 8](https://img.shields.io/badge/MySQL-8.0-4479A1?style=for-the-badge&logo=mysql&logoColor=white)](https://github.com/MANOJHEGDE77/BattleArena)
+[![WebSockets](https://img.shields.io/badge/Networking-WebSockets%20(WSS)-00f2fe?style=for-the-badge)](https://github.com/MANOJHEGDE77/BattleArena)
+
+> **Repository URL:** [https://github.com/MANOJHEGDE77/BattleArena](https://github.com/MANOJHEGDE77/BattleArena)
+
 A real-time, server-authoritative multiplayer 2D arena shooter built using Java 21, Spring Boot, WebSockets, MySQL, HTML5 Canvas, and the Web Audio API.
 
 Cyber Battle Arena is designed as a lightweight monolithic multiplayer application. The server manages authoritative game state, player movement, combat, projectiles, collisions, hazards, power-ups, and match events, while the browser client handles rendering, user input, interface components, and procedural audio.
@@ -637,8 +646,8 @@ node --version
 ### 1. Clone the Repository
 
 ```bash
-git clone <YOUR_REPOSITORY_URL>
-cd cyber-battle-arena
+git clone https://github.com/MANOJHEGDE77/BattleArena.git
+cd BattleArena
 ```
 
 ### 2. Create the Database

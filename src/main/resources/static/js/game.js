@@ -1039,13 +1039,29 @@ window.addEventListener('keyup', (e) => {
     activeKeys.delete(e.key.toLowerCase());
 });
 
+let lastAimX = null;
+let lastAimY = null;
+
+// Canvas pointer tracking for real-time mouse-aim swivel
+canvas.addEventListener('pointermove', (e) => {
+    if (isGameOver || !player.alive || isSpectator) return;
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+    lastAimX = (e.clientX - rect.left) * scaleX;
+    lastAimY = (e.clientY - rect.top) * scaleY;
+    player.heading = Math.atan2(lastAimY - player.y, lastAimX - player.x);
+});
+
 // Canvas pointer down for directional mouse-aim firing
 canvas.addEventListener('pointerdown', (e) => {
     if (isGameOver || !player.alive || isSpectator) return;
     const rect = canvas.getBoundingClientRect();
-    const clickX = e.clientX - rect.left;
-    const clickY = e.clientY - rect.top;
-    const heading = Math.atan2(clickY - player.y, clickX - player.x);
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+    lastAimX = (e.clientX - rect.left) * scaleX;
+    lastAimY = (e.clientY - rect.top) * scaleY;
+    const heading = Math.atan2(lastAimY - player.y, lastAimX - player.x);
     player.heading = heading;
     fireBlaster(heading);
 });
@@ -1194,8 +1210,12 @@ function updatePhysics(dt) {
         moveX /= length;
         moveY /= length;
 
-        // Update player heading angle based on movement direction
-        player.heading = Math.atan2(moveY, moveX);
+        // Update player heading angle based on mouse aim or movement direction
+        if (lastAimX !== null && lastAimY !== null) {
+            player.heading = Math.atan2(lastAimY - player.y, lastAimX - player.x);
+        } else {
+            player.heading = Math.atan2(moveY, moveX);
+        }
 
         // Apply frame-rate independent displacement with speed boost buff support
         const nowMs = Date.now();
@@ -1265,12 +1285,12 @@ function broadcastPlayerMovement() {
 
 // --- Vector Rendering Engine (0 Images, Pure Canvas Geometry) ---
 function renderArena() {
-    // 1. Clear background
-    ctx.fillStyle = '#131722';
+    // 1. Clear background with deep cyber hue
+    ctx.fillStyle = '#0a0e1a';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    // 2. Draw low-overhead grid
-    ctx.strokeStyle = 'rgba(255, 255, 255, 0.03)';
+    // 2. High-tech cyber neon grid
+    ctx.strokeStyle = 'rgba(56, 189, 248, 0.06)';
     ctx.lineWidth = 1;
     const gridSize = 40;
 
@@ -1285,10 +1305,41 @@ function renderArena() {
     }
     ctx.stroke();
 
-    // 3. Draw arena boundary walls
-    ctx.strokeStyle = '#4338ca';
-    ctx.lineWidth = 4;
+    // 3. Center arena tactical radar rings
+    const cx = canvas.width / 2;
+    const cy = canvas.height / 2;
+    ctx.save();
+    ctx.strokeStyle = 'rgba(168, 85, 247, 0.08)';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.arc(cx, cy, 140, 0, Math.PI * 2);
+    ctx.arc(cx, cy, 50, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.restore();
+
+    // 4. Glowing electric arena boundary walls
+    ctx.save();
+    ctx.strokeStyle = 'rgba(56, 189, 248, 0.7)';
+    ctx.lineWidth = 3;
+    ctx.shadowColor = 'rgba(56, 189, 248, 0.5)';
+    ctx.shadowBlur = 8;
     ctx.strokeRect(2, 2, canvas.width - 4, canvas.height - 4);
+
+    // 5. Corner tactical bracket accents
+    const cLen = 22;
+    ctx.strokeStyle = '#38bdf8';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    // Top-left
+    ctx.moveTo(2, 2 + cLen); ctx.lineTo(2, 2); ctx.lineTo(2 + cLen, 2);
+    // Top-right
+    ctx.moveTo(canvas.width - 2 - cLen, 2); ctx.lineTo(canvas.width - 2, 2); ctx.lineTo(canvas.width - 2, 2 + cLen);
+    // Bottom-left
+    ctx.moveTo(2, canvas.height - 2 - cLen); ctx.lineTo(2, canvas.height - 2); ctx.lineTo(2 + cLen, canvas.height - 2);
+    // Bottom-right
+    ctx.moveTo(canvas.width - 2 - cLen, canvas.height - 2); ctx.lineTo(canvas.width - 2, canvas.height - 2); ctx.lineTo(canvas.width - 2, canvas.height - 2 - cLen);
+    ctx.stroke();
+    ctx.restore();
 }
 
 // Phase 12: Battle Royale Safe Zone & Storm Perimeter Visuals
@@ -2326,6 +2377,25 @@ function renderPlayer() {
     ctx.arc(pointerX, pointerY, 3.5, 0, Math.PI * 2);
     ctx.fillStyle = '#ffffff';
     ctx.fill();
+
+    // 5b. Directional Tactical Laser Aiming Beam
+    ctx.save();
+    ctx.strokeStyle = classInfo.accentColor || 'rgba(56, 189, 248, 0.45)';
+    ctx.lineWidth = 1;
+    ctx.setLineDash([3, 5]);
+    ctx.beginPath();
+    ctx.moveTo(pointerX, pointerY);
+    const laserLength = 75;
+    const laserEndX = Math.cos(player.heading) * (pointerDist + laserLength);
+    const laserEndY = Math.sin(player.heading) * (pointerDist + laserLength);
+    ctx.lineTo(laserEndX, laserEndY);
+    ctx.stroke();
+
+    ctx.beginPath();
+    ctx.arc(laserEndX, laserEndY, 2, 0, Math.PI * 2);
+    ctx.fillStyle = classInfo.accentColor || '#38bdf8';
+    ctx.fill();
+    ctx.restore();
 
     // 6. Floating Health Bar & Shield Bar
     const barWidth = 36;
@@ -3407,6 +3477,10 @@ function addKillFeedMessage(killer, victim) {
 }
 
 const hudMaxHp = document.getElementById('hudMaxHp');
+const hudHpFill = document.getElementById('hudHpFill');
+const hudShieldFill = document.getElementById('hudShieldFill');
+const hudShield = document.getElementById('hudShield');
+const hudScoreFill = document.getElementById('hudScoreFill');
 
 function updateHudHealth() {
     if (!hudHp || !hudKd) return;
@@ -3414,7 +3488,25 @@ function updateHudHealth() {
     hudHp.textContent = player.health;
     if (hudMaxHp) hudMaxHp.textContent = maxHp;
 
-    const hpRatio = player.health / maxHp;
+    const hpRatio = Math.max(0, Math.min(1, player.health / maxHp));
+    const hpPct = Math.round(hpRatio * 100);
+    if (hudHpFill) {
+        hudHpFill.style.width = `${hpPct}%`;
+        if (hpRatio <= 0.25) {
+            hudHpFill.classList.add('critical');
+        } else {
+            hudHpFill.classList.remove('critical');
+        }
+    }
+
+    if (hudShield && hudShieldFill) {
+        const shieldVal = player.shield || 0;
+        const maxShield = player.maxShield || 50;
+        hudShield.textContent = shieldVal;
+        const shieldPct = Math.min(100, Math.max(0, Math.round((shieldVal / maxShield) * 100)));
+        hudShieldFill.style.width = `${shieldPct}%`;
+    }
+
     if (hpRatio <= 0.25) {
         hudHp.className = 'low-hp';
     } else if (hpRatio <= 0.5) {
@@ -3429,6 +3521,13 @@ function updateHudHealth() {
         const cInfo = WARRIOR_CLASSES[cName] || WARRIOR_CLASSES.ASSAULT;
         hudClass.textContent = `${cInfo.icon} ${cInfo.name}`;
         hudClass.title = cInfo.weaponName;
+    }
+
+    if (hudScoreFill && hudScore && hudTarget) {
+        const currentScore = parseInt(hudScore.textContent, 10) || myScore || player.score || 0;
+        const targetScore = parseInt(hudTarget.textContent, 10) || 100;
+        const scorePct = Math.min(100, Math.max(0, Math.round((currentScore / targetScore) * 100)));
+        hudScoreFill.style.width = `${scorePct}%`;
     }
 }
 
