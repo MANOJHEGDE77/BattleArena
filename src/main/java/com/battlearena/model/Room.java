@@ -229,6 +229,20 @@ public class Room {
             new Obstacle("OBS-BR", 530.0, 390.0, 30.0, 100.0, "BARRIER")
     );
 
+    private final List<ArenaHazard> arenaHazards = List.of(
+            // Kinetic Jump Pads
+            ArenaHazard.createJumpPad("PAD-1", 140.0, 160.0, 0.785, 340.0),
+            ArenaHazard.createJumpPad("PAD-2", 660.0, 440.0, 3.927, 340.0),
+            // Thermal Plasma Lava Pools
+            ArenaHazard.createLavaPool("LAVA-TOP", 400.0, 75.0, 32.0),
+            ArenaHazard.createLavaPool("LAVA-BOT", 400.0, 525.0, 32.0),
+            // Volatile Explosive Barrels
+            ArenaHazard.createExplosiveBarrel("BARREL-1", 160.0, 430.0),
+            ArenaHazard.createExplosiveBarrel("BARREL-2", 640.0, 170.0),
+            ArenaHazard.createExplosiveBarrel("BARREL-3", 400.0, 195.0),
+            ArenaHazard.createExplosiveBarrel("BARREL-4", 400.0, 405.0)
+    );
+
     public SafeZone getSafeZone() {
         return safeZone;
     }
@@ -354,6 +368,153 @@ public class Room {
         return null;
     }
 
+    public List<ArenaHazard> getHazards() {
+        return arenaHazards;
+    }
+
+    public record JumpPadEvent(
+            String hazardId,
+            String username,
+            double launchX,
+            double launchY,
+            double boostAngle,
+            double boostPower
+    ) {}
+
+    public record HazardDamageEvent(
+            String hazardId,
+            String username,
+            int damage,
+            int currentHealth,
+            int currentShield,
+            boolean eliminated
+    ) {}
+
+    public record BarrelDamageEvent(
+            String barrelId,
+            int currentHealth,
+            int maxHealth,
+            boolean exploded
+    ) {}
+
+    public record BarrelExplosionEvent(
+            String barrelId,
+            double x,
+            double y,
+            double blastRadius,
+            List<HazardDamageEvent> victims
+    ) {}
+
+    public synchronized List<JumpPadEvent> tickJumpPads() {
+        if (status != RoomStatus.PLAYING) return Collections.emptyList();
+        List<JumpPadEvent> events = new ArrayList<>();
+        long now = System.currentTimeMillis();
+        for (ArenaHazard h : arenaHazards) {
+            if (h.getType() == ArenaHazard.HazardType.JUMP_PAD && h.isActive()) {
+                if (now - h.getLastTriggerTime() < 2200L) continue;
+                for (GamePlayer p : gamePlayers.values()) {
+                    if (p.isAlive() && h.intersectsCircle(p.getX(), p.getY(), 16.0)) {
+                        h.setLastTriggerTime(now);
+                        double boostDist = 130.0;
+                        double targetX = Math.max(35.0, Math.min(765.0, p.getX() + Math.cos(h.getBoostAngle()) * boostDist));
+                        double targetY = Math.max(35.0, Math.min(565.0, p.getY() + Math.sin(h.getBoostAngle()) * boostDist));
+                        if (!isPositionInsideAnyObstacle(targetX, targetY, 16.0)) {
+                            p.setPosition(targetX, targetY);
+                        }
+                        events.add(new JumpPadEvent(h.getId(), p.getUsername(), p.getX(), p.getY(), h.getBoostAngle(), h.getBoostPower()));
+                        break;
+                    }
+                }
+            }
+        }
+        return events;
+    }
+
+    public synchronized List<HazardDamageEvent> tickLavaPools() {
+        if (status != RoomStatus.PLAYING) return Collections.emptyList();
+        List<HazardDamageEvent> events = new ArrayList<>();
+        for (ArenaHazard h : arenaHazards) {
+            if (h.getType() == ArenaHazard.HazardType.LAVA_POOL && h.isActive()) {
+                for (GamePlayer p : gamePlayers.values()) {
+                    if (p.isAlive() && h.intersectsCircle(p.getX(), p.getY(), 16.0)) {
+                        DamageResult dmg = p.takeDamageWithShield(4);
+                        events.add(new HazardDamageEvent(h.getId(), p.getUsername(), 4, p.getHealth(), p.getShield(), dmg.eliminated()));
+                    }
+                }
+            }
+        }
+        return events;
+    }
+
+    public synchronized void tickBarrelRespawns() {
+        if (status != RoomStatus.PLAYING) return;
+        long now = System.currentTimeMillis();
+        for (ArenaHazard h : arenaHazards) {
+            if (h.getType() == ArenaHazard.HazardType.EXPLOSIVE_BARREL && !h.isActive()) {
+                if (now >= h.getRespawnTime()) {
+                    h.reset();
+                }
+            }
+        }
+    }
+
+    public synchronized BarrelExplosionEvent checkProjectileBarrelCollision(String projectileId) {
+        return checkProjectileBarrelCollision(projectileId, null);
+    }
+
+    public synchronized BarrelExplosionEvent checkProjectileBarrelCollision(String projectileId, String targetHazardId) {
+        Projectile proj = projectiles.get(projectileId);
+        if (proj == null) return null;
+
+        long now = System.currentTimeMillis();
+        double px = proj.getCurrentX(now);
+        double py = proj.getCurrentY(now);
+
+        for (ArenaHazard h : arenaHazards) {
+            if (h.getType() == ArenaHazard.HazardType.EXPLOSIVE_BARREL && h.isActive()) {
+                boolean hit = false;
+                if (targetHazardId != null && targetHazardId.equals(h.getId())) {
+                    hit = true;
+                } else if (h.intersectsCircle(px, py, proj.getRadius() + 6.0)) {
+                    hit = true;
+                }
+                if (hit) {
+                    projectiles.remove(projectileId);
+                    boolean exploded = h.takeDamage(proj.getDamage());
+                    if (exploded) {
+                        double blastRadius = 85.0;
+                        List<HazardDamageEvent> victims = new ArrayList<>();
+                        for (GamePlayer p : gamePlayers.values()) {
+                            if (p.isAlive()) {
+                                double dx = p.getX() - h.getX();
+                                double dy = p.getY() - h.getY();
+                                double dist = Math.sqrt(dx * dx + dy * dy);
+                                if (dist <= blastRadius) {
+                                    double factor = 1.0 - (dist / (blastRadius + 15.0));
+                                    int aoeDamage = Math.max(15, (int)(40 * factor));
+                                    DamageResult dmg = p.takeDamageWithShield(aoeDamage);
+                                    if (!dmg.eliminated() && dist > 1.0) {
+                                        double pushX = p.getX() + (dx / dist) * 35.0;
+                                        double pushY = p.getY() + (dy / dist) * 35.0;
+                                        pushX = Math.max(30.0, Math.min(770.0, pushX));
+                                        pushY = Math.max(30.0, Math.min(570.0, pushY));
+                                        if (!isPositionInsideAnyObstacle(pushX, pushY, 16.0)) {
+                                            p.setPosition(pushX, pushY);
+                                        }
+                                    }
+                                    victims.add(new HazardDamageEvent(h.getId(), p.getUsername(), aoeDamage, p.getHealth(), p.getShield(), dmg.eliminated()));
+                                }
+                            }
+                        }
+                        return new BarrelExplosionEvent(h.getId(), h.getX(), h.getY(), blastRadius, victims);
+                    }
+                    return null;
+                }
+            }
+        }
+        return null;
+    }
+
     /**
      * Hit resolution payload carrying authoritative combat outcome.
      */
@@ -421,6 +582,9 @@ public class Room {
         this.coins.clear();
         this.projectiles.clear();
         this.powerUps.clear();
+        for (ArenaHazard h : arenaHazards) {
+            h.reset();
+        }
 
         int index = 0;
         for (Map.Entry<String, PlayerRoomState> entry : players.entrySet()) {

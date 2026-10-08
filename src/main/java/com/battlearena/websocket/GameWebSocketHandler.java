@@ -262,6 +262,33 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
                 }
                 break;
             }
+            case "PROJECTILE_HAZARD_HIT": {
+                String roomId = sessionToRoom.get(session.getId());
+                if (roomId != null && root.has("projectileId")) {
+                    String projectileId = root.get("projectileId").asText();
+                    String hazardId = root.has("hazardId") ? root.get("hazardId").asText() : null;
+                    Room room = roomService.getActiveRoom(roomId);
+                    if (room != null && room.getStatus() == RoomStatus.PLAYING) {
+                        Room.BarrelExplosionEvent exp = room.checkProjectileBarrelCollision(projectileId, hazardId);
+                        if (exp != null) {
+                            broadcastToRoom(roomId, Map.of(
+                                    "type", "BARREL_EXPLODED",
+                                    "barrelId", exp.barrelId(),
+                                    "x", exp.x(),
+                                    "y", exp.y(),
+                                    "blastRadius", exp.blastRadius(),
+                                    "victims", exp.victims()
+                            ));
+                            for (Room.HazardDamageEvent v : exp.victims()) {
+                                if (v.eliminated()) {
+                                    eliminatePlayerByHazard(room, roomId, v.username(), "VOLATILE_BARREL");
+                                }
+                            }
+                        }
+                    }
+                }
+                break;
+            }
             case "CHAT": {
                 String username = sessionToUser.get(session.getId());
                 String roomId = sessionToRoom.get(session.getId());
@@ -349,6 +376,7 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
             snapshot.put("powerUps", activeRoom.getPowerUps());
             snapshot.put("players", activeRoom.getGamePlayers());
             snapshot.put("obstacles", activeRoom.getObstacles());
+            snapshot.put("hazards", activeRoom.getHazards());
             snapshot.put("projectiles", activeRoom.getProjectiles());
             snapshot.put("winningScore", Room.getWinningScore());
             snapshot.put("matchDurationSeconds", Room.MATCH_DURATION_SECONDS);
@@ -624,6 +652,7 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
                 payload.put("powerUps", room.getPowerUps());
                 payload.put("players", room.getGamePlayers());
                 payload.put("obstacles", room.getObstacles());
+                payload.put("hazards", room.getHazards());
                 payload.put("winningScore", Room.getWinningScore());
                 payload.put("matchDurationSeconds", Room.MATCH_DURATION_SECONDS);
                 payload.put("timeRemaining", room.getTimeRemainingSeconds());
@@ -723,40 +752,80 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
                         ));
 
                         if (evt.eliminated()) {
-                            broadcastToRoom(roomId, Map.of(
-                                    "type", "PLAYER_ELIMINATED",
-                                    "victim", evt.username(),
-                                    "killer", "THE_STORM",
-                                    "victimDeaths", room.getGamePlayer(evt.username()).getDeaths(),
-                                    "killerKills", 0,
-                                    "killerScore", 0,
-                                    "respawnDelayMs", 2500,
-                                    "respawnX", 400.0,
-                                    "respawnY", 300.0
-                            ));
-                            final String victim = evt.username();
-                            respawnScheduler.schedule(() -> {
-                                try {
-                                    Room r = roomService.getActiveRoom(roomId);
-                                    if (r != null && r.getStatus() == RoomStatus.PLAYING) {
-                                        r.respawnPlayer(victim, 400.0, 300.0);
-                                        broadcastToRoom(roomId, Map.of(
-                                                "type", "PLAYER_RESPAWNED",
-                                                "username", victim,
-                                                "x", 400.0,
-                                                "y", 300.0,
-                                                "health", 100
-                                        ));
-                                    }
-                                } catch (Exception ignored) {}
-                            }, 2500, TimeUnit.MILLISECONDS);
+                            eliminatePlayerByHazard(room, roomId, evt.username(), "THE_STORM");
                         }
                     }
+
+                    // 4. Process Jump Pads (Kinetic Boost)
+                    List<Room.JumpPadEvent> padEvents = room.tickJumpPads();
+                    for (Room.JumpPadEvent evt : padEvents) {
+                        broadcastToRoom(roomId, Map.of(
+                                "type", "JUMP_PAD_LAUNCHED",
+                                "hazardId", evt.hazardId(),
+                                "username", evt.username(),
+                                "launchX", evt.launchX(),
+                                "launchY", evt.launchY(),
+                                "boostAngle", evt.boostAngle(),
+                                "boostPower", evt.boostPower()
+                        ));
+                    }
+
+                    // 5. Process Thermal Plasma Lava Pools
+                    List<Room.HazardDamageEvent> lavaEvents = room.tickLavaPools();
+                    for (Room.HazardDamageEvent evt : lavaEvents) {
+                        broadcastToRoom(roomId, Map.of(
+                                "type", "HAZARD_DAMAGE",
+                                "hazardId", evt.hazardId(),
+                                "username", evt.username(),
+                                "damage", evt.damage(),
+                                "currentHealth", evt.currentHealth(),
+                                "currentShield", evt.currentShield(),
+                                "isEliminated", evt.eliminated()
+                        ));
+                        if (evt.eliminated()) {
+                            eliminatePlayerByHazard(room, roomId, evt.username(), "PLASMA_FIELD");
+                        }
+                    }
+
+                    // 6. Respawn explosive barrels if timer elapsed
+                    room.tickBarrelRespawns();
                 }
             } catch (Exception ignored) {
                 // Ignore transient ticker error
             }
         }
+    }
+
+    private void eliminatePlayerByHazard(Room room, String roomId, String victim, String killerName) {
+        GamePlayer gp = room.getGamePlayer(victim);
+        int victimDeaths = (gp != null) ? gp.getDeaths() : 0;
+        broadcastToRoom(roomId, Map.of(
+                "type", "PLAYER_ELIMINATED",
+                "victim", victim,
+                "killer", killerName,
+                "victimDeaths", victimDeaths,
+                "killerKills", 0,
+                "killerScore", 0,
+                "respawnDelayMs", 2500,
+                "respawnX", 400.0,
+                "respawnY", 300.0
+        ));
+        respawnScheduler.schedule(() -> {
+            try {
+                Room r = roomService.getActiveRoom(roomId);
+                if (r != null && r.getStatus() == RoomStatus.PLAYING) {
+                    r.respawnPlayer(victim, 400.0, 300.0);
+                    int respawnHp = (r.getGamePlayer(victim) != null) ? r.getGamePlayer(victim).getHealth() : 100;
+                    broadcastToRoom(roomId, Map.of(
+                            "type", "PLAYER_RESPAWNED",
+                            "username", victim,
+                            "x", 400.0,
+                            "y", 300.0,
+                            "health", respawnHp
+                    ));
+                }
+            } catch (Exception ignored) {}
+        }, 2500, TimeUnit.MILLISECONDS);
     }
 
     @PreDestroy

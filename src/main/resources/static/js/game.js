@@ -444,6 +444,66 @@ class SoundEngine {
             osc.stop(now + 0.15);
         } catch {}
     }
+
+    playJumpPad() {
+        if (this.muted) return;
+        this.init();
+        if (!this.ctx) return;
+        try {
+            const now = this.ctx.currentTime;
+            const osc = this.ctx.createOscillator();
+            const gain = this.ctx.createGain();
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(220, now);
+            osc.frequency.exponentialRampToValueAtTime(950, now + 0.18);
+            gain.gain.setValueAtTime(this.masterVolume * 0.75, now);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.2);
+            osc.connect(gain);
+            gain.connect(this.ctx.destination);
+            osc.start(now);
+            osc.stop(now + 0.21);
+        } catch {}
+    }
+
+    playBarrelExplosion() {
+        if (this.muted) return;
+        this.init();
+        if (!this.ctx) return;
+        try {
+            const now = this.ctx.currentTime;
+            const osc = this.ctx.createOscillator();
+            const gain = this.ctx.createGain();
+            osc.type = 'sawtooth';
+            osc.frequency.setValueAtTime(120, now);
+            osc.frequency.exponentialRampToValueAtTime(25, now + 0.35);
+            gain.gain.setValueAtTime(this.masterVolume * 0.95, now);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.38);
+            osc.connect(gain);
+            gain.connect(this.ctx.destination);
+            osc.start(now);
+            osc.stop(now + 0.4);
+        } catch {}
+    }
+
+    playLavaSizzle() {
+        if (this.muted) return;
+        this.init();
+        if (!this.ctx) return;
+        try {
+            const now = this.ctx.currentTime;
+            const osc = this.ctx.createOscillator();
+            const gain = this.ctx.createGain();
+            osc.type = 'triangle';
+            osc.frequency.setValueAtTime(340, now);
+            osc.frequency.exponentialRampToValueAtTime(140, now + 0.08);
+            gain.gain.setValueAtTime(this.masterVolume * 0.4, now);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.09);
+            osc.connect(gain);
+            gain.connect(this.ctx.destination);
+            osc.start(now);
+            osc.stop(now + 0.1);
+        } catch {}
+    }
 }
 
 const soundEngine = new SoundEngine();
@@ -623,6 +683,29 @@ function updateProjectiles(dt) {
                     }
                     projectiles.delete(id);
                     return;
+                }
+            }
+        }
+
+        // Explosive Volatile Barrel collision check (Phase 17)
+        if (arenaHazards.size > 0) {
+            for (const [hId, hazard] of arenaHazards) {
+                if (hazard.type === 'EXPLOSIVE_BARREL' && hazard.active !== false) {
+                    const dx = p.x - hazard.x;
+                    const dy = p.y - hazard.y;
+                    const maxDist = (hazard.radius || 16) + (p.radius || 5);
+                    if (dx * dx + dy * dy <= maxDist * maxDist) {
+                        addFloatingText('💥', p.x, p.y, '#f97316');
+                        if (p.shooter === player.name && gameWs && gameWs.readyState === WebSocket.OPEN) {
+                            gameWs.send(JSON.stringify({
+                                type: 'PROJECTILE_HAZARD_HIT',
+                                projectileId: id,
+                                hazardId: hId
+                            }));
+                        }
+                        projectiles.delete(id);
+                        return;
+                    }
                 }
             }
         }
@@ -865,6 +948,161 @@ function resolveObstacleCollisions(p) {
             }
         }
     }
+}
+
+// Phase 17: Interactive Environmental Hazards & Traps Map
+const arenaHazards = new Map();
+
+// Screen Shake & Concussive Blast System
+let screenShakeRemaining = 0;
+let screenShakeMagnitude = 0;
+
+function triggerScreenShake(magnitude = 6, durationSec = 0.25) {
+    screenShakeMagnitude = magnitude;
+    screenShakeRemaining = durationSec;
+}
+
+const shockwaves = [];
+
+function addShockwave(x, y, maxRadius = 85, color = '#f97316') {
+    shockwaves.push({ x, y, radius: 6, maxRadius, alpha: 1.0, color });
+}
+
+function renderShockwaves(dt) {
+    for (let i = shockwaves.length - 1; i >= 0; i--) {
+        const sw = shockwaves[i];
+        sw.radius += (sw.maxRadius - sw.radius) * Math.min(1, dt * 14);
+        sw.alpha -= dt * 2.5;
+        if (sw.alpha <= 0) {
+            shockwaves.splice(i, 1);
+            continue;
+        }
+        ctx.save();
+        ctx.globalAlpha = Math.max(0, sw.alpha);
+        ctx.beginPath();
+        ctx.arc(sw.x, sw.y, sw.radius, 0, Math.PI * 2);
+        ctx.strokeStyle = sw.color;
+        ctx.lineWidth = 3;
+        ctx.shadowColor = sw.color;
+        ctx.shadowBlur = 14;
+        ctx.stroke();
+        ctx.restore();
+    }
+}
+
+// Render Interactive Environmental Hazards (Jump Pads, Lava Pools, Volatile Barrels)
+function renderHazards() {
+    if (arenaHazards.size === 0) return;
+
+    const time = performance.now();
+    arenaHazards.forEach((hazard) => {
+        ctx.save();
+        ctx.translate(hazard.x, hazard.y);
+
+        if (hazard.type === 'JUMP_PAD') {
+            const rad = hazard.radius || 24;
+            const pulse = Math.sin(time * 0.006) * 1.5;
+
+            // Concentric cyan pulsing energy field
+            ctx.beginPath();
+            ctx.arc(0, 0, rad + 4 + pulse, 0, Math.PI * 2);
+            ctx.fillStyle = 'rgba(6, 182, 212, 0.16)';
+            ctx.fill();
+
+            // Metallic rim
+            ctx.beginPath();
+            ctx.arc(0, 0, rad, 0, Math.PI * 2);
+            ctx.fillStyle = '#0f172a';
+            ctx.strokeStyle = '#06b6d4';
+            ctx.lineWidth = 2;
+            ctx.shadowColor = '#22d3ee';
+            ctx.shadowBlur = 10;
+            ctx.fill();
+            ctx.stroke();
+
+            // Directional kinetic chevron indicator
+            ctx.save();
+            ctx.rotate(hazard.boostAngle || 0);
+            ctx.beginPath();
+            ctx.moveTo(-7, -8);
+            ctx.lineTo(7, 0);
+            ctx.lineTo(-7, 8);
+            ctx.strokeStyle = '#38bdf8';
+            ctx.lineWidth = 2.5;
+            ctx.lineCap = 'round';
+            ctx.stroke();
+            ctx.restore();
+
+        } else if (hazard.type === 'LAVA_POOL') {
+            const rad = hazard.radius || 32;
+            const lPulse = Math.sin(time * 0.004) * 2.5;
+
+            // Ambient radiant thermal corona
+            ctx.beginPath();
+            ctx.arc(0, 0, rad + 6 + lPulse, 0, Math.PI * 2);
+            ctx.fillStyle = 'rgba(239, 68, 68, 0.18)';
+            ctx.fill();
+
+            // Core molten plasma pool
+            ctx.beginPath();
+            ctx.arc(0, 0, rad, 0, Math.PI * 2);
+            ctx.fillStyle = '#dc2626';
+            ctx.shadowColor = '#f97316';
+            ctx.shadowBlur = 12;
+            ctx.fill();
+
+            // Turbulent molten center
+            const eddyX = Math.cos(time * 0.003) * 6;
+            const eddyY = Math.sin(time * 0.003) * 6;
+            ctx.beginPath();
+            ctx.arc(eddyX, eddyY, rad * 0.45, 0, Math.PI * 2);
+            ctx.fillStyle = '#fbbf24';
+            ctx.fill();
+
+        } else if (hazard.type === 'EXPLOSIVE_BARREL') {
+            if (hazard.active === false) {
+                // Scorched blast crater
+                ctx.beginPath();
+                ctx.arc(0, 0, hazard.radius || 16, 0, Math.PI * 2);
+                ctx.fillStyle = 'rgba(30, 41, 59, 0.45)';
+                ctx.fill();
+                ctx.restore();
+                return;
+            }
+
+            const rad = hazard.radius || 16;
+            // Volatile canister body
+            ctx.beginPath();
+            ctx.arc(0, 0, rad, 0, Math.PI * 2);
+            ctx.fillStyle = '#dc2626';
+            ctx.shadowColor = '#ef4444';
+            ctx.shadowBlur = 8;
+            ctx.fill();
+
+            // Yellow warning ring
+            ctx.strokeStyle = '#fef08a';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+
+            // Explosive hazard glyph
+            ctx.fillStyle = '#fef08a';
+            ctx.font = 'bold 11px Outfit, sans-serif';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText('⚡', 0, 0);
+
+            // Health bar if damaged
+            if (hazard.health !== undefined && hazard.health < (hazard.maxHealth || 30)) {
+                const bw = 22, bh = 3;
+                ctx.fillStyle = 'rgba(0,0,0,0.7)';
+                ctx.fillRect(-bw / 2, -rad - 6, bw, bh);
+                ctx.fillStyle = '#ef4444';
+                ctx.fillRect(-bw / 2, -rad - 6, bw * Math.max(0, hazard.health / (hazard.maxHealth || 30)), bh);
+            }
+        }
+
+        ctx.restore();
+    });
 }
 
 // Render Tactical Cover Obstacles (Pure Vector 2D, Zero External Assets)
@@ -1517,16 +1755,33 @@ function gameLoop(currentTime) {
     // Physics update step
     updatePhysics(dt);
 
-    // Visual render step: arena surface -> safe zone -> obstacles -> coins -> power-ups -> projectiles -> remote players -> local player -> floating text
+    // Apply Screen Shake if active (Phase 17)
+    let hasShake = false;
+    if (screenShakeRemaining > 0) {
+        screenShakeRemaining -= dt;
+        const shakeX = (Math.random() - 0.5) * 2 * screenShakeMagnitude;
+        const shakeY = (Math.random() - 0.5) * 2 * screenShakeMagnitude;
+        ctx.save();
+        ctx.translate(shakeX, shakeY);
+        hasShake = true;
+    }
+
+    // Visual render step: arena surface -> safe zone -> hazards -> obstacles -> coins -> power-ups -> projectiles -> remote players -> local player -> shockwaves -> floating text
     renderArena();
     renderSafeZone();
+    renderHazards();
     renderObstacles();
     renderCoins();
     renderPowerUps();
     renderProjectiles();
     renderRemotePlayers();
     renderPlayer();
+    renderShockwaves(dt);
     renderFloatingTexts(dt);
+
+    if (hasShake) {
+        ctx.restore();
+    }
 
     // FPS Counter (sampled every 250ms for low CPU overhead)
     frameCount++;
@@ -2024,6 +2279,10 @@ function handleWebSocketMessage(msg) {
                 obstacles.length = 0;
                 obstacles.push(...msg.obstacles);
             }
+            if (msg.hazards && Array.isArray(msg.hazards)) {
+                arenaHazards.clear();
+                msg.hazards.forEach(h => arenaHazards.set(h.id, h));
+            }
             if (msg.projectiles && Array.isArray(msg.projectiles)) {
                 msg.projectiles.forEach(p => {
                     projectiles.set(p.id, {
@@ -2138,6 +2397,74 @@ function handleWebSocketMessage(msg) {
             const targetY = isMe ? player.y : (remotePlayers.get(msg.username)?.y || player.y);
             addFloatingText(`-${msg.damage} ⚡STORM`, targetX, targetY - 22, '#ef4444');
             soundEngine.playStormBuzz();
+            if (isMe) {
+                if (msg.currentShield !== undefined) player.shield = msg.currentShield;
+                player.health = msg.currentHealth;
+                player.alive = !msg.isEliminated;
+                updateHudHealth();
+            } else {
+                const rp = remotePlayers.get(msg.username);
+                if (rp) {
+                    if (msg.currentShield !== undefined) rp.shield = msg.currentShield;
+                    rp.health = msg.currentHealth;
+                    rp.alive = !msg.isEliminated;
+                }
+            }
+            break;
+        }
+        case 'JUMP_PAD_LAUNCHED': {
+            soundEngine.playJumpPad();
+            addFloatingText('⚡ BOOST!', msg.launchX, msg.launchY - 14, '#22d3ee');
+            if (msg.username === player.name) {
+                player.x = msg.launchX;
+                player.y = msg.launchY;
+            } else {
+                const rp = remotePlayers.get(msg.username);
+                if (rp) {
+                    rp.x = msg.launchX;
+                    rp.y = msg.launchY;
+                }
+            }
+            break;
+        }
+        case 'BARREL_EXPLODED': {
+            soundEngine.playBarrelExplosion();
+            triggerScreenShake(9, 0.35);
+            addShockwave(msg.x, msg.y, msg.blastRadius || 85, '#f97316');
+            addFloatingText('💥 DETONATION!', msg.x, msg.y - 20, '#ef4444');
+            const b = arenaHazards.get(msg.barrelId);
+            if (b) {
+                b.active = false;
+            }
+            if (msg.victims && Array.isArray(msg.victims)) {
+                msg.victims.forEach(v => {
+                    const isMe = v.username === player.name;
+                    const tx = isMe ? player.x : (remotePlayers.get(v.username)?.x || player.x);
+                    const ty = isMe ? player.y : (remotePlayers.get(v.username)?.y || player.y);
+                    addFloatingText(`-${v.damage} 💥BLAST`, tx, ty - 26, '#f97316');
+                    if (isMe) {
+                        if (v.currentShield !== undefined) player.shield = v.currentShield;
+                        player.health = v.currentHealth;
+                        player.alive = !v.isEliminated;
+                        updateHudHealth();
+                    } else {
+                        const rp = remotePlayers.get(v.username);
+                        if (rp) {
+                            if (v.currentShield !== undefined) rp.shield = v.currentShield;
+                            rp.health = v.currentHealth;
+                            rp.alive = !v.isEliminated;
+                        }
+                    }
+                });
+            }
+            break;
+        }
+        case 'HAZARD_DAMAGE': {
+            soundEngine.playLavaSizzle();
+            const isMe = msg.username === player.name;
+            const targetX = isMe ? player.x : (remotePlayers.get(msg.username)?.x || player.x);
+            const targetY = isMe ? player.y : (remotePlayers.get(msg.username)?.y || player.y);
+            addFloatingText(`-${msg.damage} 🔥LAVA`, targetX, targetY - 20, '#f97316');
             if (isMe) {
                 if (msg.currentShield !== undefined) player.shield = msg.currentShield;
                 player.health = msg.currentHealth;
