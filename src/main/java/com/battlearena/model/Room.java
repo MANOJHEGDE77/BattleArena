@@ -171,8 +171,10 @@ public class Room {
 
     private final ConcurrentMap<String, Coin> coins = new ConcurrentHashMap<>();
     private final ConcurrentMap<String, Projectile> projectiles = new ConcurrentHashMap<>();
+    private final ConcurrentMap<String, PowerUp> powerUps = new ConcurrentHashMap<>();
     private final Random random = new Random();
     private static final int TARGET_COIN_COUNT = 6;
+    private static final int TARGET_POWERUP_COUNT = 2;
     private static final int WINNING_SCORE = 100;
     public static final int KILL_SCORE_BONUS = 15;
     public static final long ATTACK_COOLDOWN_MS = 350L;
@@ -229,6 +231,8 @@ public class Room {
         private final GamePlayer target;
         private final GamePlayer shooter;
         private final int damage;
+        private final int shieldDamage;
+        private final int healthDamage;
         private final boolean eliminated;
         private final boolean matchFinished;
         private final double[] respawnCoords;
@@ -236,17 +240,25 @@ public class Room {
 
         public HitResult(boolean valid, Projectile projectile, GamePlayer target, GamePlayer shooter,
                          int damage, boolean eliminated, boolean matchFinished, double[] respawnCoords) {
-            this(valid, projectile, target, shooter, damage, eliminated, matchFinished, respawnCoords, false);
+            this(valid, projectile, target, shooter, damage, 0, damage, eliminated, matchFinished, respawnCoords, false);
         }
 
         public HitResult(boolean valid, Projectile projectile, GamePlayer target, GamePlayer shooter,
                          int damage, boolean eliminated, boolean matchFinished, double[] respawnCoords,
                          boolean blockedByCover) {
+            this(valid, projectile, target, shooter, damage, 0, damage, eliminated, matchFinished, respawnCoords, blockedByCover);
+        }
+
+        public HitResult(boolean valid, Projectile projectile, GamePlayer target, GamePlayer shooter,
+                         int damage, int shieldDamage, int healthDamage, boolean eliminated,
+                         boolean matchFinished, double[] respawnCoords, boolean blockedByCover) {
             this.valid = valid;
             this.projectile = projectile;
             this.target = target;
             this.shooter = shooter;
             this.damage = damage;
+            this.shieldDamage = shieldDamage;
+            this.healthDamage = healthDamage;
             this.eliminated = eliminated;
             this.matchFinished = matchFinished;
             this.respawnCoords = respawnCoords;
@@ -258,6 +270,8 @@ public class Room {
         public GamePlayer getTarget() { return target; }
         public GamePlayer getShooter() { return shooter; }
         public int getDamage() { return damage; }
+        public int getShieldDamage() { return shieldDamage; }
+        public int getHealthDamage() { return healthDamage; }
         public boolean isEliminated() { return eliminated; }
         public boolean isMatchFinished() { return matchFinished; }
         public double[] getRespawnCoords() { return respawnCoords; }
@@ -274,6 +288,7 @@ public class Room {
         this.gamePlayers.clear();
         this.coins.clear();
         this.projectiles.clear();
+        this.powerUps.clear();
 
         int index = 0;
         for (String username : players.keySet()) {
@@ -284,6 +299,7 @@ public class Room {
         }
 
         spawnInitialCoins();
+        spawnInitialPowerUps();
     }
 
     public synchronized List<Coin> spawnInitialCoins() {
@@ -372,6 +388,76 @@ public class Room {
         return Collections.unmodifiableCollection(coins.values());
     }
 
+    public Collection<PowerUp> getPowerUps() {
+        return Collections.unmodifiableCollection(powerUps.values());
+    }
+
+    public synchronized List<PowerUp> spawnInitialPowerUps() {
+        List<PowerUp> list = new ArrayList<>();
+        for (int i = 0; i < TARGET_POWERUP_COUNT; i++) {
+            PowerUp pu = generateRandomPowerUp();
+            if (pu != null) {
+                list.add(pu);
+            }
+        }
+        return list;
+    }
+
+    public synchronized PowerUp spawnSinglePowerUp() {
+        if (status != RoomStatus.PLAYING) {
+            return null;
+        }
+        if (powerUps.size() < TARGET_POWERUP_COUNT) {
+            return generateRandomPowerUp();
+        }
+        return null;
+    }
+
+    private PowerUp generateRandomPowerUp() {
+        String id = "PU-" + UUID.randomUUID().toString().substring(0, 6).toUpperCase();
+        PowerUpType[] types = PowerUpType.values();
+        PowerUpType type = types[random.nextInt(types.length)];
+        double x, y;
+        int attempts = 0;
+        do {
+            x = 80 + random.nextDouble() * (800 - 160);
+            y = 80 + random.nextDouble() * (600 - 160);
+            attempts++;
+        } while (isPositionInsideAnyObstacle(x, y, 20.0) && attempts < 25);
+
+        PowerUp pu = new PowerUp(id, type, x, y);
+        powerUps.put(id, pu);
+        return pu;
+    }
+
+    /**
+     * Server-authoritative radial collision check for picking up tactical power-ups.
+     */
+    public synchronized PowerUp collectPowerUp(String username, String powerUpId) {
+        if (status != RoomStatus.PLAYING) {
+            return null;
+        }
+        GamePlayer player = gamePlayers.get(username);
+        PowerUp pu = powerUps.get(powerUpId);
+        if (player == null || !player.isAlive() || pu == null) {
+            return null;
+        }
+
+        double dx = player.getX() - pu.getX();
+        double dy = player.getY() - pu.getY();
+        double distanceSquared = dx * dx + dy * dy;
+        double maxDist = player.getRadius() + pu.getRadius() + 10.0;
+
+        if (distanceSquared <= maxDist * maxDist) {
+            PowerUp collected = powerUps.remove(powerUpId);
+            if (collected != null) {
+                player.applyPowerUp(collected);
+                return collected;
+            }
+        }
+        return null;
+    }
+
     public Collection<Projectile> getProjectiles() {
         long now = System.currentTimeMillis();
         projectiles.values().removeIf(p -> p.isExpired(now));
@@ -379,27 +465,47 @@ public class Room {
     }
 
     /**
-     * Spawns an authoritative projectile if player is alive and cooldown has elapsed.
+     * Spawns authoritative projectile(s), including spread shot volleys if buffed.
      */
-    public synchronized Projectile fireProjectile(String shooterUsername, double heading) {
+    public synchronized List<Projectile> fireProjectiles(String shooterUsername, double heading) {
         if (status != RoomStatus.PLAYING) {
-            return null;
+            return Collections.emptyList();
         }
         GamePlayer player = gamePlayers.get(shooterUsername);
         if (player == null || !player.isAlive()) {
-            return null;
+            return Collections.emptyList();
         }
 
         long now = System.currentTimeMillis();
         if (!player.canAttack(now, ATTACK_COOLDOWN_MS)) {
-            return null;
+            return Collections.emptyList();
         }
 
         player.recordAttack(now);
-        String projId = "PROJ-" + UUID.randomUUID().toString().substring(0, 6).toUpperCase();
-        Projectile projectile = new Projectile(projId, shooterUsername, player.getX(), player.getY(), heading);
-        projectiles.put(projId, projectile);
-        return projectile;
+        List<Projectile> fired = new ArrayList<>();
+        if (player.hasSpreadShot(now)) {
+            double[] angles = new double[]{ heading - 0.22, heading, heading + 0.22 };
+            for (double angle : angles) {
+                String projId = "PROJ-" + UUID.randomUUID().toString().substring(0, 6).toUpperCase();
+                Projectile projectile = new Projectile(projId, shooterUsername, player.getX(), player.getY(), angle);
+                projectiles.put(projId, projectile);
+                fired.add(projectile);
+            }
+        } else {
+            String projId = "PROJ-" + UUID.randomUUID().toString().substring(0, 6).toUpperCase();
+            Projectile projectile = new Projectile(projId, shooterUsername, player.getX(), player.getY(), heading);
+            projectiles.put(projId, projectile);
+            fired.add(projectile);
+        }
+        return fired;
+    }
+
+    /**
+     * Backward-compatibility helper returning single primary projectile.
+     */
+    public synchronized Projectile fireProjectile(String shooterUsername, double heading) {
+        List<Projectile> list = fireProjectiles(shooterUsername, heading);
+        return list.isEmpty() ? null : list.get(0);
     }
 
     /**
@@ -407,7 +513,8 @@ public class Room {
      * 1. Confirms projectile exists and is within flight window.
      * 2. Confirms target player is alive and distinct from shooter.
      * 3. Calculates projectile exact coordinates at verification time.
-     * 4. Enforces radial collision tolerance before applying damage and rewards.
+     * 4. Enforces raycast line-of-sight obstacle checks.
+     * 5. Enforces radial collision tolerance, shield absorption, damage and rewards.
      */
     public synchronized HitResult validateAndApplyHit(String projectileId, String targetUsername) {
         if (status != RoomStatus.PLAYING) {
@@ -462,7 +569,8 @@ public class Room {
 
         if (dx * dx + dy * dy <= maxDist * maxDist) {
             projectiles.remove(projectileId);
-            boolean eliminated = target.takeDamage(proj.getDamage());
+            DamageResult dmgResult = target.takeDamageWithShield(proj.getDamage());
+            boolean eliminated = dmgResult.eliminated();
             double[] respawnCoords = null;
 
             if (eliminated) {
@@ -477,7 +585,8 @@ public class Room {
             }
 
             return new HitResult(true, proj, target, shooter, proj.getDamage(),
-                    eliminated, status == RoomStatus.FINISHED, respawnCoords);
+                    dmgResult.shieldDamage(), dmgResult.healthDamage(),
+                    eliminated, status == RoomStatus.FINISHED, respawnCoords, false);
         }
 
         return new HitResult(false, null, null, null, 0, false, false, null);

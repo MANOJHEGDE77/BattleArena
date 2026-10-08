@@ -58,6 +58,9 @@ let respawnTimerInterval = null;
 // --- Phase 10 State: Obstacles & Tactical Cover ---
 const obstacles = [];
 
+// --- Phase 11 State: Tactical Power-ups & Combat Buffs ---
+const powerUps = new Map();
+
 // --- Phase 6 State: Collectibles & Authoritative Scoring ---
 const coins = new Map();
 let myScore = 0;
@@ -77,6 +80,10 @@ const player = {
     name: 'Guest',
     health: 100,
     maxHealth: 100,
+    shield: 0,
+    maxShield: 50,
+    speedBoostUntil: 0,
+    spreadShotUntil: 0,
     alive: true,
     kills: 0,
     deaths: 0,
@@ -219,9 +226,11 @@ function updatePhysics(dt) {
         // Update player heading angle based on movement direction
         player.heading = Math.atan2(moveY, moveX);
 
-        // Apply frame-rate independent displacement
-        player.x += moveX * player.speed * dt;
-        player.y += moveY * player.speed * dt;
+        // Apply frame-rate independent displacement with speed boost buff support
+        const nowMs = Date.now();
+        const effectiveSpeed = (player.speedBoostUntil > nowMs) ? player.speed * 1.4 : player.speed;
+        player.x += moveX * effectiveSpeed * dt;
+        player.y += moveY * effectiveSpeed * dt;
 
         // Arena boundary collision detection (clamping within walls)
         const minX = player.radius + 2;
@@ -246,6 +255,17 @@ function updatePhysics(dt) {
                 if (dx * dx + dy * dy <= maxDist * maxDist) {
                     if (gameWs && gameWs.readyState === WebSocket.OPEN) {
                         gameWs.send(JSON.stringify({ type: 'COLLECT', coinId: c.id }));
+                    }
+                }
+            });
+
+            powerUps.forEach((pu) => {
+                const dx = player.x - pu.x;
+                const dy = player.y - pu.y;
+                const maxDist = player.radius + (pu.radius || 15) + 6;
+                if (dx * dx + dy * dy <= maxDist * maxDist) {
+                    if (gameWs && gameWs.readyState === WebSocket.OPEN) {
+                        gameWs.send(JSON.stringify({ type: 'COLLECT_POWERUP', powerUpId: pu.id }));
                     }
                 }
             });
@@ -448,6 +468,59 @@ function renderCoins() {
     });
 }
 
+// Render Tactical Combat Buffs (Pure Vector 2D, Zero External Assets)
+function renderPowerUps() {
+    const time = performance.now() * 0.005;
+    powerUps.forEach((pu) => {
+        ctx.save();
+        ctx.translate(pu.x, pu.y);
+
+        const radius = pu.radius || 15;
+        const pulse = Math.sin(time * 1.5 + (pu.x * 0.04)) * 2;
+
+        let primaryColor = '#06b6d4';
+        let glowColor = 'rgba(6, 182, 212, 0.35)';
+        let symbol = '🛡️';
+
+        if (pu.type === 'SPEED_BOOST') {
+            primaryColor = '#eab308';
+            glowColor = 'rgba(234, 179, 8, 0.35)';
+            symbol = '⚡';
+        } else if (pu.type === 'SPREAD_SHOT') {
+            primaryColor = '#d946ef';
+            glowColor = 'rgba(217, 70, 239, 0.35)';
+            symbol = '✦';
+        }
+
+        // 1. Radiant Outer Aura
+        ctx.beginPath();
+        ctx.arc(0, 0, radius + 4 + pulse, 0, Math.PI * 2);
+        ctx.fillStyle = glowColor;
+        ctx.fill();
+
+        // 2. Rotating Hexagonal / Circular Hull
+        ctx.beginPath();
+        ctx.arc(0, 0, radius, 0, Math.PI * 2);
+        ctx.fillStyle = '#0f172a';
+        ctx.fill();
+        ctx.strokeStyle = primaryColor;
+        ctx.lineWidth = 2;
+        ctx.shadowColor = primaryColor;
+        ctx.shadowBlur = 8;
+        ctx.stroke();
+        ctx.shadowBlur = 0;
+
+        // 3. Center Cyber Glyph / Rune
+        ctx.fillStyle = primaryColor;
+        ctx.font = 'bold 12px Outfit, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(symbol, 0, 1);
+
+        ctx.restore();
+    });
+}
+
 // Floating score feedback particles
 function addFloatingText(text, x, y, color = '#fbbf24') {
     floatingTexts.push({
@@ -572,7 +645,7 @@ function renderRemotePlayers() {
         ctx.fillStyle = '#ffffff';
         ctx.fill();
 
-        // 5. Floating Health Bar (Phase 8)
+        // 5. Floating Health & Shield Bar (Phase 8 & 11)
         const barWidth = 34;
         const barHeight = 4;
         const barX = -barWidth / 2;
@@ -589,6 +662,26 @@ function renderRemotePlayers() {
         ctx.strokeStyle = 'rgba(255, 255, 255, 0.15)';
         ctx.lineWidth = 0.5;
         ctx.strokeRect(barX, barY, barWidth, barHeight);
+
+        // Remote shield bar & aura
+        if (rp.shield && rp.shield > 0) {
+            const shieldRatio = Math.max(0, Math.min(1, rp.shield / 50));
+            ctx.fillStyle = '#06b6d4';
+            ctx.fillRect(barX, barY - 4, barWidth * shieldRatio, 2.5);
+
+            // Radiant cyan shield bubble
+            const sPulse = Math.sin(performance.now() * 0.008) * 1.5;
+            ctx.beginPath();
+            ctx.arc(0, 0, (rp.radius || 16) + 7 + sPulse, 0, Math.PI * 2);
+            ctx.strokeStyle = '#22d3ee';
+            ctx.lineWidth = 2;
+            ctx.shadowColor = '#06b6d4';
+            ctx.shadowBlur = 8;
+            ctx.stroke();
+            ctx.fillStyle = 'rgba(6, 182, 212, 0.12)';
+            ctx.fill();
+            ctx.shadowBlur = 0;
+        }
 
         // 6. Remote player name & score tag
         ctx.fillStyle = '#6ee7b7';
@@ -652,7 +745,7 @@ function renderPlayer() {
     ctx.fillStyle = '#ffffff';
     ctx.fill();
 
-    // 5. Floating Health Bar (Phase 8)
+    // 5. Floating Health Bar (Phase 8) & Shield Bar (Phase 11)
     const barWidth = 34;
     const barHeight = 4;
     const barX = -barWidth / 2;
@@ -668,6 +761,25 @@ function renderPlayer() {
     ctx.strokeStyle = 'rgba(255, 255, 255, 0.15)';
     ctx.lineWidth = 0.5;
     ctx.strokeRect(barX, barY, barWidth, barHeight);
+
+    // Active Energy Shield Bubble & Floating Shield Bar (Phase 11)
+    if (player.shield > 0) {
+        const shieldRatio = Math.max(0, Math.min(1, player.shield / player.maxShield));
+        ctx.fillStyle = '#06b6d4';
+        ctx.fillRect(barX, barY - 4, barWidth * shieldRatio, 2.5);
+
+        const shieldPulse = Math.sin(performance.now() * 0.008) * 1.5;
+        ctx.beginPath();
+        ctx.arc(0, 0, player.radius + 7 + shieldPulse, 0, Math.PI * 2);
+        ctx.strokeStyle = '#22d3ee';
+        ctx.lineWidth = 2.5;
+        ctx.shadowColor = '#06b6d4';
+        ctx.shadowBlur = 10;
+        ctx.stroke();
+        ctx.fillStyle = 'rgba(6, 182, 212, 0.15)';
+        ctx.fill();
+        ctx.shadowBlur = 0;
+    }
 
     // 6. Name & score tag
     ctx.fillStyle = '#e2e8f0';
@@ -692,10 +804,11 @@ function gameLoop(currentTime) {
     // Physics update step
     updatePhysics(dt);
 
-    // Visual render step: arena surface -> obstacles -> coins -> projectiles -> remote players -> local player -> floating text
+    // Visual render step: arena surface -> obstacles -> coins -> power-ups -> projectiles -> remote players -> local player -> floating text
     renderArena();
     renderObstacles();
     renderCoins();
+    renderPowerUps();
     renderProjectiles();
     renderRemotePlayers();
     renderPlayer();
@@ -1129,6 +1242,7 @@ function handleWebSocketMessage(msg) {
         case 'GAME_STATE_SNAPSHOT':
             isGameOver = false;
             coins.clear();
+            powerUps.clear();
             projectiles.clear();
             clearRespawnCountdown();
             if (msg.type === 'GAME_START') {
@@ -1137,6 +1251,9 @@ function handleWebSocketMessage(msg) {
                 player.kills = 0;
                 player.deaths = 0;
                 player.health = 100;
+                player.shield = 0;
+                player.speedBoostUntil = 0;
+                player.spreadShotUntil = 0;
                 player.alive = true;
                 updateHudHealth();
             }
@@ -1147,6 +1264,9 @@ function handleWebSocketMessage(msg) {
             }
             if (msg.coins && Array.isArray(msg.coins)) {
                 msg.coins.forEach(c => coins.set(c.id, c));
+            }
+            if (msg.powerUps && Array.isArray(msg.powerUps)) {
+                msg.powerUps.forEach(pu => powerUps.set(pu.id, pu));
             }
             if (msg.obstacles && Array.isArray(msg.obstacles)) {
                 obstacles.length = 0;
@@ -1175,6 +1295,9 @@ function handleWebSocketMessage(msg) {
                         player.y = p.y;
                         player.color = p.color;
                         player.health = p.health !== undefined ? p.health : 100;
+                        player.shield = p.shield !== undefined ? p.shield : 0;
+                        player.speedBoostUntil = p.speedBoostUntil || 0;
+                        player.spreadShotUntil = p.spreadShotUntil || 0;
                         player.alive = p.alive !== undefined ? p.alive : true;
                         player.kills = p.kills || 0;
                         player.deaths = p.deaths || 0;
@@ -1192,6 +1315,9 @@ function handleWebSocketMessage(msg) {
                             radius: 16,
                             score: p.score || 0,
                             health: p.health !== undefined ? p.health : 100,
+                            shield: p.shield !== undefined ? p.shield : 0,
+                            speedBoostUntil: p.speedBoostUntil || 0,
+                            spreadShotUntil: p.spreadShotUntil || 0,
                             alive: p.alive !== undefined ? p.alive : true,
                             kills: p.kills || 0,
                             deaths: p.deaths || 0
@@ -1207,6 +1333,35 @@ function handleWebSocketMessage(msg) {
             }
             updateLiveScoreboard();
             break;
+        case 'POWER_UP_SPAWNED':
+            if (msg.powerUp) {
+                powerUps.set(msg.powerUp.id, msg.powerUp);
+            }
+            break;
+        case 'POWER_UP_COLLECTED': {
+            powerUps.delete(msg.powerUpId);
+            const isMe = msg.username === player.name;
+            const targetX = isMe ? player.x : (remotePlayers.get(msg.username)?.x || player.x);
+            const targetY = isMe ? player.y : (remotePlayers.get(msg.username)?.y || player.y);
+            const buffName = msg.powerUpType === 'SPEED_BOOST' ? '⚡ HYPER SPEED' : (msg.powerUpType === 'SPREAD_SHOT' ? '✦ TRIPLE SPREAD' : '🛡️ SHIELD BUBBLE');
+            const buffColor = msg.powerUpType === 'SPEED_BOOST' ? '#eab308' : (msg.powerUpType === 'SPREAD_SHOT' ? '#d946ef' : '#06b6d4');
+            addFloatingText(buffName, targetX, targetY - 20, buffColor);
+
+            if (isMe) {
+                if (msg.shield !== undefined) player.shield = msg.shield;
+                if (msg.speedBoostUntil !== undefined) player.speedBoostUntil = msg.speedBoostUntil;
+                if (msg.spreadShotUntil !== undefined) player.spreadShotUntil = msg.spreadShotUntil;
+                updateHudHealth();
+            } else {
+                const rp = remotePlayers.get(msg.username);
+                if (rp) {
+                    if (msg.shield !== undefined) rp.shield = msg.shield;
+                    if (msg.speedBoostUntil !== undefined) rp.speedBoostUntil = msg.speedBoostUntil;
+                    if (msg.spreadShotUntil !== undefined) rp.spreadShotUntil = msg.spreadShotUntil;
+                }
+            }
+            break;
+        }
         case 'PROJECTILE_SPAWNED':
             projectiles.set(msg.id, {
                 id: msg.id,
@@ -1238,15 +1393,24 @@ function handleWebSocketMessage(msg) {
             const targetX = isMe ? player.x : (remotePlayers.get(msg.targetUsername)?.x || player.x);
             const targetY = isMe ? player.y : (remotePlayers.get(msg.targetUsername)?.y || player.y);
 
-            addFloatingText(`-${msg.damage}`, targetX, targetY - 14, isMe ? '#ef4444' : '#f87171');
+            if (msg.shieldDamage > 0) {
+                addFloatingText(`-${msg.shieldDamage} 🛡️`, targetX, targetY - 28, '#06b6d4');
+            }
+            if (msg.healthDamage > 0) {
+                addFloatingText(`-${msg.healthDamage}`, targetX, targetY - 14, isMe ? '#ef4444' : '#f87171');
+            } else if (!msg.shieldDamage) {
+                addFloatingText(`-${msg.damage}`, targetX, targetY - 14, isMe ? '#ef4444' : '#f87171');
+            }
 
             if (isMe) {
+                if (msg.currentShield !== undefined) player.shield = msg.currentShield;
                 player.health = msg.currentHealth;
                 player.alive = !msg.isEliminated;
                 updateHudHealth();
             } else {
                 const rp = remotePlayers.get(msg.targetUsername);
                 if (rp) {
+                    if (msg.currentShield !== undefined) rp.shield = msg.currentShield;
                     rp.health = msg.currentHealth;
                     rp.alive = !msg.isEliminated;
                 }

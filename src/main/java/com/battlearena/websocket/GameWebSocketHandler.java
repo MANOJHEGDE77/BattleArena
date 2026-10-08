@@ -3,6 +3,7 @@ package com.battlearena.websocket;
 import com.battlearena.model.Coin;
 import com.battlearena.model.GamePlayer;
 import com.battlearena.model.Obstacle;
+import com.battlearena.model.PowerUp;
 import com.battlearena.model.Projectile;
 import com.battlearena.model.Room;
 import com.battlearena.model.RoomStatus;
@@ -165,9 +166,10 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
                         );
                         broadcastToRoomExcept(roomId, update, session.getId());
 
-                        // Server-authoritative coin collision detection
+                        // Server-authoritative coin & power-up collision detection
                         if (room.getStatus() == RoomStatus.PLAYING) {
                             checkCoinCollisions(room, roomId, username);
+                            checkPowerUpCollisions(room, roomId, username);
                         }
                     }
                 }
@@ -185,6 +187,18 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
                 }
                 break;
             }
+            case "COLLECT_POWERUP": {
+                String username = sessionToUser.get(session.getId());
+                String roomId = sessionToRoom.get(session.getId());
+                if (username != null && roomId != null && root.has("powerUpId")) {
+                    String powerUpId = root.get("powerUpId").asText();
+                    Room room = roomService.getActiveRoom(roomId);
+                    if (room != null && room.getStatus() == RoomStatus.PLAYING) {
+                        handlePowerUpCollection(room, roomId, username, powerUpId);
+                    }
+                }
+                break;
+            }
             case "ATTACK": {
                 String username = sessionToUser.get(session.getId());
                 String roomId = sessionToRoom.get(session.getId());
@@ -192,8 +206,8 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
                     double heading = root.has("heading") ? root.get("heading").asDouble() : 0.0;
                     Room room = roomService.getActiveRoom(roomId);
                     if (room != null && room.getStatus() == RoomStatus.PLAYING) {
-                        Projectile proj = room.fireProjectile(username, heading);
-                        if (proj != null) {
+                        List<Projectile> projs = room.fireProjectiles(username, heading);
+                        for (Projectile proj : projs) {
                             Map<String, Object> payloadMap = new LinkedHashMap<>();
                             payloadMap.put("type", "PROJECTILE_SPAWNED");
                             payloadMap.put("id", proj.getId());
@@ -281,15 +295,16 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
         // If game is in progress, sync game state snapshot to the connecting user
         Room activeRoom = roomService.getActiveRoom(roomId);
         if (activeRoom != null && activeRoom.getStatus() == RoomStatus.PLAYING) {
-            sendDirect(session, Map.of(
-                    "type", "GAME_STATE_SNAPSHOT",
-                    "roomId", roomId,
-                    "coins", activeRoom.getCoins(),
-                    "players", activeRoom.getGamePlayers(),
-                    "obstacles", activeRoom.getObstacles(),
-                    "projectiles", activeRoom.getProjectiles(),
-                    "winningScore", Room.getWinningScore()
-            ));
+            Map<String, Object> snapshot = new LinkedHashMap<>();
+            snapshot.put("type", "GAME_STATE_SNAPSHOT");
+            snapshot.put("roomId", roomId);
+            snapshot.put("coins", activeRoom.getCoins());
+            snapshot.put("powerUps", activeRoom.getPowerUps());
+            snapshot.put("players", activeRoom.getGamePlayers());
+            snapshot.put("obstacles", activeRoom.getObstacles());
+            snapshot.put("projectiles", activeRoom.getProjectiles());
+            snapshot.put("winningScore", Room.getWinningScore());
+            sendDirect(session, snapshot);
         }
 
         // Notify other room participants
@@ -297,6 +312,58 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
                 "type", "PLAYER_JOINED",
                 "username", username
         ), session.getId());
+    }
+
+    private void checkPowerUpCollisions(Room room, String roomId, String username) {
+        GamePlayer player = room.getGamePlayer(username);
+        if (player == null || !player.isAlive()) {
+            return;
+        }
+
+        for (PowerUp pu : room.getPowerUps()) {
+            double dx = player.getX() - pu.getX();
+            double dy = player.getY() - pu.getY();
+            double maxDist = player.getRadius() + pu.getRadius() + 10.0;
+            if (dx * dx + dy * dy <= maxDist * maxDist) {
+                handlePowerUpCollection(room, roomId, username, pu.getId());
+                break;
+            }
+        }
+    }
+
+    private synchronized void handlePowerUpCollection(Room room, String roomId, String username, String powerUpId) {
+        PowerUp collected = room.collectPowerUp(username, powerUpId);
+        if (collected != null) {
+            GamePlayer player = room.getGamePlayer(username);
+            Map<String, Object> payload = new LinkedHashMap<>();
+            payload.put("type", "POWER_UP_COLLECTED");
+            payload.put("powerUpId", collected.getId());
+            payload.put("powerUpType", collected.getType().name());
+            payload.put("username", username);
+            payload.put("durationMs", collected.getDurationMs());
+            if (player != null) {
+                payload.put("shield", player.getShield());
+                payload.put("speedBoostUntil", player.getSpeedBoostUntil());
+                payload.put("spreadShotUntil", player.getSpreadShotUntil());
+            }
+            broadcastToRoom(roomId, payload);
+
+            // Spawn replacement power-up after 6 seconds delay
+            respawnScheduler.schedule(() -> {
+                try {
+                    Room r = roomService.getActiveRoom(roomId);
+                    if (r != null && r.getStatus() == RoomStatus.PLAYING) {
+                        PowerUp newPu = r.spawnSinglePowerUp();
+                        if (newPu != null) {
+                            broadcastToRoom(roomId, Map.of(
+                                    "type", "POWER_UP_SPAWNED",
+                                    "powerUp", newPu
+                            ));
+                        }
+                    }
+                } catch (Exception ignored) {}
+            }, 6000, TimeUnit.MILLISECONDS);
+        }
     }
 
     private void checkCoinCollisions(Room room, String roomId, String username) {
@@ -351,16 +418,19 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
         Room.HitResult hit = room.validateAndApplyHit(projectileId, targetUsername);
         if (hit.isValid()) {
             // Broadcast damage event to room
-            broadcastToRoom(roomId, Map.of(
-                    "type", "PLAYER_DAMAGED",
-                    "projectileId", hit.getProjectile().getId(),
-                    "targetUsername", hit.getTarget().getUsername(),
-                    "shooterUsername", hit.getShooter().getUsername(),
-                    "damage", hit.getDamage(),
-                    "currentHealth", hit.getTarget().getHealth(),
-                    "maxHealth", hit.getTarget().getMaxHealth(),
-                    "isEliminated", hit.isEliminated()
-            ));
+            Map<String, Object> damagePayload = new LinkedHashMap<>();
+            damagePayload.put("type", "PLAYER_DAMAGED");
+            damagePayload.put("projectileId", hit.getProjectile().getId());
+            damagePayload.put("targetUsername", hit.getTarget().getUsername());
+            damagePayload.put("shooterUsername", hit.getShooter().getUsername());
+            damagePayload.put("damage", hit.getDamage());
+            damagePayload.put("shieldDamage", hit.getShieldDamage());
+            damagePayload.put("healthDamage", hit.getHealthDamage());
+            damagePayload.put("currentShield", hit.getTarget().getShield());
+            damagePayload.put("currentHealth", hit.getTarget().getHealth());
+            damagePayload.put("maxHealth", hit.getTarget().getMaxHealth());
+            damagePayload.put("isEliminated", hit.isEliminated());
+            broadcastToRoom(roomId, damagePayload);
 
             if (hit.isEliminated()) {
                 double[] respawnCoords = hit.getRespawnCoords();

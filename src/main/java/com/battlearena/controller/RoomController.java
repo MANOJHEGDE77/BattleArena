@@ -129,6 +129,7 @@ public class RoomController {
         payload.put("roomId", roomId);
         if (room != null) {
             payload.put("coins", room.getCoins());
+            payload.put("powerUps", room.getPowerUps());
             payload.put("players", room.getGamePlayers());
             payload.put("obstacles", room.getObstacles());
             payload.put("winningScore", Room.getWinningScore());
