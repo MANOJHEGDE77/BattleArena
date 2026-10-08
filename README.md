@@ -1,186 +1,796 @@
-# ⚔️ Cyber Battle Arena
+# Cyber Battle Arena
 
-> **Real-Time Server-Authoritative Multiplayer 2D Canvas Monolith**  
-> *Zero external frontend libraries • Zero audio files • Zero static image assets • 100% Procedural Canvas 2D & Web Audio API*
+A real-time, server-authoritative multiplayer 2D arena shooter built using Java 21, Spring Boot, WebSockets, MySQL, HTML5 Canvas, and the Web Audio API.
 
----
+Cyber Battle Arena is designed as a lightweight monolithic multiplayer application. The server manages authoritative game state, player movement, combat, projectiles, collisions, hazards, power-ups, and match events, while the browser client handles rendering, user input, interface components, and procedural audio.
 
-## 🌟 Executive Overview
-
-**Cyber Battle Arena** is a competitive real-time 2D multiplayer top-down arena shooter built on an ultra-low-resource monolithic architecture. Combining high-performance **Java 21** and **Spring Boot 3** on the backend with pure, unadulterated **Vanilla HTML5 Canvas 2D, CSS3, and JavaScript** on the frontend, the game delivers sub-millisecond tick synchronization, server-authoritative physics, and rich cyberpunk audiovisuals without a single external client dependency, sound file, or sprite sheet.
+The project intentionally avoids frontend frameworks, game engines, external sprite sheets, and audio files. Game visuals are rendered using HTML5 Canvas 2D, and audio effects are generated dynamically using the Web Audio API.
 
 ---
 
-## 🛠️ Core Technology Stack
+## Project Overview
 
-| Layer | Technologies & Specifications |
-| :--- | :--- |
-| **Backend Core** | Java 21 LTS, Spring Boot 3.3.4, Spring Web, Spring WebSocket, Spring Security |
-| **Data & Persistence** | Spring Data JPA, Hibernate, MySQL 8.0+ relational storage with connection pooling |
-| **Security & Auth** | Stateless JWT (JSON Web Tokens) with HMAC-SHA256 signing, BCrypt password hashing |
-| **Networking** | Server-authoritative bidirectional WebSockets (`/ws/game`), JSON packet routing |
-| **Client Rendering** | HTML5 Canvas 2D, hardware-accelerated vector drawing, sub-pixel delta interpolation |
-| **Audio Synthesis** | 100% Procedural Web Audio API synthesizer (oscillators, biquad filters, white noise buffers) |
-| **Styling & HUD** | Modern glassmorphism, responsive grid layouts, Google Fonts (Outfit), CSS3 micro-animations |
+The application provides a real-time multiplayer arena where players can:
+
+- Create and join multiplayer rooms
+- Select different warrior classes
+- Move and aim in real time
+- Fire class-specific weapons
+- Fight other players
+- Collect power-ups
+- Use environmental hazards
+- Communicate through in-game chat
+- Use tactical emotes
+- Enter spectator mode after elimination
+- View killcam information
+- Review match statistics
+- Unlock achievements
+
+The server is responsible for validating important gameplay actions to prevent clients from directly manipulating game state.
 
 ---
 
-## 🚀 Complete 20-Phase Feature Matrix (100% Milestone)
+## Technology Stack
 
+| Layer | Technology |
+|---|---|
+| Backend | Java 21 |
+| Framework | Spring Boot 3.3.4 |
+| Web | Spring Web |
+| Real-Time Communication | Spring WebSocket |
+| Security | Spring Security |
+| Authentication | JWT |
+| Password Hashing | BCrypt |
+| Persistence | Spring Data JPA |
+| ORM | Hibernate |
+| Database | MySQL 8+ |
+| Build Tool | Maven |
+| Frontend | HTML5, CSS3, JavaScript |
+| Rendering | HTML5 Canvas 2D |
+| Audio | Web Audio API |
+| Testing | Node.js test scripts |
+
+---
+
+## Architecture
+
+Cyber Battle Arena uses a monolithic server architecture.
+
+```text
+Browser Client
+    |
+    | HTTP / WebSocket
+    |
+    v
+Spring Boot Application
+    |
+    +-- Authentication
+    +-- Lobby Management
+    +-- Room Management
+    +-- Game Engine
+    +-- Movement Validation
+    +-- Combat Engine
+    +-- Projectile System
+    +-- Collision Detection
+    +-- Power-Up System
+    +-- Hazard System
+    +-- Chat System
+    +-- Emote System
+    +-- Spectator System
+    +-- Match Management
+    |
+    v
+MySQL Database
 ```
-[Phase 1-5]  Core Foundation ➔ Monolith Architecture, Canvas 2D Loop, JWT Auth, Lobby System, WebSockets
-[Phase 6-9]  Combat Engine   ➔ Coin Collectibles, Career History, Server-Authoritative Combat, Leaderboards
-[Phase 10-13] Arena Dynamics ➔ Tactical Bunkers, Power-Up Buffs, Sudden Death Storm, Web Audio Synth Engine
-[Phase 14-17] Tactical Depth ➔ In-Game Comms Chat, Spectator Drone, 4 Warrior Classes, Environmental Hazards
-[Phase 18-20] Apex Release   ➔ Radial Emote Wheel, Dynamic Killcam, Match Accolades, Achievements & Settings
-```
 
-### 1. Server-Authoritative Physics & Combat
-- **Lag Compensation & Bounded Raycasts:** Projectiles travel at deterministic velocities. The server validates line-of-sight against bunkers, calculates closed-form positions, and rejects client exploits.
-- **Shield & Durability Modeling:** Health and energy shields absorb damage dynamically. Shield deflections produce bright cyan feedback rings and distinct procedural audio chirps.
-
-### 2. Four Specialized Warrior Classes
-Each warrior archetype is tuned with distinct attributes, speeds, and proprietary weapon loadouts:
-- **🛡️ ASSAULT (Vanguard):** 100 HP, 50 Shield, 240 px/s speed. Wields the rapid *Pulse Blaster* (20 DMG, 650 vel, 350ms CD).
-- **🦾 JUGGERNAUT (Titan):** 150 HP, 75 Shield, 195 px/s speed. Wields the explosive *Plasma Cannon* (35 DMG, 420 vel, 550ms CD).
-- **⚡ SCOUT (Skirmisher):** 75 HP, 35 Shield, 290 px/s speed. Wields *Twin Needles* (14 DMG, 720 vel, 220ms CD).
-- **🎯 SNIPER (Marksman):** 85 HP, 40 Shield, 220 px/s speed. Wields the lethal *Hyper Railgun* (45 DMG, 820 vel, 620ms CD).
-
-### 3. Dynamic Environmental Hazards
-- **⚡ Jump Boost Launch Pads:** Spring-loaded conduits launching warriors across obstacles at 340 px/s.
-- **🌋 Thermal Lava Pools:** Geothermal vents dealing 15 continuous damage/sec to prevent camping.
-- **💥 Volatile Fuel Barrels:** Interactive explosive canisters detonating with a 90px blast radius (35 damage) upon bullet impact.
-- **⛈️ Sudden Death Safe Zone:** A contracting electromagnetic ring collapsing during endgame; exterior triggers toxic storm ticks.
-
-### 4. Tactical Emote Wheel & In-World Callouts
-- **Radial Wheel HUD:** Press `[T]` or keys `[1-8]` to trigger instant callouts:
-  - `[1]` 🎯 *Enemy Sighted* • `[2]` 🛡️ *Defend Here* • `[3]` ⚡ *Charge In* • `[4]` 💥 *Danger Ahead*
-  - `[5]` 🚨 *Need Backup* • `[6]` 💀 *Taunt Flex* • `[7]` 👑 *Good Game* • `[8]` ❤️ *Need Repairs*
-- **Vector Speech Holograms:** In-world holographic speech bubbles floating above warriors with pulsing radar ping beacon rings.
-
-### 5. Dynamic Killcam, Accolades & Match Recap
-- **Glassmorphic Death Cam:** Highlights the killer's avatar, class, remaining HP/shield, weapon used, impact range, and respawn countdown bar.
-- **Post-Match Accolades:** Automatically computes MVP, Apex Eliminator, and First Blood badges.
-- **Combat Highlights Timeline:** Chronological battle replay log with instantaneous copy-to-clipboard battle report export.
-
-### 6. Career Achievements & System Settings
-- **6 Unlocked Milestones:** *First Blood*, *Apex Champion*, *Sharpshooter*, *Iron Titan*, *Cyber Hoarder*, and *Hazard Engineer*.
-- **Celebratory Toast Fanfare:** Unlocks trigger gold cyberpunk notification banners and procedural arpeggiated audio fanfares.
-- **Procedural Ambient Drone:** 55Hz sub-bass binaural atmospheric synthesizer generates an immersive cyberpunk soundscape.
-- **Live Latency / Ping Meter:** Real-time round-trip latency (`ms`) monitored dynamically in the HUD.
+The browser is responsible for presentation and input, while the server remains the authority for important gameplay decisions.
 
 ---
 
-## 📡 WebSocket Network Protocol
+## Server-Authoritative Architecture
 
-All real-time communications flow through the `/ws/game` endpoint over JSON packet structures:
+The client does not have final authority over game state.
 
-### Client ➔ Server Packets
+For example, when a player fires a weapon:
+
+```text
+Client
+   |
+   | ATTACK
+   v
+Server
+   |
+   +-- Validate player
+   +-- Validate weapon
+   +-- Validate cooldown
+   +-- Create projectile
+   +-- Calculate projectile movement
+   +-- Perform collision detection
+   +-- Calculate damage
+   +-- Update player state
+   |
+   v
+Broadcast Result
+   |
+   v
+Connected Clients
+```
+
+This prevents clients from directly deciding:
+
+- Damage
+- Health
+- Shield values
+- Projectile results
+- Cooldowns
+- Eliminations
+- Match results
+- Invalid movement
+
+---
+
+## Warrior Classes
+
+The game provides four classes with different characteristics.
+
+| Class | Health | Shield | Speed | Weapon | Damage | Projectile Speed | Cooldown |
+|---|---:|---:|---:|---|---:|---:|---:|
+| Assault | 100 | 50 | 240 | Pulse Blaster | 20 | 650 | 350 ms |
+| Juggernaut | 150 | 75 | 195 | Plasma Cannon | 35 | 420 | 550 ms |
+| Scout | 75 | 35 | 290 | Twin Needles | 14 | 720 | 220 ms |
+| Sniper | 85 | 40 | 220 | Hyper Railgun | 45 | 820 | 620 ms |
+
+### Assault
+
+Balanced class designed for general combat.
+
+### Juggernaut
+
+High health and shield with lower movement speed and heavier attacks.
+
+### Scout
+
+Fast-moving class with lower durability and rapid attacks.
+
+### Sniper
+
+Long-range class with high damage and a slower firing rate.
+
+---
+
+## Combat System
+
+The combat engine includes:
+
+- Projectile generation
+- Projectile movement
+- Collision detection
+- Damage calculation
+- Shield absorption
+- Health reduction
+- Weapon cooldowns
+- Line-of-sight validation
+- Obstacle collision
+- Player elimination
+- Explosion damage
+
+Projectile and damage calculations are performed by the server.
+
+---
+
+## Arena Systems
+
+### Tactical Bunkers
+
+Bunkers provide cover and can block projectile line-of-sight.
+
+The server validates projectile paths against arena obstacles.
+
+### Jump Pads
+
+Jump pads provide additional movement options by launching players across portions of the arena.
+
+### Lava Pools
+
+Players inside lava zones receive continuous damage.
+
+### Explosive Barrels
+
+Players can trigger explosive barrels by shooting them.
+
+The resulting explosion applies area-of-effect damage to nearby players.
+
+### Sudden Death Zone
+
+The playable area contracts during the end phase of the match.
+
+Players outside the safe zone receive periodic damage.
+
+---
+
+## Power-Ups
+
+The arena supports temporary gameplay modifications including:
+
+- Shield boosts
+- Movement speed boosts
+- Weapon enhancements
+- Spread-shot effects
+
+Power-up activation and duration are validated by the server.
+
+---
+
+## Multiplayer Communication
+
+The game uses WebSockets for real-time communication.
+
+WebSocket endpoint:
+
+```text
+/ws/game
+```
+
+Messages are represented as JSON objects.
+
+### Client to Server
+
+#### Movement
+
 ```json
-// Locomotion Update
-{ "type": "MOVE", "x": 320.5, "y": 240.0, "heading": 1.57 }
-
-// Class Weapon Fire
-{ "type": "ATTACK", "heading": 0.785 }
-
-// Projectile Hit Claim
-{ "type": "PROJECTILE_HIT", "projectileId": "PROJ-A1B2C3", "targetUsername": "Viper" }
-
-// Tactical Callout Emote
-{ "type": "EMOTE", "emoteId": "TARGET_SPOTTED" }
-
-// In-Game Text Chat
-{ "type": "CHAT", "text": "Push B bunker now!" }
-
-// Round-Trip Ping
-{ "type": "PING", "clientTime": 12485.2 }
+{
+  "type": "MOVE",
+  "x": 320.5,
+  "y": 240.0,
+  "heading": 1.57
+}
 ```
 
-### Server ➔ Client Broadcast Events
+#### Attack
+
 ```json
-// Projectile Spawn
-{ "type": "PROJECTILE_SPAWNED", "id": "PROJ-A1B2C3", "shooter": "Dan", "x": 100, "y": 300, "vx": 820, "vy": 0, "speed": 820, "damage": 45, "radius": 4 }
+{
+  "type": "ATTACK",
+  "heading": 0.785
+}
+```
 
-// Damage Resolution
-{ "type": "PLAYER_DAMAGED", "projectileId": "PROJ-A1B2C3", "targetUsername": "Bob", "shooterUsername": "Dan", "damage": 45, "shieldDamage": 25, "healthDamage": 20, "currentHealth": 55, "isEliminated": false }
+#### Chat
 
-// Elimination & Killcam Breakdown
-{ "type": "PLAYER_ELIMINATED", "victim": "Bob", "killer": "Dan", "killerClass": "SNIPER", "weaponName": "Hyper Railgun", "distance": 220, "killerHealth": 85, "killerMaxHealth": 85, "killerShield": 40, "respawnDelayMs": 2500 }
+```json
+{
+  "type": "CHAT",
+  "text": "Push B bunker now!"
+}
+```
 
-// Barrel Detonation
-{ "type": "BARREL_EXPLODED", "barrelId": "BARREL-1", "x": 160, "y": 430, "blastRadius": 90, "victims": [...] }
+#### Emote
 
-// Latency Pong
-{ "type": "PONG", "clientTime": 12485.2, "timestamp": 1791468500120 }
+```json
+{
+  "type": "EMOTE",
+  "emoteId": "TARGET_SPOTTED"
+}
+```
+
+#### Ping
+
+```json
+{
+  "type": "PING",
+  "clientTime": 12485.2
+}
+```
+
+### Server to Client
+
+#### Projectile Spawn
+
+```json
+{
+  "type": "PROJECTILE_SPAWNED",
+  "id": "PROJ-A1B2C3",
+  "shooter": "Dan",
+  "x": 100,
+  "y": 300,
+  "vx": 820,
+  "vy": 0,
+  "speed": 820,
+  "damage": 45,
+  "radius": 4
+}
+```
+
+#### Player Damage
+
+```json
+{
+  "type": "PLAYER_DAMAGED",
+  "projectileId": "PROJ-A1B2C3",
+  "targetUsername": "Bob",
+  "shooterUsername": "Dan",
+  "damage": 45,
+  "shieldDamage": 25,
+  "healthDamage": 20,
+  "currentHealth": 55,
+  "isEliminated": false
+}
+```
+
+#### Player Elimination
+
+```json
+{
+  "type": "PLAYER_ELIMINATED",
+  "victim": "Bob",
+  "killer": "Dan",
+  "killerClass": "SNIPER",
+  "weaponName": "Hyper Railgun",
+  "distance": 220,
+  "killerHealth": 85,
+  "killerMaxHealth": 85,
+  "killerShield": 40,
+  "respawnDelayMs": 2500
+}
+```
+
+#### Latency Response
+
+```json
+{
+  "type": "PONG",
+  "clientTime": 12485.2,
+  "timestamp": 1791468500120
+}
 ```
 
 ---
 
-## 🎮 Controls & Hotkeys Guide
+## Controls
 
-| Keybind | Function |
-| :--- | :--- |
-| **W, A, S, D** / **Arrows** | Omnidirectional arena locomotion & strafing |
-| **Mouse Aim + Left Click** / **Space** | Aim vector pointer; fire class weapon projectile |
-| **[T]** / **[1 - 8]** | Open Tactical Emote Wheel or trigger instant callout ping |
-| **Enter** | Open and submit in-game match chat message |
-| **[M]** | Instant toggle audio synthesizer mute / unmute |
-| **[H]** | Toggle Tactical Operations & Intel Manual modal |
-| **[Esc]** | Toggle Audio / Settings modal & dismiss open windows |
-| **[1 - 8]** *(Spectator Mode)* | Snap observer drone to track specific player index |
-| **Space** *(Spectator Mode)* | Recenter free camera to arena center |
+| Input | Function |
+|---|---|
+| W, A, S, D | Movement |
+| Arrow Keys | Movement |
+| Mouse | Aim |
+| Left Click | Fire |
+| Space | Fire |
+| T | Open tactical emote wheel |
+| 1 - 8 | Tactical callouts |
+| Enter | Open and submit chat |
+| M | Toggle audio |
+| H | Open tactical manual |
+| Esc | Open settings or close modal |
+
+### Spectator Controls
+
+| Input | Function |
+|---|---|
+| 1 - 8 | Follow player |
+| Space | Center camera |
 
 ---
 
-## 💻 Local Setup & Execution Guide
+## Tactical Communication
 
-### Prerequisites
-- **Java 21 (JDK 21 LTS)** installed and configured on your `PATH`.
-- **Apache Maven 3.9+** (or use bundled `mvn`).
-- **MySQL 8.0+** running locally on port 3306 with database `battle_arena` created.
+Players can send tactical callouts during a match.
 
-### 1. Database Configuration
-Ensure MySQL has a database named `battle_arena`:
+| Key | Callout |
+|---|---|
+| 1 | Enemy Sighted |
+| 2 | Defend Here |
+| 3 | Charge In |
+| 4 | Danger Ahead |
+| 5 | Need Backup |
+| 6 | Taunt Flex |
+| 7 | Good Game |
+| 8 | Need Repairs |
+
+Callouts are displayed as in-world notifications above players.
+
+---
+
+## Spectator Mode
+
+Players who are eliminated can enter spectator mode.
+
+Spectator functionality includes:
+
+- Player tracking
+- Player switching
+- Arena overview
+- Camera recentering
+- Follow-player camera
+
+---
+
+## Killcam and Match Recap
+
+The killcam displays information about the elimination event.
+
+Information includes:
+
+- Killer
+- Killer class
+- Weapon
+- Distance
+- Remaining health
+- Remaining shield
+- Respawn countdown
+
+The match recap maintains a chronological record of important combat events.
+
+---
+
+## Authentication and Security
+
+Authentication is implemented using JWT.
+
+The authentication flow is:
+
+```text
+Registration
+    |
+    v
+BCrypt Password Hash
+    |
+    v
+MySQL
+    |
+    v
+Login
+    |
+    v
+JWT Generation
+    |
+    v
+Authenticated Requests
+```
+
+Passwords are never stored as plaintext.
+
+The application uses stateless authentication and validates authenticated requests before allowing protected operations.
+
+---
+
+## Procedural Audio
+
+The project does not require external audio files.
+
+Audio is generated using the browser's Web Audio API.
+
+Procedural audio is used for:
+
+- Weapon sounds
+- Impact effects
+- Shield effects
+- Explosions
+- UI feedback
+- Achievement notifications
+- Ambient background audio
+
+The audio system uses browser audio nodes such as oscillators, filters, gain nodes, and generated noise buffers.
+
+---
+
+## Canvas Rendering
+
+The game client uses HTML5 Canvas 2D for rendering.
+
+Visual elements are generated procedurally using:
+
+- Lines
+- Circles
+- Rectangles
+- Arcs
+- Gradients
+- Particles
+- Glow effects
+- Dynamic animations
+
+No external game engine is required.
+
+---
+
+## Game Loop
+
+The client uses the browser animation loop:
+
+```javascript
+requestAnimationFrame(gameLoop);
+```
+
+The client separates:
+
+```text
+Input
+  |
+Network
+  |
+Game State
+  |
+Interpolation
+  |
+Rendering
+```
+
+Remote player positions can be interpolated to provide smoother visual movement between server updates.
+
+---
+
+## Latency Monitoring
+
+The application provides a real-time latency indicator.
+
+The client sends:
+
+```json
+{
+  "type": "PING",
+  "clientTime": 12485.2
+}
+```
+
+The server responds with:
+
+```json
+{
+  "type": "PONG",
+  "clientTime": 12485.2,
+  "timestamp": 1791468500120
+}
+```
+
+The client calculates the approximate round-trip latency and displays the result in milliseconds.
+
+---
+
+## Database
+
+MySQL is used for persistent application data.
+
+Typical persistent information includes:
+
+```text
+User
+Match
+MatchParticipant
+PlayerStatistics
+Achievement
+PlayerAchievement
+```
+
+Rapidly changing gameplay state is maintained in server memory rather than continuously writing game-frame information to the database.
+
+---
+
+## Achievements
+
+The application includes career achievements such as:
+
+- First Blood
+- Apex Champion
+- Sharpshooter
+- Iron Titan
+- Cyber Hoarder
+- Hazard Engineer
+
+Achievement notifications are displayed in the client interface and can trigger procedural audio effects.
+
+---
+
+## Testing
+
+Automated verification scripts are located under:
+
+```text
+scratch/
+```
+
+Current test areas include:
+
+| Test | Purpose |
+|---|---|
+| test_phase8_combat.js | Projectile and damage validation |
+| test_phase10_obstacles.js | Bunker collision and line-of-sight |
+| test_phase11_powerups.js | Power-up behavior |
+| test_phase12_storm.js | Safe-zone and storm behavior |
+| test_phase13_audio.js | Procedural audio |
+| test_phase14_chat.js | Chat broadcasting |
+| test_phase15_spectator.js | Spectator functionality |
+| test_phase16_classes.js | Warrior classes |
+| test_phase17_hazards.js | Arena hazards |
+| test_phase18_emotes.js | Tactical emotes |
+| test_phase19_recap.js | Killcam and match recap |
+| test_phase20_master_100.js | End-to-end integration |
+
+Example:
+
+```bash
+node scratch/test_phase8_combat.js
+```
+
+---
+
+## Requirements
+
+Before running the application, install:
+
+- Java 21
+- Maven 3.9+
+- MySQL 8+
+- Node.js
+- Modern web browser
+
+Verify the installations:
+
+```bash
+java -version
+mvn -version
+node --version
+```
+
+---
+
+## Installation
+
+### 1. Clone the Repository
+
+```bash
+git clone <YOUR_REPOSITORY_URL>
+cd cyber-battle-arena
+```
+
+### 2. Create the Database
+
+Open MySQL and run:
+
 ```sql
 CREATE DATABASE IF NOT EXISTS battle_arena;
 ```
-Configure your credentials in `src/main/resources/application.properties` if different from default `root` / `password`.
 
-### 2. Build & Launch the Server
+### 3. Configure Database Credentials
+
+Update:
+
+```text
+src/main/resources/application.properties
+```
+
+Example:
+
+```properties
+spring.datasource.url=jdbc:mysql://localhost:3306/battle_arena
+spring.datasource.username=root
+spring.datasource.password=YOUR_PASSWORD
+```
+
+Do not commit production credentials or secrets to the repository.
+
+### 4. Build the Application
+
 ```bash
 mvn clean compile
+```
+
+### 5. Start the Application
+
+```bash
 mvn spring-boot:run
 ```
-Once started, Tomcat will serve the monolith on **`http://localhost:8080`**.
 
-### 3. Play
-Open `http://localhost:8080` in your modern web browser (Chrome, Edge, Firefox, Safari).
-1. Click **Login / Register** to create a player profile.
-2. Join an existing arena or click **+ Create Room**.
-3. Select your **Warrior Class** (Assault, Juggernaut, Scout, or Sniper).
-4. Click **Ready Up** and battle!
+The application will be available at:
 
----
+```text
+http://localhost:8080
+```
 
-## 🧪 Comprehensive Automated Test Suites
+### 6. Start a Match
 
-The repository contains standalone Node.js automated verification test scripts under `scratch/`:
-- `test_phase8_combat.js` - Projectiles, hit detection & health deduction
-- `test_phase10_obstacles.js` - Bunker raycast cover checks
-- `test_phase11_powerups.js` - Shield, speed boost & spread shot buffs
-- `test_phase12_storm.js` - Safe zone contraction & sudden death damage
-- `test_phase13_audio.js` - Procedural Web Audio API synthesis verification
-- `test_phase14_chat.js` - Real-time match chat broadcasting
-- `test_phase15_spectator.js` - Observer drone mode & spectate mechanics
-- `test_phase16_classes.js` - 4 Warrior classes, stats & weapon dynamics
-- `test_phase17_hazards.js` - Jump pads, lava pools & explosive barrels
-- `test_phase18_emotes.js` - Radial emote wheel, speech bubbles & beacons
-- `test_phase19_recap.js` - Dynamic killcam review & combat timeline highlights
-- `test_phase20_master_100.js` - Full end-to-end master integration suite
+1. Open the application.
+2. Create an account.
+3. Login.
+4. Create or join a room.
+5. Select a warrior class.
+6. Ready up.
+7. Start the match.
+
+For local multiplayer testing, open the application in multiple browser windows.
 
 ---
 
-## 📜 License & Acknowledgments
+## Project Structure
 
-Engineered as a clean-room demonstration of modern low-overhead, high-performance web engineering.  
-Zero bloated dependencies, maximum responsiveness.
+```text
+cyber-battle-arena/
+|
++-- src/
+|   +-- main/
+|   |   +-- java/
+|   |   |   +-- ...
+|   |   |
+|   |   +-- resources/
+|   |       +-- static/
+|   |       |   +-- index.html
+|   |       |   +-- css/
+|   |       |   +-- js/
+|   |       |
+|   |       +-- application.properties
+|   |
+|   +-- test/
+|
++-- scratch/
+|   +-- test_phase8_combat.js
+|   +-- test_phase10_obstacles.js
+|   +-- ...
+|   +-- test_phase20_master_100.js
+|
++-- pom.xml
++-- README.md
+```
+
+The exact structure may change as the project evolves.
+
+---
+
+## Engineering Concepts
+
+This project demonstrates practical implementation of:
+
+- Object-oriented programming
+- Spring Boot application development
+- REST APIs
+- WebSocket communication
+- Real-time state synchronization
+- Server-authoritative architecture
+- Collision detection
+- Projectile simulation
+- Vector mathematics
+- Game loops
+- JWT authentication
+- BCrypt password hashing
+- Spring Security
+- JPA and Hibernate
+- MySQL persistence
+- Concurrent multiplayer state
+- Client-side interpolation
+- Latency measurement
+- Procedural Canvas rendering
+- Procedural Web Audio
+- Automated integration testing
+
+---
+
+## Future Improvements
+
+Potential future improvements include:
+
+- Matchmaking
+- Ranked matches
+- Additional maps
+- Additional weapons
+- Player statistics dashboard
+- Reconnection support
+- Network prediction
+- Replay storage
+- Docker deployment
+- Distributed game servers
+- Redis-based shared state
+- Kubernetes deployment
+
+---
+
+## License
+
+This project is intended as an educational and engineering demonstration.
+
+Add the appropriate license for your repository.
+
+---
+
+## Author
+
+Manoj M Hegde
+
+Computer Science and Data Science  
+Vivekananda College of Engineering and Technology
