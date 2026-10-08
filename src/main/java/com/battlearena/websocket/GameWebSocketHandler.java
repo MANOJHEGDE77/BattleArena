@@ -347,7 +347,14 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
                 break;
             }
             case "PING": {
-                sendDirect(session, Map.of("type", "PONG", "timestamp", System.currentTimeMillis()));
+                long clientTime = root.has("clientTime") ? root.get("clientTime").asLong() : 0L;
+                Map<String, Object> pong = new LinkedHashMap<>();
+                pong.put("type", "PONG");
+                pong.put("timestamp", System.currentTimeMillis());
+                if (clientTime > 0) {
+                    pong.put("clientTime", clientTime);
+                }
+                sendDirect(session, pong);
                 break;
             }
             default:

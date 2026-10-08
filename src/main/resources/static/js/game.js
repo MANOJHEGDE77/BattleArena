@@ -138,6 +138,182 @@ function showKillcamReview(msg) {
     }
 }
 
+// --- Phase 20 DOM Elements & State: Settings, Intel Manual & Achievements ---
+const hudPing = document.getElementById('hudPing');
+const openSettingsBtn = document.getElementById('openSettingsBtn');
+const settingsModal = document.getElementById('settingsModal');
+const closeSettingsModalBtn = document.getElementById('closeSettingsModalBtn');
+const masterVolumeRange = document.getElementById('masterVolumeRange');
+const masterVolDisplay = document.getElementById('masterVolDisplay');
+const sfxVolumeRange = document.getElementById('sfxVolumeRange');
+const sfxVolDisplay = document.getElementById('sfxVolDisplay');
+const ambientDroneToggle = document.getElementById('ambientDroneToggle');
+const screenShakeToggle = document.getElementById('screenShakeToggle');
+const modalSoundToggleBtn = document.getElementById('modalSoundToggleBtn');
+const saveSettingsBtn = document.getElementById('saveSettingsBtn');
+
+const openIntelBtn = document.getElementById('openIntelBtn');
+const intelModal = document.getElementById('intelModal');
+const closeIntelModalBtn = document.getElementById('closeIntelModalBtn');
+const tabIntelControlsBtn = document.getElementById('tabIntelControlsBtn');
+const tabIntelClassesBtn = document.getElementById('tabIntelClassesBtn');
+const tabIntelHazardsBtn = document.getElementById('tabIntelHazardsBtn');
+const intelControlsSection = document.getElementById('intelControlsSection');
+const intelClassesSection = document.getElementById('intelClassesSection');
+const intelHazardsSection = document.getElementById('intelHazardsSection');
+
+const tabMatchLogsBtn = document.getElementById('tabMatchLogsBtn');
+const tabAchievementsBtn = document.getElementById('tabAchievementsBtn');
+const matchRecordsSection = document.getElementById('matchRecordsSection');
+const achievementsSection = document.getElementById('achievementsSection');
+const achievementsGrid = document.getElementById('achievementsGrid');
+const unlockedAchievementsCount = document.getElementById('unlockedAchievementsCount');
+const achievementToastContainer = document.getElementById('achievementToastContainer');
+
+let screenShakeEnabled = localStorage.getItem('battle_arena_screenshake') !== 'false';
+let coinsCollectedSession = 0;
+let pingInterval = null;
+
+const ACHIEVEMENTS_CONFIG = {
+    FIRST_BLOOD: {
+        id: 'FIRST_BLOOD',
+        icon: '🩸',
+        title: 'First Blood',
+        desc: 'Claim your first combat elimination in the arena.'
+    },
+    APEX_CHAMPION: {
+        id: 'APEX_CHAMPION',
+        icon: '🏆',
+        title: 'Apex Champion',
+        desc: 'Secure 1st place victory in an arena match.'
+    },
+    SHARPSHOOTER: {
+        id: 'SHARPSHOOTER',
+        icon: '🎯',
+        title: 'Sharpshooter',
+        desc: 'Eliminate an opponent from over 150m distance.'
+    },
+    TITAN_ARMOR: {
+        id: 'TITAN_ARMOR',
+        icon: '🦾',
+        title: 'Iron Titan',
+        desc: 'Absorb heavy enemy fire and survive in combat.'
+    },
+    CYBER_HOARDER: {
+        id: 'CYBER_HOARDER',
+        icon: '🪙',
+        title: 'Cyber Hoarder',
+        desc: 'Collect 5 power coins within a single match.'
+    },
+    HAZARD_ENGINEER: {
+        id: 'HAZARD_ENGINEER',
+        icon: '💥',
+        title: 'Hazard Engineer',
+        desc: 'Trigger a jump pad boost or explosive barrel.'
+    }
+};
+
+function getUnlockedAchievements() {
+    try {
+        const stored = localStorage.getItem('battle_arena_achievements');
+        return stored ? JSON.parse(stored) : {};
+    } catch {
+        return {};
+    }
+}
+
+function unlockAchievement(id) {
+    if (!ACHIEVEMENTS_CONFIG[id]) return;
+    const unlocked = getUnlockedAchievements();
+    if (unlocked[id]) return;
+
+    unlocked[id] = {
+        unlockedAt: new Date().toISOString(),
+        timestamp: Date.now()
+    };
+    try {
+        localStorage.setItem('battle_arena_achievements', JSON.stringify(unlocked));
+    } catch {}
+
+    const ach = ACHIEVEMENTS_CONFIG[id];
+    showAchievementToast(ach);
+    soundEngine.playAchievementUnlocked();
+    renderAchievementsGrid();
+}
+
+function showAchievementToast(ach) {
+    if (!achievementToastContainer) return;
+    const toast = document.createElement('div');
+    toast.className = 'achievement-toast';
+    toast.innerHTML = `
+        <span class="toast-icon">${ach.icon}</span>
+        <div class="toast-body">
+            <div class="toast-tag">🎖️ MILESTONE UNLOCKED</div>
+            <div class="toast-title">${escapeHtml(ach.title)}</div>
+            <div class="toast-desc">${escapeHtml(ach.desc)}</div>
+        </div>
+    `;
+    achievementToastContainer.appendChild(toast);
+    setTimeout(() => {
+        toast.style.opacity = '0';
+        toast.style.transform = 'translateX(80px)';
+        toast.style.transition = 'all 0.4s ease';
+        setTimeout(() => toast.remove(), 400);
+    }, 4500);
+}
+
+function renderAchievementsGrid() {
+    if (!achievementsGrid) return;
+    const unlocked = getUnlockedAchievements();
+    const all = Object.values(ACHIEVEMENTS_CONFIG);
+    const count = all.filter(a => unlocked[a.id]).length;
+    if (unlockedAchievementsCount) {
+        unlockedAchievementsCount.textContent = `${count}/${all.length}`;
+    }
+
+    achievementsGrid.innerHTML = all.map(a => {
+        const isUnlocked = !!unlocked[a.id];
+        return `
+            <div class="achievement-card ${isUnlocked ? 'unlocked' : 'locked'}">
+                <span class="achievement-badge">${a.icon}</span>
+                <div class="achievement-meta">
+                    <div class="achievement-title">${escapeHtml(a.title)}</div>
+                    <div class="achievement-desc">${escapeHtml(a.desc)}</div>
+                    <span class="achievement-status-tag ${isUnlocked ? 'unlocked' : 'locked'}">
+                        ${isUnlocked ? '✓ UNLOCKED' : '🔒 LOCKED'}
+                    </span>
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+
+function startPingMonitor() {
+    if (pingInterval) clearInterval(pingInterval);
+    pingInterval = setInterval(() => {
+        if (gameWs && gameWs.readyState === WebSocket.OPEN) {
+            gameWs.send(JSON.stringify({
+                type: 'PING',
+                clientTime: performance.now()
+            }));
+        }
+    }, 2500);
+}
+
+function stopPingMonitor() {
+    if (pingInterval) {
+        clearInterval(pingInterval);
+        pingInterval = null;
+    }
+    if (hudPing) hudPing.textContent = '-- ms';
+}
+
+function updatePingDisplay(rtt) {
+    if (!hudPing) return;
+    hudPing.textContent = `${rtt} ms`;
+    hudPing.className = 'hud-ping ' + (rtt < 60 ? 'good' : (rtt < 120 ? 'moderate' : 'high'));
+}
+
 // --- Phase 16 DOM Elements & State: Warrior Classes & Weapon Loadouts ---
 const hudClass = document.getElementById('hudClass');
 const classSelectContainer = document.getElementById('classSelectContainer');
@@ -241,12 +417,17 @@ async function selectWarriorClass(className, notifyServer = true) {
     }
 }
 
-// --- Phase 13: Procedural Synthetic Audio Engine (Zero audio files/bandwidth) ---
+// --- Phase 13 & 20: Procedural Synthetic Audio Engine (Zero audio files/bandwidth) ---
 class SoundEngine {
     constructor() {
         this.ctx = null;
         this.muted = localStorage.getItem('battle_arena_sound_muted') === 'true';
-        this.masterVolume = 0.22;
+        this.masterVolume = parseFloat(localStorage.getItem('battle_arena_master_vol') || '0.5');
+        this.sfxVolume = parseFloat(localStorage.getItem('battle_arena_sfx_vol') || '0.75');
+        this.droneActive = false;
+        this.droneOsc1 = null;
+        this.droneOsc2 = null;
+        this.droneGain = null;
     }
 
     init() {
@@ -261,14 +442,108 @@ class SoundEngine {
         }
     }
 
+    setMasterVolume(val) {
+        this.masterVolume = Math.max(0, Math.min(1, val));
+        localStorage.setItem('battle_arena_master_vol', String(this.masterVolume));
+        if (this.droneGain && this.ctx) {
+            this.droneGain.gain.setValueAtTime(this.masterVolume * 0.12, this.ctx.currentTime);
+        }
+    }
+
+    setSfxVolume(val) {
+        this.sfxVolume = Math.max(0, Math.min(1, val));
+        localStorage.setItem('battle_arena_sfx_vol', String(this.sfxVolume));
+    }
+
+    getEffectiveVolume() {
+        return this.muted ? 0 : (this.masterVolume * this.sfxVolume);
+    }
+
     toggleMute() {
         this.muted = !this.muted;
         localStorage.setItem('battle_arena_sound_muted', String(this.muted));
+        if (this.muted) {
+            this.stopAmbientDrone();
+        } else {
+            if (localStorage.getItem('battle_arena_drone_enabled') === 'true') {
+                this.startAmbientDrone();
+            }
+        }
         return this.muted;
     }
 
     isMuted() {
         return this.muted;
+    }
+
+    startAmbientDrone() {
+        if (this.muted || this.droneActive) return;
+        this.init();
+        if (!this.ctx) return;
+        try {
+            const now = this.ctx.currentTime;
+            this.droneGain = this.ctx.createGain();
+            this.droneGain.gain.setValueAtTime(this.masterVolume * 0.12, now);
+
+            this.droneOsc1 = this.ctx.createOscillator();
+            this.droneOsc1.type = 'sawtooth';
+            this.droneOsc1.frequency.setValueAtTime(55, now);
+
+            this.droneOsc2 = this.ctx.createOscillator();
+            this.droneOsc2.type = 'sine';
+            this.droneOsc2.frequency.setValueAtTime(55.6, now);
+
+            const filter = this.ctx.createBiquadFilter();
+            filter.type = 'lowpass';
+            filter.frequency.setValueAtTime(140, now);
+
+            this.droneOsc1.connect(filter);
+            this.droneOsc2.connect(filter);
+            filter.connect(this.droneGain);
+            this.droneGain.connect(this.ctx.destination);
+
+            this.droneOsc1.start(now);
+            this.droneOsc2.start(now);
+            this.droneActive = true;
+        } catch {}
+    }
+
+    stopAmbientDrone() {
+        if (!this.droneActive) return;
+        try {
+            if (this.droneGain && this.ctx) {
+                this.droneGain.gain.setValueAtTime(0, this.ctx.currentTime);
+            }
+            if (this.droneOsc1) { this.droneOsc1.stop(); this.droneOsc1.disconnect(); }
+            if (this.droneOsc2) { this.droneOsc2.stop(); this.droneOsc2.disconnect(); }
+        } catch {}
+        this.droneActive = false;
+        this.droneOsc1 = null;
+        this.droneOsc2 = null;
+        this.droneGain = null;
+    }
+
+    playAchievementUnlocked() {
+        if (this.muted) return;
+        this.init();
+        if (!this.ctx) return;
+        try {
+            const now = this.ctx.currentTime;
+            const notes = [523.25, 659.25, 783.99, 1046.50];
+            notes.forEach((freq, i) => {
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                const t = now + i * 0.08;
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(freq, t);
+                gain.gain.setValueAtTime(this.getEffectiveVolume() * 0.7, t);
+                gain.gain.exponentialRampToValueAtTime(0.001, t + 0.35);
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start(t);
+                osc.stop(t + 0.36);
+            });
+        } catch {}
     }
 
     playLaser(isSpread = false, warriorClass = 'ASSAULT') {
@@ -2485,6 +2760,7 @@ function connectGameWebSocket(roomId) {
         gameWs.onopen = () => {
             if (hudState) hudState.textContent = 'WS: Connected (' + roomId + ')';
             gameWs.send(JSON.stringify({ type: 'JOIN', token, roomId }));
+            startPingMonitor();
         };
 
         gameWs.onmessage = (event) => {
@@ -2497,6 +2773,7 @@ function connectGameWebSocket(roomId) {
         };
 
         gameWs.onclose = (event) => {
+            stopPingMonitor();
             if (hudState) hudState.textContent = 'WS: Disconnected';
             remotePlayers.clear();
             // Resilient auto-reconnect if client remains in active room and socket closed unexpectedly
@@ -2519,6 +2796,7 @@ function connectGameWebSocket(roomId) {
 }
 
 function disconnectGameWebSocket() {
+    stopPingMonitor();
     if (gameWs) {
         try {
             gameWs.close();
@@ -2754,6 +3032,13 @@ function handleWebSocketMessage(msg) {
                 isSuddenDeath = !!msg.suddenDeath;
             }
             break;
+        case 'PONG': {
+            if (msg.clientTime) {
+                const rtt = Math.round(performance.now() - msg.clientTime);
+                updatePingDisplay(rtt);
+            }
+            break;
+        }
         case 'ZONE_DAMAGE': {
             const isMe = msg.username === player.name;
             const targetX = isMe ? player.x : (remotePlayers.get(msg.username)?.x || player.x);
@@ -2781,6 +3066,7 @@ function handleWebSocketMessage(msg) {
             if (msg.username === player.name) {
                 player.x = msg.launchX;
                 player.y = msg.launchY;
+                unlockAchievement('HAZARD_ENGINEER');
             } else {
                 const rp = remotePlayers.get(msg.username);
                 if (rp) {
@@ -2792,6 +3078,7 @@ function handleWebSocketMessage(msg) {
         }
         case 'BARREL_EXPLODED': {
             soundEngine.playBarrelExplosion();
+            unlockAchievement('HAZARD_ENGINEER');
             triggerScreenShake(9, 0.35);
             addShockwave(msg.x, msg.y, msg.blastRadius || 85, '#f97316');
             addFloatingText('💥 DETONATION!', msg.x, msg.y - 20, '#ef4444');
@@ -2925,6 +3212,9 @@ function handleWebSocketMessage(msg) {
                 player.health = msg.currentHealth;
                 player.alive = !msg.isEliminated;
                 updateHudHealth();
+                if (player.warriorClass === 'JUGGERNAUT' && player.alive && (msg.healthDamage + msg.shieldDamage >= 25)) {
+                    unlockAchievement('TITAN_ARMOR');
+                }
             } else {
                 const rp = remotePlayers.get(msg.targetUsername);
                 if (rp) {
@@ -2961,6 +3251,10 @@ function handleWebSocketMessage(msg) {
                 hudScore.textContent = myScore;
                 updateHudHealth();
                 addFloatingText('+15 KILL!', player.x, player.y - 18, '#fbbf24');
+                unlockAchievement('FIRST_BLOOD');
+                if (msg.distance && msg.distance >= 150) {
+                    unlockAchievement('SHARPSHOOTER');
+                }
             } else {
                 const killer = remotePlayers.get(msg.killer);
                 if (killer) {
@@ -3007,6 +3301,10 @@ function handleWebSocketMessage(msg) {
             if (isMe) {
                 myScore = msg.playerScore;
                 hudScore.textContent = myScore;
+                coinsCollectedSession++;
+                if (coinsCollectedSession >= 5) {
+                    unlockAchievement('CYBER_HOARDER');
+                }
             } else {
                 let rp = remotePlayers.get(msg.username);
                 if (rp) {
@@ -3023,6 +3321,9 @@ function handleWebSocketMessage(msg) {
             break;
         case 'GAME_OVER': {
             isGameOver = true;
+            if (msg.winner === player.name) {
+                unlockAchievement('APEX_CHAMPION');
+            }
             clearRespawnCountdown();
             projectiles.clear();
             if (activeRoom) {
@@ -3737,15 +4038,32 @@ function setupAuthEventListeners() {
         }
     });
 
-    // Close on Escape key
+    // Global hotkeys: [M] Mute, [H] Guide, [Esc] Close Modals & Settings
     window.addEventListener('keydown', (e) => {
+        if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA')) {
+            return;
+        }
+        if (e.key === 'm' || e.key === 'M') {
+            soundEngine.init();
+            const muted = soundEngine.toggleMute();
+            updateSoundButtonUi(muted);
+        }
+        if (e.key === 'h' || e.key === 'H') {
+            if (intelModal && intelModal.style.display === 'flex') {
+                closeIntelModal();
+            } else {
+                openIntelModal();
+            }
+        }
         if (e.key === 'Escape') {
             closeEmoteWheel();
-            if (authModal.style.display === 'flex') closeModal();
-            if (createRoomModal.style.display === 'flex') closeCreateRoomModal();
-            if (leaderboardModal.style.display === 'flex') closeLeaderboardModal();
-            if (matchHistoryModal.style.display === 'flex') closeMatchHistoryModal();
-            if (gameOverModal.style.display === 'flex') closeGameOverModal();
+            if (authModal && authModal.style.display === 'flex') closeModal();
+            if (createRoomModal && createRoomModal.style.display === 'flex') closeCreateRoomModal();
+            if (leaderboardModal && leaderboardModal.style.display === 'flex') closeLeaderboardModal();
+            if (matchHistoryModal && matchHistoryModal.style.display === 'flex') closeMatchHistoryModal();
+            if (gameOverModal && gameOverModal.style.display === 'flex') closeGameOverModal();
+            if (settingsModal && settingsModal.style.display === 'flex') closeSettingsModal();
+            if (intelModal && intelModal.style.display === 'flex') closeIntelModal();
         }
     });
 }
@@ -3831,6 +4149,152 @@ function setupAudioEventListeners() {
     }
 }
 
+function setupSettingsEventListeners() {
+    if (openSettingsBtn) {
+        openSettingsBtn.addEventListener('click', openSettingsModal);
+    }
+    if (closeSettingsModalBtn) {
+        closeSettingsModalBtn.addEventListener('click', closeSettingsModal);
+    }
+    if (saveSettingsBtn) {
+        saveSettingsBtn.addEventListener('click', closeSettingsModal);
+    }
+    if (settingsModal) {
+        settingsModal.addEventListener('click', (e) => {
+            if (e.target === settingsModal) closeSettingsModal();
+        });
+    }
+
+    if (masterVolumeRange) {
+        masterVolumeRange.value = Math.round(soundEngine.masterVolume * 100);
+        if (masterVolDisplay) masterVolDisplay.textContent = masterVolumeRange.value + '%';
+        masterVolumeRange.addEventListener('input', (e) => {
+            const val = parseInt(e.target.value, 10);
+            if (masterVolDisplay) masterVolDisplay.textContent = val + '%';
+            soundEngine.setMasterVolume(val / 100);
+        });
+    }
+
+    if (sfxVolumeRange) {
+        sfxVolumeRange.value = Math.round(soundEngine.sfxVolume * 100);
+        if (sfxVolDisplay) sfxVolDisplay.textContent = sfxVolumeRange.value + '%';
+        sfxVolumeRange.addEventListener('input', (e) => {
+            const val = parseInt(e.target.value, 10);
+            if (sfxVolDisplay) sfxVolDisplay.textContent = val + '%';
+            soundEngine.setSfxVolume(val / 100);
+        });
+    }
+
+    if (ambientDroneToggle) {
+        const droneEnabled = localStorage.getItem('battle_arena_drone_enabled') === 'true';
+        ambientDroneToggle.checked = droneEnabled;
+        if (droneEnabled && !soundEngine.isMuted()) {
+            soundEngine.startAmbientDrone();
+        }
+        ambientDroneToggle.addEventListener('change', (e) => {
+            localStorage.setItem('battle_arena_drone_enabled', String(e.target.checked));
+            if (e.target.checked) {
+                soundEngine.startAmbientDrone();
+            } else {
+                soundEngine.stopAmbientDrone();
+            }
+        });
+    }
+
+    if (screenShakeToggle) {
+        screenShakeToggle.checked = screenShakeEnabled;
+        screenShakeToggle.addEventListener('change', (e) => {
+            screenShakeEnabled = e.target.checked;
+            localStorage.setItem('battle_arena_screenshake', String(screenShakeEnabled));
+        });
+    }
+
+    if (modalSoundToggleBtn) {
+        modalSoundToggleBtn.addEventListener('click', () => {
+            soundEngine.init();
+            const muted = soundEngine.toggleMute();
+            updateSoundButtonUi(muted);
+        });
+    }
+}
+
+function openSettingsModal() {
+    if (!settingsModal) return;
+    settingsModal.style.display = 'flex';
+    updateSoundButtonUi(soundEngine.isMuted());
+}
+
+function closeSettingsModal() {
+    if (settingsModal) settingsModal.style.display = 'none';
+}
+
+function setupIntelEventListeners() {
+    if (openIntelBtn) {
+        openIntelBtn.addEventListener('click', openIntelModal);
+    }
+    if (closeIntelModalBtn) {
+        closeIntelModalBtn.addEventListener('click', closeIntelModal);
+    }
+    if (intelModal) {
+        intelModal.addEventListener('click', (e) => {
+            if (e.target === intelModal) closeIntelModal();
+        });
+    }
+
+    function switchIntelTab(activeTab) {
+        [tabIntelControlsBtn, tabIntelClassesBtn, tabIntelHazardsBtn].forEach(btn => {
+            if (btn) btn.classList.remove('active');
+        });
+        if (intelControlsSection) intelControlsSection.style.display = 'none';
+        if (intelClassesSection) intelClassesSection.style.display = 'none';
+        if (intelHazardsSection) intelHazardsSection.style.display = 'none';
+
+        if (activeTab === 'controls') {
+            if (tabIntelControlsBtn) tabIntelControlsBtn.classList.add('active');
+            if (intelControlsSection) intelControlsSection.style.display = 'block';
+        } else if (activeTab === 'classes') {
+            if (tabIntelClassesBtn) tabIntelClassesBtn.classList.add('active');
+            if (intelClassesSection) intelClassesSection.style.display = 'block';
+        } else if (activeTab === 'hazards') {
+            if (tabIntelHazardsBtn) tabIntelHazardsBtn.classList.add('active');
+            if (intelHazardsSection) intelHazardsSection.style.display = 'block';
+        }
+    }
+
+    if (tabIntelControlsBtn) tabIntelControlsBtn.addEventListener('click', () => switchIntelTab('controls'));
+    if (tabIntelClassesBtn) tabIntelClassesBtn.addEventListener('click', () => switchIntelTab('classes'));
+    if (tabIntelHazardsBtn) tabIntelHazardsBtn.addEventListener('click', () => switchIntelTab('hazards'));
+}
+
+function openIntelModal() {
+    if (intelModal) intelModal.style.display = 'flex';
+}
+
+function closeIntelModal() {
+    if (intelModal) intelModal.style.display = 'none';
+}
+
+function setupCareerTabsEventListeners() {
+    if (tabMatchLogsBtn) {
+        tabMatchLogsBtn.addEventListener('click', () => {
+            tabMatchLogsBtn.classList.add('active');
+            if (tabAchievementsBtn) tabAchievementsBtn.classList.remove('active');
+            if (matchRecordsSection) matchRecordsSection.style.display = 'block';
+            if (achievementsSection) achievementsSection.style.display = 'none';
+        });
+    }
+
+    if (tabAchievementsBtn) {
+        tabAchievementsBtn.addEventListener('click', () => {
+            tabAchievementsBtn.classList.add('active');
+            if (tabMatchLogsBtn) tabMatchLogsBtn.classList.remove('active');
+            if (matchRecordsSection) matchRecordsSection.style.display = 'none';
+            if (achievementsSection) achievementsSection.style.display = 'block';
+            renderAchievementsGrid();
+        });
+    }
+}
+
 function setupChatEventListeners() {
     if (chatInput) {
         chatInput.addEventListener('keydown', (e) => {
@@ -3860,6 +4324,9 @@ window.addEventListener('DOMContentLoaded', () => {
     setupRoomEventListeners();
     setupLeaderboardEventListeners();
     setupAudioEventListeners();
+    setupSettingsEventListeners();
+    setupIntelEventListeners();
+    setupCareerTabsEventListeners();
     setupChatEventListeners();
     setupEmoteEventListeners();
     checkBackendHealth();

@@ -2047,6 +2047,433 @@ body {
     box-shadow: 0 0 12px rgba(56, 189, 248, 0.4);
 }
 
+/* ==========================================================================
+   Phase 20: 100% Milestone Polish - Settings, Intel, Achievements & HUD Ping
+   ========================================================================== */
+
+/* Header Controls */
+.btn-intel, .btn-settings {
+    background: rgba(30, 41, 59, 0.6);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    color: #e2e8f0;
+    padding: 6px 12px;
+    border-radius: 8px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.btn-intel:hover {
+    background: rgba(56, 189, 248, 0.2);
+    border-color: #38bdf8;
+    color: #38bdf8;
+    box-shadow: 0 0 10px rgba(56, 189, 248, 0.3);
+}
+
+.btn-settings:hover {
+    background: rgba(168, 85, 247, 0.2);
+    border-color: #c084fc;
+    color: #c084fc;
+    box-shadow: 0 0 10px rgba(192, 132, 252, 0.3);
+}
+
+/* HUD Ping Meter */
+.hud-ping {
+    font-family: monospace;
+    font-weight: 700;
+    color: #10b981;
+}
+
+.hud-ping.moderate {
+    color: #f59e0b;
+}
+
+.hud-ping.high {
+    color: #ef4444;
+}
+
+/* Settings Modal UI */
+.settings-group {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    margin-bottom: 20px;
+}
+
+.settings-row {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    text-align: left;
+}
+
+.settings-row label {
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: #cbd5e1;
+}
+
+.settings-slider {
+    width: 100%;
+    accent-color: #38bdf8;
+    cursor: pointer;
+}
+
+.settings-toggle-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 12px;
+    background: rgba(15, 23, 42, 0.6);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 8px;
+}
+
+.toggle-info {
+    display: flex;
+    flex-direction: column;
+    text-align: left;
+}
+
+.toggle-title {
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: #f8fafc;
+}
+
+.toggle-desc {
+    font-size: 0.72rem;
+    color: #94a3b8;
+}
+
+/* Custom Cyber Toggle Switch */
+.switch {
+    position: relative;
+    display: inline-block;
+    width: 44px;
+    height: 24px;
+    flex-shrink: 0;
+}
+
+.switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.slider.round {
+    position: absolute;
+    cursor: pointer;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background-color: #334155;
+    transition: .3s;
+    border-radius: 24px;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.slider.round:before {
+    position: absolute;
+    content: "";
+    height: 16px;
+    width: 16px;
+    left: 3px;
+    bottom: 3px;
+    background-color: #ffffff;
+    transition: .3s;
+    border-radius: 50%;
+}
+
+input:checked + .slider.round {
+    background-color: #0284c7;
+    border-color: #38bdf8;
+    box-shadow: 0 0 8px rgba(56, 189, 248, 0.5);
+}
+
+input:checked + .slider.round:before {
+    transform: translateX(20px);
+}
+
+.settings-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    padding-top: 14px;
+}
+
+/* Tactical Intel Manual UI */
+.keybinds-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+    text-align: left;
+}
+
+.keybind-card {
+    background: rgba(15, 23, 42, 0.6);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 8px;
+    padding: 12px;
+}
+
+.key-badge {
+    display: inline-block;
+    background: rgba(56, 189, 248, 0.15);
+    border: 1px solid rgba(56, 189, 248, 0.4);
+    color: #38bdf8;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 0.76rem;
+    font-weight: 800;
+    margin-bottom: 6px;
+    font-family: monospace;
+}
+
+.key-title {
+    font-size: 0.88rem;
+    font-weight: 700;
+    color: #f1f5f9;
+    margin-bottom: 4px;
+}
+
+.key-desc {
+    font-size: 0.74rem;
+    color: #94a3b8;
+    line-height: 1.4;
+}
+
+/* Intel Classes Spec Cards */
+.intel-classes-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+    text-align: left;
+}
+
+.intel-class-card {
+    background: rgba(15, 23, 42, 0.6);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    padding: 12px;
+}
+
+.intel-class-card.assault { border-left: 3px solid #6366f1; }
+.intel-class-card.juggernaut { border-left: 3px solid #f59e0b; }
+.intel-class-card.scout { border-left: 3px solid #10b981; }
+.intel-class-card.sniper { border-left: 3px solid #06b6d4; }
+
+.intel-class-header {
+    font-size: 0.88rem;
+    font-weight: 800;
+    color: #fff;
+    margin-bottom: 4px;
+}
+
+.intel-class-role {
+    font-size: 0.72rem;
+    color: #94a3b8;
+    margin-bottom: 8px;
+}
+
+.intel-class-specs {
+    font-size: 0.72rem;
+    color: #cbd5e1;
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.intel-class-specs li {
+    margin-bottom: 3px;
+}
+
+/* Intel Hazards UI */
+.intel-hazards-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+    text-align: left;
+}
+
+.hazard-card {
+    background: rgba(15, 23, 42, 0.6);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 8px;
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
+}
+
+.hazard-icon {
+    font-size: 1.5rem;
+    margin-bottom: 6px;
+}
+
+.hazard-title {
+    font-size: 0.86rem;
+    font-weight: 700;
+    color: #f8fafc;
+    margin-bottom: 4px;
+}
+
+.hazard-desc {
+    font-size: 0.72rem;
+    color: #94a3b8;
+    line-height: 1.4;
+}
+
+/* Achievements Section in Career Modal */
+.achievements-header {
+    margin-bottom: 12px;
+    text-align: left;
+}
+
+.achievements-header h4 {
+    font-size: 0.95rem;
+    color: #38bdf8;
+}
+
+.achievements-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+    text-align: left;
+}
+
+.achievement-card {
+    background: rgba(15, 23, 42, 0.6);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 8px;
+    padding: 10px 12px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    transition: all 0.2s ease;
+}
+
+.achievement-card.unlocked {
+    background: rgba(234, 179, 8, 0.12);
+    border-color: rgba(234, 179, 8, 0.45);
+    box-shadow: 0 0 10px rgba(234, 179, 8, 0.15);
+}
+
+.achievement-card.locked {
+    opacity: 0.5;
+    filter: grayscale(80%);
+}
+
+.achievement-badge {
+    font-size: 1.8rem;
+    flex-shrink: 0;
+}
+
+.achievement-meta {
+    flex-grow: 1;
+}
+
+.achievement-title {
+    font-size: 0.84rem;
+    font-weight: 700;
+    color: #f1f5f9;
+}
+
+.achievement-card.unlocked .achievement-title {
+    color: #fde047;
+}
+
+.achievement-desc {
+    font-size: 0.72rem;
+    color: #94a3b8;
+}
+
+.achievement-status-tag {
+    font-size: 0.68rem;
+    font-weight: 700;
+    padding: 2px 6px;
+    border-radius: 4px;
+    margin-top: 4px;
+    display: inline-block;
+}
+
+.achievement-status-tag.unlocked {
+    background: rgba(234, 179, 8, 0.25);
+    color: #fde047;
+}
+
+.achievement-status-tag.locked {
+    background: rgba(255, 255, 255, 0.08);
+    color: #64748b;
+}
+
+/* Celebratory Toast Notifications */
+.achievement-toast-container {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 9999;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    pointer-events: none;
+}
+
+.achievement-toast {
+    background: rgba(15, 23, 42, 0.95);
+    backdrop-filter: blur(10px);
+    border: 2px solid #eab308;
+    box-shadow: 0 0 20px rgba(234, 179, 8, 0.5);
+    border-radius: 12px;
+    padding: 12px 18px;
+    color: #ffffff;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-width: 280px;
+    animation: toastSlideIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    pointer-events: auto;
+}
+
+.toast-icon {
+    font-size: 2rem;
+}
+
+.toast-body {
+    text-align: left;
+}
+
+.toast-tag {
+    font-size: 0.68rem;
+    font-weight: 800;
+    letter-spacing: 1px;
+    color: #fde047;
+}
+
+.toast-title {
+    font-size: 0.88rem;
+    font-weight: 700;
+    color: #fff;
+}
+
+.toast-desc {
+    font-size: 0.72rem;
+    color: #cbd5e1;
+}
+
+@keyframes toastSlideIn {
+    from {
+        opacity: 0;
+        transform: translateX(80px) scale(0.9);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0) scale(1);
+    }
+}
+
 
 
 

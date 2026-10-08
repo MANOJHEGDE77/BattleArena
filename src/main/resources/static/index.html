@@ -17,9 +17,11 @@
                 <h1>Battle Arena</h1>
             </div>
             <div class="header-right">
-                <button class="btn-sound-toggle" id="soundToggleBtn" title="Toggle Audio Synthesizer">🔊 Sound: ON</button>
+                <button class="btn-intel" id="openIntelBtn" title="Controls & Tactical Intel [H]">❓ Guide [H]</button>
+                <button class="btn-settings" id="openSettingsBtn" title="Audio & Match Settings">⚙️ Settings</button>
+                <button class="btn-sound-toggle" id="soundToggleBtn" title="Toggle Audio Synthesizer [M]">🔊 Sound: ON</button>
                 <button class="btn-leaderboard" id="openLeaderboardBtn" title="Global Leaderboard">🏆 Leaderboard</button>
-                <button class="btn-history" id="openMatchHistoryBtn" title="Match History" style="display: none;">📜 History</button>
+                <button class="btn-history" id="openMatchHistoryBtn" title="Career Log & Achievements" style="display: none;">📜 Career</button>
                 <div class="user-profile-badge" id="userProfileBadge" style="display: none;">
                     <span class="avatar-icon">👤</span>
                     <span class="username-display" id="usernameDisplay">Player</span>
@@ -136,7 +138,8 @@
                 <div class="hud-item"><span class="hud-label">ROOM:</span> <span id="hudRoom">None (Lobby)</span></div>
                 <div class="hud-item"><span class="hud-label">POS:</span> <span id="hudPos">X: 0, Y: 0</span></div>
                 <div class="hud-item"><span class="hud-label">FPS:</span> <span id="hudFps">60</span></div>
-                <div class="hud-item"><span class="hud-label">STATUS:</span> <span id="hudState">Phase 19: Combat Highlights & Killcam</span></div>
+                <div class="hud-item hud-ping"><span class="hud-label">PING:</span> <span id="hudPing">-- ms</span></div>
+                <div class="hud-item"><span class="hud-label">STATUS:</span> <span id="hudState">Phase 20: 100% Production Release</span></div>
                 <button type="button" class="hud-emote-trigger-btn" id="hudEmoteTriggerBtn" title="Press T or Click for Callout Wheel">💬 Callouts [T]</button>
             </div>
 
@@ -249,16 +252,18 @@
             </div>
 
             <div class="controls-legend">
-                <span>Movement: <strong>W, A, S, D</strong> or <strong>Arrow Keys</strong></span>
-                <span>Attack: <strong>Spacebar</strong> or <strong>Left-Click</strong> to Fire Blaster (+15 pts/kill)</span>
-                <span>Emotes: <strong>[T]</strong> Wheel / <strong>[1-8]</strong> Callouts</span>
-                <span>Chat: <strong>Enter</strong> to Talk</span>
-                <span>Spectate: <strong>Track</strong> [1-8] / <strong>[Space]</strong> Center</span>
+                <span>Movement: <strong>W, A, S, D</strong> / <strong>Arrows</strong></span>
+                <span>Attack: <strong>Left-Click</strong> / <strong>Space</strong> (+15 pts)</span>
+                <span>Emotes: <strong>[T]</strong> / <strong>[1-8]</strong></span>
+                <span>Chat: <strong>Enter</strong></span>
+                <span>Settings: <strong>[Esc]</strong></span>
+                <span>Guide: <strong>[H]</strong></span>
+                <span>Mute: <strong>[M]</strong></span>
             </div>
         </main>
 
         <footer class="app-footer">
-            <p>Battle Arena | Low-Resource Authoritative Monolith (Phase 8: Server-Authoritative Combat, Projectiles & Elimination)</p>
+            <p>Battle Arena | Real-Time Authoritative Multiplayer Monolith (Phase 20: 100% Full Production Release)</p>
         </footer>
     </div>
 
@@ -346,29 +351,213 @@
         </div>
     </div>
 
-    <!-- Match History Modal -->
+    <!-- Match History & Career Modal -->
     <div class="modal-overlay" id="matchHistoryModal" style="display: none;">
         <div class="modal-card modal-large">
             <div class="modal-header">
-                <h3>📜 Match Records & Career Log</h3>
+                <div class="tab-group">
+                    <button class="tab-btn active" id="tabMatchLogsBtn" type="button">📜 Battle Records</button>
+                    <button class="tab-btn" id="tabAchievementsBtn" type="button">🎖️ Career Achievements</button>
+                </div>
                 <button class="modal-close-btn" id="closeMatchHistoryModalBtn" type="button">&times;</button>
             </div>
             <div class="modal-body">
-                <div class="profile-stats-summary" id="profileStatsSummary">
-                    <div class="stat-pill"><span class="stat-label">Warrior:</span> <strong id="profileStatUsername">-</strong></div>
-                    <div class="stat-pill"><span class="stat-label">Total Matches:</span> <strong id="profileStatGames">0</strong></div>
-                    <div class="stat-pill"><span class="stat-label">Career Total:</span> <strong id="profileStatTotalScore">0</strong></div>
-                    <div class="stat-pill"><span class="stat-label">Personal Best:</span> <strong id="profileStatHighScore">0</strong></div>
+                <!-- Section 1: Match Logs & Career Stats -->
+                <div id="matchRecordsSection">
+                    <div class="profile-stats-summary" id="profileStatsSummary">
+                        <div class="stat-pill"><span class="stat-label">Warrior:</span> <strong id="profileStatUsername">-</strong></div>
+                        <div class="stat-pill"><span class="stat-label">Total Matches:</span> <strong id="profileStatGames">0</strong></div>
+                        <div class="stat-pill"><span class="stat-label">Career Total:</span> <strong id="profileStatTotalScore">0</strong></div>
+                        <div class="stat-pill"><span class="stat-label">Personal Best:</span> <strong id="profileStatHighScore">0</strong></div>
+                    </div>
+                    <div class="history-list-header">
+                        <h4>Recent Battles</h4>
+                    </div>
+                    <div class="match-history-list" id="matchHistoryList">
+                        <div class="empty-history-msg">No completed matches yet. Jump into an arena to record your first battle!</div>
+                    </div>
                 </div>
-                <div class="history-list-header">
-                    <h4>Recent Battles</h4>
-                </div>
-                <div class="match-history-list" id="matchHistoryList">
-                    <div class="empty-history-msg">No completed matches yet. Jump into an arena to record your first battle!</div>
+
+                <!-- Section 2: Career Achievements Grid -->
+                <div id="achievementsSection" style="display: none;">
+                    <div class="achievements-header">
+                        <h4>Cyber Warrior Milestones (<span id="unlockedAchievementsCount">0/6</span> Unlocked)</h4>
+                    </div>
+                    <div class="achievements-grid" id="achievementsGrid">
+                        <!-- Populated dynamically -->
+                    </div>
                 </div>
             </div>
         </div>
     </div>
+
+    <!-- Phase 20: Cyber Systems & Audio Settings Modal -->
+    <div class="modal-overlay" id="settingsModal" style="display: none;">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h3>⚙️ Systems & Audio Settings</h3>
+                <button class="modal-close-btn" id="closeSettingsModalBtn" type="button">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="settings-group">
+                    <div class="settings-row">
+                        <label for="masterVolumeRange">🔊 Master Volume (<span id="masterVolDisplay">50%</span>)</label>
+                        <input type="range" id="masterVolumeRange" min="0" max="100" value="50" class="settings-slider">
+                    </div>
+                    <div class="settings-row">
+                        <label for="sfxVolumeRange">💥 SFX Volume (<span id="sfxVolDisplay">75%</span>)</label>
+                        <input type="range" id="sfxVolumeRange" min="0" max="100" value="75" class="settings-slider">
+                    </div>
+                    <div class="settings-toggle-row">
+                        <div class="toggle-info">
+                            <span class="toggle-title">🎵 Ambient Cyber Drone</span>
+                            <span class="toggle-desc">Procedural 55Hz sub-bass binaural atmospheric synthesizer</span>
+                        </div>
+                        <label class="switch">
+                            <input type="checkbox" id="ambientDroneToggle">
+                            <span class="slider round"></span>
+                        </label>
+                    </div>
+                    <div class="settings-toggle-row">
+                        <div class="toggle-info">
+                            <span class="toggle-title">📳 Screen Shake FX</span>
+                            <span class="toggle-desc">Dynamic recoil and blast impulse feedback</span>
+                        </div>
+                        <label class="switch">
+                            <input type="checkbox" id="screenShakeToggle" checked>
+                            <span class="slider round"></span>
+                        </label>
+                    </div>
+                </div>
+                <div class="settings-footer">
+                    <button type="button" class="btn-secondary" id="modalSoundToggleBtn">🔊 Audio: ACTIVE</button>
+                    <button type="button" class="btn-primary" id="saveSettingsBtn">Done</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Phase 20: Tactical Operations & Intel Manual Modal -->
+    <div class="modal-overlay" id="intelModal" style="display: none;">
+        <div class="modal-card modal-large">
+            <div class="modal-header">
+                <div class="tab-group">
+                    <button class="tab-btn active" id="tabIntelControlsBtn" type="button">🎮 Controls & Keybinds</button>
+                    <button class="tab-btn" id="tabIntelClassesBtn" type="button">⚡ Warrior Classes</button>
+                    <button class="tab-btn" id="tabIntelHazardsBtn" type="button">💥 Arena Hazards</button>
+                </div>
+                <button class="modal-close-btn" id="closeIntelModalBtn" type="button">&times;</button>
+            </div>
+            <div class="modal-body">
+                <!-- Tab 1: Keybinds -->
+                <div id="intelControlsSection">
+                    <div class="keybinds-grid">
+                        <div class="keybind-card">
+                            <div class="key-badge">W A S D / ⬆️⬇️⬅️➡️</div>
+                            <div class="key-title">Locomotion</div>
+                            <div class="key-desc">Omnidirectional arena movement and strafing with obstacle collision clamp.</div>
+                        </div>
+                        <div class="keybind-card">
+                            <div class="key-badge">MOUSE + CLICK / SPACE</div>
+                            <div class="key-title">Aim & Precision Fire</div>
+                            <div class="key-desc">Rotate to aim projectile vector trajectory; launch class weapon blast.</div>
+                        </div>
+                        <div class="keybind-card">
+                            <div class="key-badge">T / 1 - 8</div>
+                            <div class="key-title">Tactical Callout Wheel</div>
+                            <div class="key-desc">Open radial wheel or instant-cast tactical ping beacons & holographic speech bubbles.</div>
+                        </div>
+                        <div class="keybind-card">
+                            <div class="key-badge">ENTER</div>
+                            <div class="key-title">Tactical Comms Chat</div>
+                            <div class="key-desc">Transmit real-time room messages to teammates and spectators.</div>
+                        </div>
+                        <div class="keybind-card">
+                            <div class="key-badge">M / ESC</div>
+                            <div class="key-title">Audio & Settings</div>
+                            <div class="key-desc">Instant mute toggle [M] and full audio/synthesizer configuration [ESC].</div>
+                        </div>
+                        <div class="keybind-card">
+                            <div class="key-badge">1 - 8 / SPACE (Spectator)</div>
+                            <div class="key-title">Observer Drone</div>
+                            <div class="key-desc">Snap focus to combatant or free-cam pan arena across live match.</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tab 2: Warrior Classes -->
+                <div id="intelClassesSection" style="display: none;">
+                    <div class="intel-classes-grid">
+                        <div class="intel-class-card assault">
+                            <div class="intel-class-header">🛡️ ASSAULT (Vanguard)</div>
+                            <p class="intel-class-role">Balanced frontline combatant with all-around durability and cadence.</p>
+                            <ul class="intel-class-specs">
+                                <li>Health: 100 HP | Energy Shield: 50</li>
+                                <li>Speed: 240 px/s (Balanced)</li>
+                                <li>Weapon: <strong>Pulse Blaster</strong> (20 DMG, 650 vel, 350ms CD)</li>
+                            </ul>
+                        </div>
+                        <div class="intel-class-card juggernaut">
+                            <div class="intel-class-header">🦾 JUGGERNAUT (Titan)</div>
+                            <p class="intel-class-role">Heavy fortress tank designed to absorb heavy barrages and break enemy lines.</p>
+                            <ul class="intel-class-specs">
+                                <li>Health: 150 HP | Energy Shield: 75</li>
+                                <li>Speed: 195 px/s (Heavy Armor)</li>
+                                <li>Weapon: <strong>Plasma Cannon</strong> (35 DMG, 420 vel, 550ms CD)</li>
+                            </ul>
+                        </div>
+                        <div class="intel-class-card scout">
+                            <div class="intel-class-header">⚡ SCOUT (Skirmisher)</div>
+                            <p class="intel-class-role">Hyper-agile skirmisher excelling at rapid coin collection and hit-and-run tactics.</p>
+                            <ul class="intel-class-specs">
+                                <li>Health: 75 HP | Energy Shield: 35</li>
+                                <li>Speed: 290 px/s (Rapid Sprinter)</li>
+                                <li>Weapon: <strong>Twin Needles</strong> (14 DMG, 720 vel, 220ms CD)</li>
+                            </ul>
+                        </div>
+                        <div class="intel-class-card sniper">
+                            <div class="intel-class-header">🎯 SNIPER (Marksman)</div>
+                            <p class="intel-class-role">Precision marksman delivering lethal long-range hyper railgun strikes.</p>
+                            <ul class="intel-class-specs">
+                                <li>Health: 85 HP | Energy Shield: 40</li>
+                                <li>Speed: 220 px/s (Standard)</li>
+                                <li>Weapon: <strong>Hyper Railgun</strong> (45 DMG, 820 vel, 620ms CD)</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tab 3: Arena Hazards -->
+                <div id="intelHazardsSection" style="display: none;">
+                    <div class="intel-hazards-grid">
+                        <div class="hazard-card">
+                            <div class="hazard-icon">⚡</div>
+                            <div class="hazard-title">Jump Launch Pads</div>
+                            <div class="hazard-desc">Spring-loaded boost conduits that launch warriors at 340 px/s across arena terrain.</div>
+                        </div>
+                        <div class="hazard-card">
+                            <div class="hazard-icon">🌋</div>
+                            <div class="hazard-title">Thermal Lava Pools</div>
+                            <div class="hazard-desc">Superheated geothermal vents dealing 15 damage/sec to any warriors attempting to camp.</div>
+                        </div>
+                        <div class="hazard-card">
+                            <div class="hazard-icon">💥</div>
+                            <div class="hazard-title">Volatile Fuel Barrels</div>
+                            <div class="hazard-desc">Explosive canisters detonating on bullet impact with a 90px blast radius dealing 35 damage.</div>
+                        </div>
+                        <div class="hazard-card">
+                            <div class="hazard-icon">⛈️</div>
+                            <div class="hazard-title">Sudden Death Safe Zone</div>
+                            <div class="hazard-desc">Shrinking energy perimeter collapsing inward during match endgame; exterior suffers toxic storm damage.</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Phase 20: Celebratory Achievement Toast Notification Container -->
+    <div class="achievement-toast-container" id="achievementToastContainer"></div>
 
     <!-- Match Game Over Modal -->
     <div class="modal-overlay" id="gameOverModal" style="display: none;">
