@@ -2949,6 +2949,10 @@ function handleWebSocketMessage(msg) {
         case 'GAME_START':
         case 'GAME_STATE_SNAPSHOT':
             isGameOver = false;
+            if (activeRoom) {
+                activeRoom.status = 'PLAYING';
+            }
+            updateGameLayoutState();
             coins.clear();
             powerUps.clear();
             projectiles.clear();
@@ -3077,6 +3081,7 @@ function handleWebSocketMessage(msg) {
                 currentRoomStatus.textContent = 'MATCH IN PROGRESS';
                 currentRoomStatus.className = 'room-status-badge playing';
                 hudState.textContent = isSpectator ? 'Spectator Mode (Observer)' : 'Real-time Arena Match';
+                updateGameLayoutState();
             }
             if (msg.timeRemaining !== undefined) {
                 matchTimeRemaining = msg.timeRemaining;
@@ -3432,6 +3437,7 @@ function handleWebSocketMessage(msg) {
                 currentRoomStatus.textContent = 'WAITING FOR PLAYERS';
                 currentRoomStatus.className = 'room-status-badge waiting';
                 fetchRoomDetails(activeRoom.roomId);
+                updateGameLayoutState();
             }
             break;
         }
@@ -3857,6 +3863,22 @@ async function fetchRoomDetails(roomId) {
     } catch {}
 }
 
+function updateGameLayoutState() {
+    const lobbyPanel = document.getElementById('lobbyPanel');
+    const hudBar = document.getElementById('gameHudBar') || document.querySelector('.hud-bar');
+    const isPlaying = activeRoom && activeRoom.status === 'PLAYING' && !isGameOver;
+
+    if (isPlaying) {
+        if (lobbyPanel) lobbyPanel.style.display = 'none';
+        if (hudBar) hudBar.style.display = 'flex';
+        document.body.classList.add('in-combat-mode');
+    } else {
+        if (lobbyPanel) lobbyPanel.style.display = 'flex';
+        if (hudBar) hudBar.style.display = 'none';
+        document.body.classList.remove('in-combat-mode');
+    }
+}
+
 function switchToLobbyBrowser() {
     activeRoom = null;
     isSpectator = false;
@@ -3875,12 +3897,20 @@ function switchToLobbyBrowser() {
     hudRoom.textContent = 'None (Lobby)';
     hudState.textContent = 'Phase 6: Collectibles & Scoring';
     fetchRoomsList();
+    updateGameLayoutState();
 }
 
 function renderActiveRoom(room) {
     activeRoom = room;
-    lobbyBrowser.style.display = 'none';
-    activeRoomView.style.display = 'flex';
+    const isPlaying = room.status === 'PLAYING';
+    if (isPlaying) {
+        lobbyBrowser.style.display = 'none';
+        activeRoomView.style.display = 'none';
+    } else {
+        lobbyBrowser.style.display = 'none';
+        activeRoomView.style.display = 'flex';
+    }
+    updateGameLayoutState();
 
     currentRoomId.textContent = room.roomId;
     currentRoomName.textContent = room.name;
@@ -4151,10 +4181,38 @@ function escapeHtml(str) {
     }[m]));
 }
 
+async function quickBattle() {
+    if (!isAuthenticated()) {
+        openModal();
+        showAuthAlert('Please log in or register to join an arena', true);
+        return;
+    }
+    try {
+        const response = await fetch('/api/rooms', { headers: getAuthHeaders() });
+        if (response.ok) {
+            const rooms = await response.json();
+            const joinable = rooms.find(r => r.status === 'WAITING' && r.currentPlayers < r.maxPlayers);
+            if (joinable) {
+                joinRoom(joinable.roomId);
+                return;
+            }
+        }
+        const randId = Math.floor(1000 + Math.random() * 9000);
+        createRoom(`Cyber Arena #${randId}`, 4);
+    } catch {
+        openCreateRoomModal();
+    }
+}
+
 function setupRoomEventListeners() {
     openCreateRoomBtn.addEventListener('click', openCreateRoomModal);
     closeCreateRoomModalBtn.addEventListener('click', closeCreateRoomModal);
     refreshRoomsBtn.addEventListener('click', fetchRoomsList);
+
+    const quickBattleBtn = document.getElementById('quickBattleBtn');
+    if (quickBattleBtn) {
+        quickBattleBtn.addEventListener('click', quickBattle);
+    }
 
     createRoomForm.addEventListener('submit', (e) => {
         e.preventDefault();
@@ -4170,6 +4228,10 @@ function setupRoomEventListeners() {
     });
 
     leaveRoomBtn.addEventListener('click', leaveRoom);
+    const hudLeaveMatchBtn = document.getElementById('hudLeaveMatchBtn');
+    if (hudLeaveMatchBtn) {
+        hudLeaveMatchBtn.addEventListener('click', leaveRoom);
+    }
     readyBtn.addEventListener('click', toggleReady);
     startGameBtn.addEventListener('click', startGame);
     if (addBotBtn) addBotBtn.addEventListener('click', addBot);
@@ -4493,6 +4555,7 @@ window.addEventListener('DOMContentLoaded', () => {
     setupChatEventListeners();
     setupEmoteEventListeners();
     checkBackendHealth();
+    updateGameLayoutState();
     verifyExistingSession().then(() => {
         checkMyCurrentRoom();
         fetchRoomsList();
