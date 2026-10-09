@@ -28,7 +28,7 @@
                 </a>
                 <button class="btn-intel" id="openIntelBtn" title="Controls & Tactical Intel [H]">❓ Guide</button>
                 <button class="btn-settings" id="openSettingsBtn" title="Audio & Match Settings">⚙️ Settings</button>
-                <button class="btn-sound-toggle" id="soundToggleBtn" title="Toggle Audio Synthesizer [M]">🔊 Sound: ON</button>
+                <button class="btn-sound-toggle" id="soundToggleBtn" title="Toggle Audio Synthesizer [M]"><span class="sound-eq-icon active"><span></span><span></span><span></span></span> <span id="soundToggleText">Sound: ON</span></button>
                 <button class="btn-leaderboard" id="openLeaderboardBtn" title="Global Leaderboard">🏆 Ranks</button>
                 <button class="btn-history" id="openMatchHistoryBtn" title="Career Log & Achievements" style="display: none;">📜 Career</button>
                 <div class="user-profile-badge" id="userProfileBadge" style="display: none;">
@@ -38,6 +38,7 @@
                     <button class="btn-text" id="logoutBtn" title="Logout">Logout</button>
                 </div>
                 <div class="auth-buttons" id="authButtons">
+                    <button class="btn-guest-play" id="quickGuestPlayBtn" title="Instant Action — Play now as Guest">⚡ Guest Play</button>
                     <button class="btn-primary" id="openAuthModalBtn">Login</button>
                 </div>
                 <div class="server-status" id="serverStatus" title="Cluster Connectivity">
@@ -49,138 +50,246 @@
 
         <main class="arena-wrapper">
             <!-- Room & Lobby Management Panel -->
+            <!-- Room & Lobby Management Panel -->
             <section class="lobby-panel" id="lobbyPanel">
-                <!-- Phase 16: Warrior Class Specialization Selector (Always accessible in Lobby & Matchmaking) -->
-                <div class="class-selection-container" id="classSelectContainer">
-                    <div class="class-selection-header">
-                        <span class="class-section-title">⚡ WARRIOR CLASS LOADOUT</span>
-                        <span class="class-selected-badge" id="currentSelectedClassBadge">ASSAULT (Pulse Blaster)</span>
+                <!-- VIEW 1: MAIN LOBBY / HOME SCREEN (Shown when not in an active room) -->
+                <div class="lobby-home-screen" id="lobbyHomeScreen">
+                    <!-- Hero Command Deck: Split View (Pilot Loadout left, Mode & Battle Launchpad right) -->
+                    <div class="home-command-deck" id="homeCommandDeck">
+                        <!-- Left Panel: Warrior Loadout & Pilot Spec -->
+                        <div class="hero-deck-card loadout-card">
+                            <div class="deck-card-header">
+                                <div class="deck-card-title">
+                                    <span class="deck-icon">⚡</span>
+                                    <span>PILOT LOADOUT</span>
+                                </div>
+                                <span class="class-selected-badge" id="currentSelectedClassBadge">ASSAULT (Pulse Blaster)</span>
+                            </div>
+
+                            <!-- Phase 16: Warrior Class Specialization Selector -->
+                            <div class="class-selection-container" id="classSelectContainer">
+                                <div class="class-cards-grid" id="classCardsGrid">
+                                    <div class="class-card selected" data-class="ASSAULT">
+                                        <div class="class-card-icon">🛡️</div>
+                                        <div class="class-card-body">
+                                            <div class="class-card-name">ASSAULT</div>
+                                            <div class="class-card-desc">Balanced Vanguard</div>
+                                            <div class="class-stat-bars">
+                                                <div class="class-stat-bar-item">
+                                                    <span class="stat-name">HP</span>
+                                                    <div class="stat-meter"><div class="stat-fill hp-fill-meter" style="width: 66%;"></div></div>
+                                                    <span class="stat-val">100</span>
+                                                </div>
+                                                <div class="class-stat-bar-item">
+                                                    <span class="stat-name">SPD</span>
+                                                    <div class="stat-meter"><div class="stat-fill spd-fill-meter" style="width: 82%;"></div></div>
+                                                    <span class="stat-val">240</span>
+                                                </div>
+                                            </div>
+                                            <div class="class-weapon-tag">⚡ Pulse Blaster (20 DMG)</div>
+                                        </div>
+                                    </div>
+                                    <div class="class-card" data-class="JUGGERNAUT">
+                                        <div class="class-card-icon">🦾</div>
+                                        <div class="class-card-body">
+                                            <div class="class-card-name">JUGGERNAUT</div>
+                                            <div class="class-card-desc">Heavy Armored Titan</div>
+                                            <div class="class-stat-bars">
+                                                <div class="class-stat-bar-item">
+                                                    <span class="stat-name">HP</span>
+                                                    <div class="stat-meter"><div class="stat-fill hp-fill-meter" style="width: 100%;"></div></div>
+                                                    <span class="stat-val">150</span>
+                                                </div>
+                                                <div class="class-stat-bar-item">
+                                                    <span class="stat-name">SPD</span>
+                                                    <div class="stat-meter"><div class="stat-fill spd-fill-meter" style="width: 67%;"></div></div>
+                                                    <span class="stat-val">195</span>
+                                                </div>
+                                            </div>
+                                            <div class="class-weapon-tag">💥 Plasma Cannon (35 DMG)</div>
+                                        </div>
+                                    </div>
+                                    <div class="class-card" data-class="SCOUT">
+                                        <div class="class-card-icon">⚡</div>
+                                        <div class="class-card-body">
+                                            <div class="class-card-name">SCOUT</div>
+                                            <div class="class-card-desc">Agile Skirmisher</div>
+                                            <div class="class-stat-bars">
+                                                <div class="class-stat-bar-item">
+                                                    <span class="stat-name">HP</span>
+                                                    <div class="stat-meter"><div class="stat-fill hp-fill-meter" style="width: 50%;"></div></div>
+                                                    <span class="stat-val">75</span>
+                                                </div>
+                                                <div class="class-stat-bar-item">
+                                                    <span class="stat-name">SPD</span>
+                                                    <div class="stat-meter"><div class="stat-fill spd-fill-meter" style="width: 100%;"></div></div>
+                                                    <span class="stat-val">290</span>
+                                                </div>
+                                            </div>
+                                            <div class="class-weapon-tag">✦ Twin Needles (14 DMG)</div>
+                                        </div>
+                                    </div>
+                                    <div class="class-card" data-class="SNIPER">
+                                        <div class="class-card-icon">🎯</div>
+                                        <div class="class-card-body">
+                                            <div class="class-card-name">SNIPER</div>
+                                            <div class="class-card-desc">Precision Marksman</div>
+                                            <div class="class-stat-bars">
+                                                <div class="class-stat-bar-item">
+                                                    <span class="stat-name">HP</span>
+                                                    <div class="stat-meter"><div class="stat-fill hp-fill-meter" style="width: 56%;"></div></div>
+                                                    <span class="stat-val">85</span>
+                                                </div>
+                                                <div class="class-stat-bar-item">
+                                                    <span class="stat-name">SPD</span>
+                                                    <div class="stat-meter"><div class="stat-fill spd-fill-meter" style="width: 75%;"></div></div>
+                                                    <span class="stat-val">220</span>
+                                                </div>
+                                            </div>
+                                            <div class="class-weapon-tag">🔭 Hyper Railgun (45 DMG)</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Right Panel: Game Mode Selector & Big Hero Launch Button -->
+                        <div class="hero-deck-card battle-launch-card">
+                            <div class="deck-card-header">
+                                <div class="deck-card-title">
+                                    <span class="deck-icon">🎯</span>
+                                    <span>SELECT GAME MODE</span>
+                                </div>
+                                <span class="deck-mode-indicator" id="deckSelectedModeBadge">MODE: QUICK FFA</span>
+                            </div>
+
+                            <!-- Quick Battle Hub: 3 Mode Selector Tiles -->
+                            <div class="quick-battle-hub" id="quickBattleHub">
+                                <div class="quick-hero-card ffa-hero active-mode" id="quickCardFfa" data-mode="FFA" title="Instant Free-For-All 4-Player Battle">
+                                    <div class="hero-card-glow"></div>
+                                    <div class="hero-card-badge">POPULAR FFA</div>
+                                    <div class="hero-card-icon">⚡</div>
+                                    <div class="hero-card-info">
+                                        <h4>Quick Match FFA</h4>
+                                        <p>4-player free-for-all. First to 100 points wins!</p>
+                                    </div>
+                                    <button class="hero-card-btn" id="heroQuickPlayBtn" type="button">SELECT</button>
+                                </div>
+                                <div class="quick-hero-card duel-hero" id="quickCardDuel" data-mode="DUEL" title="1v1 Head-to-Head Duel">
+                                    <div class="hero-card-glow"></div>
+                                    <div class="hero-card-badge duel-badge">1v1 DUEL</div>
+                                    <div class="hero-card-icon">⚔️</div>
+                                    <div class="hero-card-info">
+                                        <h4>1v1 PvP Duel</h4>
+                                        <p>First pilot to score 3 eliminations takes glory!</p>
+                                    </div>
+                                    <button class="hero-card-btn" id="heroDuelBtn" type="button">SELECT</button>
+                                </div>
+                                <div class="quick-hero-card pve-hero" id="quickCardPve" data-mode="PRACTICE" title="Solo Practice Dojo vs AI Bot">
+                                    <div class="hero-card-glow"></div>
+                                    <div class="hero-card-badge pve-badge">SOLO PRACTICE</div>
+                                    <div class="hero-card-icon">🤖</div>
+                                    <div class="hero-card-info">
+                                        <h4>Practice vs AI Bot</h4>
+                                        <p>Sharpen aim & test loadouts against combat bot!</p>
+                                    </div>
+                                    <button class="hero-card-btn" id="heroPracticeBtn" type="button">SELECT</button>
+                                </div>
+                            </div>
+
+                            <!-- THE GIANT UNMISSABLE HERO "PLAY NOW" BUTTON -->
+                            <div class="hero-launch-action-wrap">
+                                <button class="btn-giant-play mode-ffa" id="giantPlayNowBtn" type="button">
+                                    <span class="btn-giant-icon">⚔️</span>
+                                    <span class="btn-giant-text">
+                                        <span class="giant-label-main" id="giantPlayLabel">BATTLE NOW</span>
+                                        <span class="giant-label-sub" id="giantPlaySub">Quick Match FFA • 4 Pilots</span>
+                                    </span>
+                                    <span class="btn-giant-arrow">➔</span>
+                                </button>
+                            </div>
+                        </div>
                     </div>
-                    <div class="class-cards-grid" id="classCardsGrid">
-                        <div class="class-card selected" data-class="ASSAULT">
-                            <div class="class-card-icon">🛡️</div>
-                            <div class="class-card-body">
-                                <div class="class-card-name">ASSAULT</div>
-                                <div class="class-card-desc">Balanced Vanguard</div>
-                                <div class="class-stat-bars">
-                                    <div class="class-stat-bar-item">
-                                        <span class="stat-name">HP</span>
-                                        <div class="stat-meter"><div class="stat-fill hp-fill-meter" style="width: 66%;"></div></div>
-                                        <span class="stat-val">100</span>
-                                    </div>
-                                    <div class="class-stat-bar-item">
-                                        <span class="stat-name">SPD</span>
-                                        <div class="stat-meter"><div class="stat-fill spd-fill-meter" style="width: 82%;"></div></div>
-                                        <span class="stat-val">240</span>
-                                    </div>
-                                </div>
-                                <div class="class-weapon-tag">⚡ Pulse Blaster (20 DMG)</div>
+
+                    <!-- View A: Lobby Browser (Collapsible / Clean Custom Arenas) -->
+                    <div class="lobby-browser" id="lobbyBrowser">
+                        <div class="lobby-header">
+                            <div class="lobby-title">
+                                <h3>🌐 Custom Arenas & Server Browser</h3>
+                                <span class="room-count-badge" id="roomCountBadge">0 Arenas</span>
+                            </div>
+                            <div class="lobby-actions">
+                                <button class="btn-primary" id="openCreateRoomBtn">+ Create Arena</button>
+                                <button class="btn-secondary" id="refreshRoomsBtn" title="Refresh room list">🔄 Refresh</button>
+                                <!-- Preserved compatibility buttons (hidden from toolbar to keep UI clean) -->
+                                <button class="btn-pvp-duel" id="pvpDuelBtn" style="display: none;">⚔️ 1v1 Duel</button>
+                                <button class="btn-success btn-quick-play" id="quickBattleBtn" style="display: none;">⚡ Quick Play</button>
+                                <button class="btn-pve-practice" id="pvePracticeBtn" style="display: none;">🤖 Practice vs Bot</button>
                             </div>
                         </div>
-                        <div class="class-card" data-class="JUGGERNAUT">
-                            <div class="class-card-icon">🦾</div>
-                            <div class="class-card-body">
-                                <div class="class-card-name">JUGGERNAUT</div>
-                                <div class="class-card-desc">Heavy Armored Titan</div>
-                                <div class="class-stat-bars">
-                                    <div class="class-stat-bar-item">
-                                        <span class="stat-name">HP</span>
-                                        <div class="stat-meter"><div class="stat-fill hp-fill-meter" style="width: 100%;"></div></div>
-                                        <span class="stat-val">150</span>
-                                    </div>
-                                    <div class="class-stat-bar-item">
-                                        <span class="stat-name">SPD</span>
-                                        <div class="stat-meter"><div class="stat-fill spd-fill-meter" style="width: 67%;"></div></div>
-                                        <span class="stat-val">195</span>
-                                    </div>
-                                </div>
-                                <div class="class-weapon-tag">💥 Plasma Cannon (35 DMG)</div>
+                        <div class="lobby-filter-bar" id="lobbyFilterBar">
+                            <div class="search-input-wrap">
+                                <span class="search-icon">🔍</span>
+                                <input type="text" id="roomSearchInput" placeholder="Filter arenas by name..." maxlength="30">
+                            </div>
+                            <div class="mode-filter-pills" id="modeFilterPills">
+                                <button class="filter-pill active" data-filter="ALL" type="button">All Arenas</button>
+                                <button class="filter-pill" data-filter="PVP_FFA" type="button">💀 FFA</button>
+                                <button class="filter-pill" data-filter="PVP_1V1" type="button">⚔️ 1v1 Duel</button>
+                                <button class="filter-pill" data-filter="OPEN" type="button">🟢 Open Slots</button>
                             </div>
                         </div>
-                        <div class="class-card" data-class="SCOUT">
-                            <div class="class-card-icon">⚡</div>
-                            <div class="class-card-body">
-                                <div class="class-card-name">SCOUT</div>
-                                <div class="class-card-desc">Agile Skirmisher</div>
-                                <div class="class-stat-bars">
-                                    <div class="class-stat-bar-item">
-                                        <span class="stat-name">HP</span>
-                                        <div class="stat-meter"><div class="stat-fill hp-fill-meter" style="width: 50%;"></div></div>
-                                        <span class="stat-val">75</span>
-                                    </div>
-                                    <div class="class-stat-bar-item">
-                                        <span class="stat-name">SPD</span>
-                                        <div class="stat-meter"><div class="stat-fill spd-fill-meter" style="width: 100%;"></div></div>
-                                        <span class="stat-val">290</span>
-                                    </div>
-                                </div>
-                                <div class="class-weapon-tag">✦ Twin Needles (14 DMG)</div>
-                            </div>
-                        </div>
-                        <div class="class-card" data-class="SNIPER">
-                            <div class="class-card-icon">🎯</div>
-                            <div class="class-card-body">
-                                <div class="class-card-name">SNIPER</div>
-                                <div class="class-card-desc">Precision Marksman</div>
-                                <div class="class-stat-bars">
-                                    <div class="class-stat-bar-item">
-                                        <span class="stat-name">HP</span>
-                                        <div class="stat-meter"><div class="stat-fill hp-fill-meter" style="width: 56%;"></div></div>
-                                        <span class="stat-val">85</span>
-                                    </div>
-                                    <div class="class-stat-bar-item">
-                                        <span class="stat-name">SPD</span>
-                                        <div class="stat-meter"><div class="stat-fill spd-fill-meter" style="width: 75%;"></div></div>
-                                        <span class="stat-val">220</span>
-                                    </div>
-                                </div>
-                                <div class="class-weapon-tag">🔭 Hyper Railgun (45 DMG)</div>
-                            </div>
+                        <div class="rooms-container" id="roomsContainer">
+                            <div class="empty-rooms" id="emptyRoomsMsg">No active arenas found. Click Create Arena to host a private match!</div>
                         </div>
                     </div>
                 </div>
 
-                <!-- View A: Lobby Browser (when not in a room) -->
-                <div class="lobby-browser" id="lobbyBrowser">
-                    <div class="lobby-header">
-                        <div class="lobby-title">
-                            <h3>🎮 Active Arenas</h3>
-                            <span class="room-count-badge" id="roomCountBadge">0 Rooms</span>
-                        </div>
-                        <div class="lobby-actions">
-                            <button class="btn-pvp-duel" id="pvpDuelBtn" title="Instant 1v1 Head-to-Head Duel (First to 3 Eliminations)">⚔️ 1v1 PvP Duel</button>
-                            <button class="btn-success btn-quick-play" id="quickBattleBtn" title="Instant Quick Match FFA">⚡ Quick Play</button>
-                            <button class="btn-pve-practice" id="pvePracticeBtn" title="Instant Solo Practice vs AI Bot">🤖 Practice vs Bot</button>
-                            <button class="btn-primary" id="openCreateRoomBtn">+ Create Room</button>
-                            <button class="btn-secondary" id="refreshRoomsBtn" title="Refresh room list">🔄 Refresh</button>
-                        </div>
-                    </div>
-                    <div class="rooms-container" id="roomsContainer">
-                        <div class="empty-rooms" id="emptyRoomsMsg">No active arenas found. Click Quick Play or Create Room to battle!</div>
-                    </div>
-                </div>
-
-                <!-- View B: Current Active Room (when in a room) -->
+                <!-- VIEW 2: CURRENT ACTIVE ROOM / STAGING BAY (Shown ONLY when inside a room) -->
                 <div class="active-room-view" id="activeRoomView" style="display: none;">
+                    <!-- Staging Bay Header -->
                     <div class="active-room-header">
                         <div class="room-info">
-                            <span class="room-tag" id="currentRoomId">ARENA-0000</span>
+                            <button class="btn-room-back" id="roomBackToLobbyBtn" type="button" title="Return to Main Menu">← Menu</button>
+                            <div class="room-tag-row">
+                                <span class="room-tag" id="currentRoomId">ARENA-0000</span>
+                                <button class="btn-copy-code" id="copyRoomIdBtn" type="button" title="Copy Room ID to clipboard">📋 Copy ID</button>
+                            </div>
                             <span class="room-mode-badge mode-ffa" id="currentRoomModeBadge">💀 PVP FFA</span>
                             <h3 id="currentRoomName">Battle Arena Alpha</h3>
                         </div>
                         <div class="room-status-badge waiting" id="currentRoomStatus">WAITING FOR PLAYERS</div>
                     </div>
 
-                    <div class="players-roster" id="playersRoster">
-                        <!-- Player cards rendered dynamically -->
+                    <!-- Tactical Combatants Pods Grid -->
+                    <div class="staging-roster-section">
+                        <div class="staging-section-label">
+                            <span>COMBATANTS IN ARENA</span>
+                            <span class="staging-hint">Ready up or launch when pilots are ready</span>
+                        </div>
+                        <div class="players-roster" id="playersRoster">
+                            <!-- Player cards rendered dynamically -->
+                        </div>
                     </div>
 
+                    <!-- In-Lobby Class Loadout Quick Switcher -->
+                    <div class="staging-loadout-bar" id="stagingLoadoutBar">
+                        <span class="staging-loadout-label">⚡ CHANGE CLASS:</span>
+                        <div class="staging-class-pills" id="stagingClassPills">
+                            <button class="staging-class-pill active" data-class="ASSAULT" type="button">🛡️ ASSAULT</button>
+                            <button class="staging-class-pill" data-class="JUGGERNAUT" type="button">🦾 JUGGERNAUT</button>
+                            <button class="staging-class-pill" data-class="SCOUT" type="button">⚡ SCOUT</button>
+                            <button class="staging-class-pill" data-class="SNIPER" type="button">🎯 SNIPER</button>
+                        </div>
+                    </div>
+
+                    <!-- Docked Bottom Staging Controls -->
                     <div class="room-controls">
-                        <button class="btn-danger" id="leaveRoomBtn">Leave Room</button>
+                        <button class="btn-danger btn-leave-staging" id="leaveRoomBtn">🚪 Leave Room</button>
                         <div class="room-primary-actions">
-                            <button class="btn-secondary" id="addBotBtn" style="display: none;" title="Spawn an AI Bot Combatant to practice or fill room">🤖 + Add AI Bot</button>
-                            <button class="btn-warning" id="readyBtn" style="display: none;">Ready Up</button>
-                            <button class="btn-success" id="startGameBtn" style="display: none;">Start Game</button>
+                            <button class="btn-secondary btn-add-bot-staging" id="addBotBtn" style="display: none;" title="Spawn an AI Bot Combatant to practice or fill room">🤖 + Add AI Bot</button>
+                            <button class="btn-warning btn-ready-staging" id="readyBtn" style="display: none;">Ready Up</button>
+                            <button class="btn-success btn-start-staging" id="startGameBtn" style="display: none;">⚔️ START MATCH</button>
                         </div>
                     </div>
                 </div>
@@ -433,6 +542,10 @@
                     </div>
                     <button type="submit" class="btn-submit" id="authSubmitBtn">Log In</button>
                 </form>
+                <div class="auth-guest-divider">
+                    <span>OR JUMP STRAIGHT IN</span>
+                </div>
+                <button type="button" class="btn-guest-instant" id="modalGuestPlayBtn">⚡ Instant Guest Entry (No Password Needed)</button>
             </div>
         </div>
     </div>

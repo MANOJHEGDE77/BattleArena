@@ -48,6 +48,8 @@ public class SecurityConfig {
                         .requestMatchers("/api/leaderboard").permitAll()
                         // Public recent matches
                         .requestMatchers("/api/matches/recent").permitAll()
+                        // Public room list for lobby discovery
+                        .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/rooms").permitAll()
                         // Public WebSocket handshake (authentication is handled within WebSocket handler via JWT)
                         .requestMatchers("/ws/**").permitAll()
                         // Protected endpoints (such as /api/auth/me, /api/matches/me) require a valid token

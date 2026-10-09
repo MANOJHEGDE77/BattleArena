@@ -402,6 +402,16 @@ async function selectWarriorClass(className, notifyServer = true) {
         hudClass.textContent = `${cInfo.icon} ${className}`;
         hudClass.title = cInfo.weaponName;
     }
+    const stagingClassPills = document.getElementById('stagingClassPills');
+    if (stagingClassPills) {
+        stagingClassPills.querySelectorAll('.staging-class-pill').forEach(pill => {
+            if (pill.getAttribute('data-class') === className) {
+                pill.classList.add('active');
+            } else {
+                pill.classList.remove('active');
+            }
+        });
+    }
 
     if (notifyServer && activeRoom && activeRoom.status !== 'PLAYING') {
         try {
@@ -919,11 +929,11 @@ const soundEngine = new SoundEngine();
 function updateSoundButtonUi(isMuted) {
     if (!soundToggleBtn) return;
     if (isMuted) {
-        soundToggleBtn.textContent = '🔇 Sound: OFF';
+        soundToggleBtn.innerHTML = '🔇 <span id="soundToggleText">Sound: OFF</span>';
         soundToggleBtn.classList.add('muted');
         soundToggleBtn.title = 'Audio Synthesizer Muted (Click to Unmute)';
     } else {
-        soundToggleBtn.textContent = '🔊 Sound: ON';
+        soundToggleBtn.innerHTML = '<span class="sound-eq-icon active"><span></span><span></span><span></span></span> <span id="soundToggleText">Sound: ON</span>';
         soundToggleBtn.classList.remove('muted');
         soundToggleBtn.title = 'Audio Synthesizer Active (Click to Mute)';
     }
@@ -1223,6 +1233,12 @@ function updatePhysics(dt) {
         player.x += moveX * effectiveSpeed * dt;
         player.y += moveY * effectiveSpeed * dt;
 
+        if (Math.random() < 0.65) {
+            const currentC = player.warriorClass || mySelectedClass || 'ASSAULT';
+            const cInfo = WARRIOR_CLASSES[currentC] || WARRIOR_CLASSES.ASSAULT;
+            addThrusterParticle(player.x, player.y, player.heading, cInfo.accentColor);
+        }
+
         // Arena boundary collision detection (clamping within walls)
         const minX = player.radius + 2;
         const maxX = canvas.width - player.radius - 2;
@@ -1305,16 +1321,59 @@ function renderArena() {
     }
     ctx.stroke();
 
-    // 3. Center arena tactical radar rings
+    // 2b. High-tech glowing grid intersection points
+    ctx.fillStyle = 'rgba(56, 189, 248, 0.15)';
+    for (let x = gridSize; x < canvas.width; x += gridSize * 2) {
+        for (let y = gridSize; y < canvas.height; y += gridSize * 2) {
+            ctx.fillRect(x - 1, y - 1, 2, 2);
+        }
+    }
+
+    // 3. Center arena tactical radar rings & dynamic holographic sweep cone
     const cx = canvas.width / 2;
     const cy = canvas.height / 2;
+    const nowTime = performance.now();
+
     ctx.save();
-    ctx.strokeStyle = 'rgba(168, 85, 247, 0.08)';
+    ctx.strokeStyle = 'rgba(168, 85, 247, 0.12)';
     ctx.lineWidth = 1.5;
     ctx.beginPath();
     ctx.arc(cx, cy, 140, 0, Math.PI * 2);
     ctx.arc(cx, cy, 50, 0, Math.PI * 2);
     ctx.stroke();
+
+    // Rotating holographic radar sweep
+    const sweepAngle = (nowTime * 0.001) % (Math.PI * 2);
+    const sweepGrad = ctx.createRadialGradient(cx, cy, 0, cx, cy, 150);
+    sweepGrad.addColorStop(0, 'rgba(56, 189, 248, 0.14)');
+    sweepGrad.addColorStop(1, 'rgba(56, 189, 248, 0)');
+    ctx.fillStyle = sweepGrad;
+    ctx.beginPath();
+    ctx.moveTo(cx, cy);
+    ctx.arc(cx, cy, 150, sweepAngle, sweepAngle + 0.45);
+    ctx.closePath();
+    ctx.fill();
+    ctx.restore();
+
+    // 3b. Floating ambient cyber dust particles
+    if (!window._ambientParticles) {
+        window._ambientParticles = Array.from({ length: 22 }, () => ({
+            x: Math.random() * canvas.width,
+            y: Math.random() * canvas.height,
+            speed: 12 + Math.random() * 16,
+            size: 1 + Math.random() * 1.6,
+            alpha: 0.15 + Math.random() * 0.25
+        }));
+    }
+    ctx.save();
+    window._ambientParticles.forEach(p => {
+        p.y -= p.speed * 0.016;
+        if (p.y < 0) { p.y = canvas.height; p.x = Math.random() * canvas.width; }
+        ctx.fillStyle = `rgba(56, 189, 248, ${p.alpha})`;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+        ctx.fill();
+    });
     ctx.restore();
 
     // 4. Glowing electric arena boundary walls
@@ -1460,6 +1519,68 @@ function renderShockwaves(dt) {
         ctx.stroke();
         ctx.restore();
     }
+}
+
+// Engine Thruster Particle Feedback System
+const thrusterParticles = [];
+
+function addThrusterParticle(x, y, heading, color) {
+    const opp = heading + Math.PI + (Math.random() - 0.5) * 0.5;
+    thrusterParticles.push({
+        x: x - Math.cos(heading) * 12,
+        y: y - Math.sin(heading) * 12,
+        vx: Math.cos(opp) * (45 + Math.random() * 45),
+        vy: Math.sin(opp) * (45 + Math.random() * 45),
+        alpha: 0.85,
+        color: color || '#38bdf8',
+        size: 2.2 + Math.random() * 2
+    });
+}
+
+function renderThrusters(dt) {
+    if (thrusterParticles.length === 0) return;
+    ctx.save();
+    for (let i = thrusterParticles.length - 1; i >= 0; i--) {
+        const tp = thrusterParticles[i];
+        tp.x += tp.vx * dt;
+        tp.y += tp.vy * dt;
+        tp.alpha -= dt * 4.0;
+        tp.size = Math.max(0.4, tp.size - dt * 2.5);
+        if (tp.alpha <= 0) {
+            thrusterParticles.splice(i, 1);
+            continue;
+        }
+        ctx.globalAlpha = Math.max(0, tp.alpha);
+        ctx.fillStyle = tp.color;
+        ctx.shadowColor = tp.color;
+        ctx.shadowBlur = 6;
+        ctx.beginPath();
+        ctx.arc(tp.x, tp.y, tp.size, 0, Math.PI * 2);
+        ctx.fill();
+    }
+    ctx.restore();
+}
+
+// Global Tactical In-Game HUD Toast
+function showTacticalToast(title, desc = '', icon = '⚡') {
+    if (!achievementToastContainer) return;
+    const toast = document.createElement('div');
+    toast.className = 'achievement-toast';
+    toast.innerHTML = `
+        <span class="toast-icon">${icon}</span>
+        <div class="toast-body">
+            <div class="toast-tag">TACTICAL COMMS</div>
+            <div class="toast-title">${escapeHtml(title)}</div>
+            ${desc ? `<div class="toast-desc">${escapeHtml(desc)}</div>` : ''}
+        </div>
+    `;
+    achievementToastContainer.appendChild(toast);
+    setTimeout(() => {
+        toast.style.opacity = '0';
+        toast.style.transform = 'translateX(80px)';
+        toast.style.transition = 'all 0.4s ease';
+        setTimeout(() => toast.remove(), 400);
+    }, 2800);
 }
 
 // --- Phase 18 DOM Elements & State: Tactical Emote Wheel & Callout HUD ---
@@ -2477,6 +2598,7 @@ function gameLoop(currentTime) {
     renderCoins();
     renderPowerUps();
     renderProjectiles();
+    renderThrusters(dt);
     renderRemotePlayers();
     renderPlayer();
     renderShockwaves(dt);
@@ -2740,68 +2862,138 @@ function closeCreateRoomModal() {
     createRoomModal.style.display = 'none';
 }
 
+// Instant Guest Play workflow (0-Friction Immediate Action)
+async function quickGuestPlay() {
+    if (isAuthenticated()) return true;
+    try {
+        const randId = Math.floor(1000 + Math.random() * 9000);
+        const guestName = `Pilot_${randId}`;
+        const guestPass = `pass_${randId}_guest`;
+
+        const res = await fetch('/api/auth/register', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username: guestName, password: guestPass })
+        });
+
+        if (res.ok) {
+            const data = await res.json();
+            localStorage.setItem(JWT_STORAGE_KEY, data.token);
+            updateAuthState(data);
+            closeModal();
+            showTacticalToast(`⚡ Guest Identity: ${guestName} Activated!`, 'Ready for combat deployment', '🎮');
+            return true;
+        } else {
+            openModal();
+            return false;
+        }
+    } catch (err) {
+        console.error('Guest play error:', err);
+        openModal();
+        return false;
+    }
+}
+
+let cachedRoomsList = [];
+let currentRoomFilterMode = 'ALL';
+let currentRoomSearchQuery = '';
+
+function renderFilteredRooms() {
+    if (!roomsContainer) return;
+    roomsContainer.innerHTML = '';
+
+    const query = currentRoomSearchQuery.trim().toLowerCase();
+    const filtered = cachedRoomsList.filter(room => {
+        // Mode filter
+        const mode = room.gameMode || (room.maxPlayers === 2 ? 'PVP_1V1' : 'PVP_FFA');
+        if (currentRoomFilterMode === 'PVP_FFA' && mode !== 'PVP_FFA' && mode !== 'PVP_CHAOS') return false;
+        if (currentRoomFilterMode === 'PVP_1V1' && mode !== 'PVP_1V1') return false;
+        if (currentRoomFilterMode === 'OPEN' && (room.status === 'PLAYING' || room.currentPlayers >= room.maxPlayers)) return false;
+
+        // Query filter
+        if (query) {
+            const matchName = (room.name || '').toLowerCase().includes(query);
+            const matchId = (room.roomId || '').toLowerCase().includes(query);
+            const matchHost = (room.hostUsername || '').toLowerCase().includes(query);
+            if (!matchName && !matchId && !matchHost) return false;
+        }
+        return true;
+    });
+
+    roomCountBadge.textContent = `${filtered.length} Arena${filtered.length === 1 ? '' : 's'}`;
+
+    if (filtered.length === 0) {
+        roomsContainer.appendChild(emptyRoomsMsg);
+        return;
+    }
+
+    filtered.forEach(room => {
+        const card = document.createElement('div');
+        card.className = 'room-card';
+
+        const isPlaying = room.status === 'PLAYING';
+        const isFull = room.currentPlayers >= room.maxPlayers;
+        const canJoin = !isPlaying && !isFull;
+        const mode = room.gameMode || (room.maxPlayers === 2 ? 'PVP_1V1' : 'PVP_FFA');
+        const modeBadgeHtml = mode === 'PVP_1V1'
+            ? '<span class="room-mode-badge mode-1v1">⚔️ 1v1 DUEL</span>'
+            : (mode === 'PVP_CHAOS'
+                ? '<span class="room-mode-badge mode-chaos">🔥 CHAOS</span>'
+                : '<span class="room-mode-badge mode-ffa">💀 FFA</span>');
+
+        card.innerHTML = `
+            <div class="room-card-header">
+                <div style="display: flex; align-items: center; gap: 6px;">
+                    <span class="room-code-tag">${escapeHtml(room.roomId)}</span>
+                    ${modeBadgeHtml}
+                </div>
+                <span class="room-capacity">${room.currentPlayers}/${room.maxPlayers} Players</span>
+            </div>
+            <div class="room-card-title">${escapeHtml(room.name)}</div>
+            <div class="room-card-footer">
+                <span class="room-host">Host: ${escapeHtml(room.hostUsername)}</span>
+                <div class="room-card-actions">
+                    <button class="room-join-btn" data-room-id="${escapeHtml(room.roomId)}" ${!canJoin ? 'disabled style="opacity:0.5;cursor:not-allowed"' : ''}>
+                        ${isPlaying ? 'In Game' : isFull ? 'Full' : 'Join'}
+                    </button>
+                    <button class="btn-spectate room-spectate-btn" data-room-id="${escapeHtml(room.roomId)}" title="Watch live match as observer">
+                        👁️ Spectate
+                    </button>
+                </div>
+            </div>
+        `;
+
+        const joinBtn = card.querySelector('.room-join-btn');
+        if (canJoin) {
+            joinBtn.addEventListener('click', async () => {
+                if (!isAuthenticated()) {
+                    await quickGuestPlay();
+                }
+                joinRoom(room.roomId, false);
+            });
+        }
+
+        const spectateBtn = card.querySelector('.room-spectate-btn');
+        if (spectateBtn) {
+            spectateBtn.addEventListener('click', async () => {
+                if (!isAuthenticated()) {
+                    await quickGuestPlay();
+                }
+                joinRoom(room.roomId, true);
+            });
+        }
+
+        roomsContainer.appendChild(card);
+    });
+}
+
 async function fetchRoomsList() {
     try {
         const response = await fetch('/api/rooms', { headers: getAuthHeaders() });
         if (!response.ok) return;
 
-        const rooms = await response.json();
-        roomCountBadge.textContent = `${rooms.length} Arena${rooms.length === 1 ? '' : 's'}`;
-
-        roomsContainer.innerHTML = '';
-        if (rooms.length === 0) {
-            roomsContainer.appendChild(emptyRoomsMsg);
-            return;
-        }
-
-        rooms.forEach(room => {
-            const card = document.createElement('div');
-            card.className = 'room-card';
-
-            const isPlaying = room.status === 'PLAYING';
-            const isFull = room.currentPlayers >= room.maxPlayers;
-            const canJoin = !isPlaying && !isFull;
-            const mode = room.gameMode || (room.maxPlayers === 2 ? 'PVP_1V1' : 'PVP_FFA');
-            const modeBadgeHtml = mode === 'PVP_1V1'
-                ? '<span class="room-mode-badge mode-1v1">⚔️ 1v1 DUEL</span>'
-                : (mode === 'PVP_CHAOS'
-                    ? '<span class="room-mode-badge mode-chaos">🔥 CHAOS</span>'
-                    : '<span class="room-mode-badge mode-ffa">💀 FFA</span>');
-
-            card.innerHTML = `
-                <div class="room-card-header">
-                    <div style="display: flex; align-items: center; gap: 6px;">
-                        <span class="room-code-tag">${escapeHtml(room.roomId)}</span>
-                        ${modeBadgeHtml}
-                    </div>
-                    <span class="room-capacity">${room.currentPlayers}/${room.maxPlayers} Players</span>
-                </div>
-                <div class="room-card-title">${escapeHtml(room.name)}</div>
-                <div class="room-card-footer">
-                    <span class="room-host">Host: ${escapeHtml(room.hostUsername)}</span>
-                    <div class="room-card-actions">
-                        <button class="room-join-btn" data-room-id="${escapeHtml(room.roomId)}" ${!canJoin ? 'disabled style="opacity:0.5;cursor:not-allowed"' : ''}>
-                            ${isPlaying ? 'In Game' : isFull ? 'Full' : 'Join'}
-                        </button>
-                        <button class="btn-spectate room-spectate-btn" data-room-id="${escapeHtml(room.roomId)}" title="Watch live match as observer">
-                            👁️ Spectate
-                        </button>
-                    </div>
-                </div>
-            `;
-
-            const joinBtn = card.querySelector('.room-join-btn');
-            if (canJoin) {
-                joinBtn.addEventListener('click', () => joinRoom(room.roomId, false));
-            }
-
-            const spectateBtn = card.querySelector('.room-spectate-btn');
-            if (spectateBtn) {
-                spectateBtn.addEventListener('click', () => joinRoom(room.roomId, true));
-            }
-
-            roomsContainer.appendChild(card);
-        });
+        cachedRoomsList = await response.json();
+        renderFilteredRooms();
     } catch (err) {
         console.error('Error fetching rooms:', err);
     }
@@ -3906,6 +4098,8 @@ function switchToLobbyBrowser() {
     closeGameOverModal();
     disconnectGameWebSocket();
     stopRoomPolling();
+    const lobbyHomeScreen = document.getElementById('lobbyHomeScreen');
+    if (lobbyHomeScreen) lobbyHomeScreen.style.display = 'flex';
     activeRoomView.style.display = 'none';
     lobbyBrowser.style.display = 'block';
     hudRoom.textContent = 'None (Lobby)';
@@ -3917,10 +4111,13 @@ function switchToLobbyBrowser() {
 function renderActiveRoom(room) {
     activeRoom = room;
     const isPlaying = room.status === 'PLAYING';
+    const lobbyHomeScreen = document.getElementById('lobbyHomeScreen');
     if (isPlaying) {
+        if (lobbyHomeScreen) lobbyHomeScreen.style.display = 'none';
         lobbyBrowser.style.display = 'none';
         activeRoomView.style.display = 'none';
     } else {
+        if (lobbyHomeScreen) lobbyHomeScreen.style.display = 'none';
         lobbyBrowser.style.display = 'none';
         activeRoomView.style.display = 'flex';
     }
@@ -4024,6 +4221,31 @@ function renderActiveRoom(room) {
 
         playersRoster.appendChild(chip);
     });
+
+    // Render empty slots for visual clarity and polish
+    const totalSlots = room.maxPlayers || 2;
+    const currentCombatants = room.players.filter(p => !p.spectator).length;
+    for (let i = currentCombatants; i < totalSlots; i++) {
+        const emptyChip = document.createElement('div');
+        emptyChip.className = 'player-chip empty-slot';
+        emptyChip.innerHTML = `
+            <span class="player-chip-name">⏳ Waiting for Pilot...</span>
+            <span class="player-status-tag waiting">Empty Slot</span>
+        `;
+        playersRoster.appendChild(emptyChip);
+    }
+
+    // Sync in-staging loadout pills
+    const stagingClassPills = document.getElementById('stagingClassPills');
+    if (stagingClassPills) {
+        stagingClassPills.querySelectorAll('.staging-class-pill').forEach(pill => {
+            if (pill.getAttribute('data-class') === mySelectedClass) {
+                pill.classList.add('active');
+            } else {
+                pill.classList.remove('active');
+            }
+        });
+    }
 
     if (amISpectator) {
         isSpectator = true;
@@ -4243,9 +4465,8 @@ function escapeHtml(str) {
 
 async function quickPvPDuel() {
     if (!isAuthenticated()) {
-        openModal();
-        showAuthAlert('Please log in or register to join a 1v1 PvP Duel', true);
-        return;
+        const ok = await quickGuestPlay();
+        if (!ok) return;
     }
     try {
         const response = await fetch('/api/rooms', { headers: getAuthHeaders() });
@@ -4266,9 +4487,8 @@ async function quickPvPDuel() {
 
 async function startPracticeBattle() {
     if (!isAuthenticated()) {
-        openModal();
-        showAuthAlert('Please log in or register to launch a practice arena', true);
-        return;
+        const ok = await quickGuestPlay();
+        if (!ok) return;
     }
     try {
         const randId = Math.floor(1000 + Math.random() * 9000);
@@ -4297,9 +4517,8 @@ async function startPracticeBattle() {
 
 async function quickBattle() {
     if (!isAuthenticated()) {
-        openModal();
-        showAuthAlert('Please log in or register to join an arena', true);
-        return;
+        const ok = await quickGuestPlay();
+        if (!ok) return;
     }
     try {
         const response = await fetch('/api/rooms', { headers: getAuthHeaders() });
@@ -4322,6 +4541,181 @@ function setupRoomEventListeners() {
     openCreateRoomBtn.addEventListener('click', openCreateRoomModal);
     closeCreateRoomModalBtn.addEventListener('click', closeCreateRoomModal);
     refreshRoomsBtn.addEventListener('click', fetchRoomsList);
+
+    // Header & Modal Instant Guest Play buttons
+    const quickGuestPlayBtn = document.getElementById('quickGuestPlayBtn');
+    if (quickGuestPlayBtn) {
+        quickGuestPlayBtn.addEventListener('click', () => quickGuestPlay().then(() => quickBattle()));
+    }
+    const modalGuestPlayBtn = document.getElementById('modalGuestPlayBtn');
+    if (modalGuestPlayBtn) {
+        modalGuestPlayBtn.addEventListener('click', () => quickGuestPlay().then(() => quickBattle()));
+    }
+
+    // Structured Combat Launchpad & Game Mode Selector
+    let currentLobbyMode = 'FFA';
+
+    function setLobbyBattleMode(mode) {
+        currentLobbyMode = mode;
+        const quickCardFfa = document.getElementById('quickCardFfa');
+        const quickCardDuel = document.getElementById('quickCardDuel');
+        const quickCardPve = document.getElementById('quickCardPve');
+        const deckSelectedModeBadge = document.getElementById('deckSelectedModeBadge');
+        const giantPlayNowBtn = document.getElementById('giantPlayNowBtn');
+        const giantPlayLabel = document.getElementById('giantPlayLabel');
+        const giantPlaySub = document.getElementById('giantPlaySub');
+
+        if (quickCardFfa) quickCardFfa.classList.toggle('active-mode', mode === 'FFA');
+        if (quickCardDuel) quickCardDuel.classList.toggle('active-mode', mode === 'DUEL');
+        if (quickCardPve) quickCardPve.classList.toggle('active-mode', mode === 'PRACTICE');
+
+        if (deckSelectedModeBadge) {
+            if (mode === 'FFA') deckSelectedModeBadge.textContent = 'MODE: QUICK FFA';
+            else if (mode === 'DUEL') deckSelectedModeBadge.textContent = 'MODE: 1v1 DUEL';
+            else if (mode === 'PRACTICE') deckSelectedModeBadge.textContent = 'MODE: BOT DOJO';
+        }
+
+        if (giantPlayNowBtn && giantPlayLabel && giantPlaySub) {
+            giantPlayNowBtn.classList.remove('mode-ffa', 'mode-duel', 'mode-practice');
+            if (mode === 'FFA') {
+                giantPlayNowBtn.classList.add('mode-ffa');
+                giantPlayLabel.textContent = 'BATTLE NOW';
+                giantPlaySub.textContent = 'Quick Match FFA • 4 Pilots';
+            } else if (mode === 'DUEL') {
+                giantPlayNowBtn.classList.add('mode-duel');
+                giantPlayLabel.textContent = 'DUEL NOW';
+                giantPlaySub.textContent = '1v1 PvP Duel • First to 3 Kills';
+            } else if (mode === 'PRACTICE') {
+                giantPlayNowBtn.classList.add('mode-practice');
+                giantPlayLabel.textContent = 'ENTER DOJO';
+                giantPlaySub.textContent = 'Practice vs AI Bot • Solo Training';
+            }
+        }
+    }
+
+    const heroQuickPlayBtn = document.getElementById('heroQuickPlayBtn');
+    const quickCardFfa = document.getElementById('quickCardFfa');
+    if (heroQuickPlayBtn) {
+        heroQuickPlayBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            setLobbyBattleMode('FFA');
+            quickBattle();
+        });
+    }
+    if (quickCardFfa) {
+        quickCardFfa.addEventListener('click', () => {
+            setLobbyBattleMode('FFA');
+        });
+        quickCardFfa.addEventListener('dblclick', () => {
+            quickBattle();
+        });
+    }
+
+    const heroDuelBtn = document.getElementById('heroDuelBtn');
+    const quickCardDuel = document.getElementById('quickCardDuel');
+    if (heroDuelBtn) {
+        heroDuelBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            setLobbyBattleMode('DUEL');
+            quickPvPDuel();
+        });
+    }
+    if (quickCardDuel) {
+        quickCardDuel.addEventListener('click', () => {
+            setLobbyBattleMode('DUEL');
+        });
+        quickCardDuel.addEventListener('dblclick', () => {
+            quickPvPDuel();
+        });
+    }
+
+    const heroPracticeBtn = document.getElementById('heroPracticeBtn');
+    const quickCardPve = document.getElementById('quickCardPve');
+    if (heroPracticeBtn) {
+        heroPracticeBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            setLobbyBattleMode('PRACTICE');
+            startPracticeBattle();
+        });
+    }
+    if (quickCardPve) {
+        quickCardPve.addEventListener('click', () => {
+            setLobbyBattleMode('PRACTICE');
+        });
+        quickCardPve.addEventListener('dblclick', () => {
+            startPracticeBattle();
+        });
+    }
+
+    // Giant Play Now Hero Button
+    const giantPlayNowBtn = document.getElementById('giantPlayNowBtn');
+    if (giantPlayNowBtn) {
+        giantPlayNowBtn.addEventListener('click', () => {
+            if (soundEngine) soundEngine.playEmote();
+            if (currentLobbyMode === 'FFA') {
+                quickBattle();
+            } else if (currentLobbyMode === 'DUEL') {
+                quickPvPDuel();
+            } else if (currentLobbyMode === 'PRACTICE') {
+                startPracticeBattle();
+            }
+        });
+    }
+
+    // In-Staging Header Return to Menu Button
+    const roomBackToLobbyBtn = document.getElementById('roomBackToLobbyBtn');
+    if (roomBackToLobbyBtn) {
+        roomBackToLobbyBtn.addEventListener('click', leaveRoom);
+    }
+
+    // In-Staging Quick Class Switcher
+    const stagingClassPills = document.getElementById('stagingClassPills');
+    if (stagingClassPills) {
+        stagingClassPills.querySelectorAll('.staging-class-pill').forEach(pill => {
+            pill.addEventListener('click', () => {
+                const cls = pill.getAttribute('data-class');
+                if (cls) selectWarriorClass(cls, true);
+            });
+        });
+    }
+
+    // Live Room Filter & Search
+    const roomSearchInput = document.getElementById('roomSearchInput');
+    if (roomSearchInput) {
+        roomSearchInput.addEventListener('input', (e) => {
+            currentRoomSearchQuery = e.target.value;
+            renderFilteredRooms();
+        });
+    }
+
+    const modeFilterPills = document.getElementById('modeFilterPills');
+    if (modeFilterPills) {
+        modeFilterPills.querySelectorAll('.filter-pill').forEach(pill => {
+            pill.addEventListener('click', () => {
+                modeFilterPills.querySelectorAll('.filter-pill').forEach(p => p.classList.remove('active'));
+                pill.classList.add('active');
+                currentRoomFilterMode = pill.getAttribute('data-filter') || 'ALL';
+                renderFilteredRooms();
+            });
+        });
+    }
+
+    // Copy Room Code Button
+    const copyRoomIdBtn = document.getElementById('copyRoomIdBtn');
+    if (copyRoomIdBtn) {
+        copyRoomIdBtn.addEventListener('click', () => {
+            if (!activeRoom || !activeRoom.roomId) return;
+            navigator.clipboard.writeText(activeRoom.roomId).then(() => {
+                copyRoomIdBtn.textContent = '✓ Copied!';
+                copyRoomIdBtn.classList.add('copied');
+                showTacticalToast('Arena Code Copied', `Share ${activeRoom.roomId} with squadmates`, '📋');
+                setTimeout(() => {
+                    copyRoomIdBtn.textContent = '📋 Copy ID';
+                    copyRoomIdBtn.classList.remove('copied');
+                }, 2000);
+            }).catch(() => {});
+        });
+    }
 
     if (pvpDuelBtn) {
         pvpDuelBtn.addEventListener('click', quickPvPDuel);
