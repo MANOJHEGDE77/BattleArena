@@ -654,6 +654,18 @@
                     <div class="canvas-container" id="canvasContainer">
                         <canvas id="gameCanvas" width="800" height="600"></canvas>
 
+                        <!-- Dynamic Low-Health & Damage Flash Vignette -->
+                        <div class="combat-damage-vignette" id="combatDamageVignette"></div>
+
+                        <!-- High-Impact Triumphant Kill Banner -->
+                        <div class="combat-kill-banner" id="combatKillBanner">
+                            <span class="kill-banner-skull">💀</span>
+                            <div class="kill-banner-text">
+                                <span class="kill-banner-title">OPPONENT ELIMINATED</span>
+                                <span class="kill-banner-victim" id="killBannerVictim">+25 PTS • TARGET NEUTRALIZED</span>
+                            </div>
+                        </div>
+
                         <!-- Minimalist Sliding Kill Feed -->
                         <div class="kill-feed" id="killFeed"></div>
 

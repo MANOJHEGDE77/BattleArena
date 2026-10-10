@@ -1198,9 +1198,148 @@ class SoundEngine {
             }
         } catch {}
     }
+
+    playUiHover() {
+        if (this.muted) return;
+        this.init();
+        if (!this.ctx) return;
+        try {
+            const now = this.ctx.currentTime;
+            const osc = this.ctx.createOscillator();
+            const gain = this.ctx.createGain();
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(2400, now);
+            osc.frequency.exponentialRampToValueAtTime(1400, now + 0.015);
+            gain.gain.setValueAtTime(this.getEffectiveVolume() * 0.1, now);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.015);
+            osc.connect(gain);
+            gain.connect(this.ctx.destination);
+            osc.start(now);
+            osc.stop(now + 0.016);
+        } catch {}
+    }
+
+    playUiClick() {
+        if (this.muted) return;
+        this.init();
+        if (!this.ctx) return;
+        try {
+            const now = this.ctx.currentTime;
+            const osc = this.ctx.createOscillator();
+            const gain = this.ctx.createGain();
+            osc.type = 'triangle';
+            osc.frequency.setValueAtTime(750, now);
+            osc.frequency.exponentialRampToValueAtTime(240, now + 0.035);
+            gain.gain.setValueAtTime(this.getEffectiveVolume() * 0.32, now);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.035);
+            osc.connect(gain);
+            gain.connect(this.ctx.destination);
+            osc.start(now);
+            osc.stop(now + 0.036);
+        } catch {}
+    }
+
+    playUiDeploy() {
+        if (this.muted) return;
+        this.init();
+        if (!this.ctx) return;
+        try {
+            const now = this.ctx.currentTime;
+            const osc = this.ctx.createOscillator();
+            const gain = this.ctx.createGain();
+            osc.type = 'sawtooth';
+            osc.frequency.setValueAtTime(90, now);
+            osc.frequency.linearRampToValueAtTime(320, now + 0.25);
+            osc.frequency.exponentialRampToValueAtTime(55, now + 0.42);
+            gain.gain.setValueAtTime(this.getEffectiveVolume() * 0.7, now);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.42);
+            osc.connect(gain);
+            gain.connect(this.ctx.destination);
+            osc.start(now);
+            osc.stop(now + 0.43);
+        } catch {}
+    }
+
+    playHitmarker(isCrit = false) {
+        if (this.muted) return;
+        this.init();
+        if (!this.ctx) return;
+        try {
+            const now = this.ctx.currentTime;
+            const osc = this.ctx.createOscillator();
+            const gain = this.ctx.createGain();
+            osc.type = isCrit ? 'square' : 'triangle';
+            const baseFreq = isCrit ? 2800 : 2100;
+            osc.frequency.setValueAtTime(baseFreq, now);
+            osc.frequency.exponentialRampToValueAtTime(isCrit ? 1400 : 950, now + 0.026);
+            gain.gain.setValueAtTime(this.getEffectiveVolume() * (isCrit ? 0.65 : 0.45), now);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.026);
+            osc.connect(gain);
+            gain.connect(this.ctx.destination);
+            osc.start(now);
+            osc.stop(now + 0.028);
+        } catch {}
+    }
+
+    playKillSting() {
+        if (this.muted) return;
+        this.init();
+        if (!this.ctx) return;
+        try {
+            const now = this.ctx.currentTime;
+            const subOsc = this.ctx.createOscillator();
+            const subGain = this.ctx.createGain();
+            subOsc.type = 'sine';
+            subOsc.frequency.setValueAtTime(140, now);
+            subOsc.frequency.exponentialRampToValueAtTime(45, now + 0.35);
+            subGain.gain.setValueAtTime(this.getEffectiveVolume() * 0.8, now);
+            subGain.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
+            subOsc.connect(subGain);
+            subGain.connect(this.ctx.destination);
+            subOsc.start(now);
+            subOsc.stop(now + 0.36);
+
+            const chord = [523.25, 659.25, 783.99, 1046.5];
+            chord.forEach((freq, i) => {
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                const t = now + i * 0.04;
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(freq, t);
+                gain.gain.setValueAtTime(this.getEffectiveVolume() * 0.45, t);
+                gain.gain.exponentialRampToValueAtTime(0.001, t + 0.38);
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start(t);
+                osc.stop(t + 0.4);
+            });
+        } catch {}
+    }
 }
 
 const soundEngine = new SoundEngine();
+
+// Tactical UI Audio Feedback for all interactive buttons
+let lastUiHoverTime = 0;
+document.addEventListener('mouseover', (e) => {
+    const btn = e.target.closest('button, [role="button"], .nav-tab, .diff-pill, .mode-card, .class-card, .filter-pill, .staging-class-pill');
+    if (!btn) return;
+    const now = performance.now();
+    if (now - lastUiHoverTime > 55) {
+        lastUiHoverTime = now;
+        soundEngine.playUiHover();
+    }
+}, { passive: true });
+
+document.addEventListener('click', (e) => {
+    const btn = e.target.closest('button, [role="button"], .nav-tab, .diff-pill, .mode-card, .class-card, .filter-pill, .staging-class-pill');
+    if (!btn) return;
+    if (btn.id === 'giantPlayNowBtn' || btn.classList.contains('btn-launch-match') || btn.classList.contains('btn-primary-launch')) {
+        soundEngine.playUiDeploy();
+    } else {
+        soundEngine.playUiClick();
+    }
+}, { passive: true });
 
 function updateSoundButtonUi(isMuted) {
     if (!soundToggleBtn) return;
@@ -1262,7 +1401,10 @@ const player = {
     alive: true,
     kills: 0,
     deaths: 0,
-    lastAttackTime: 0
+    lastAttackTime: 0,
+    recoilDist: 0,
+    recoilAngle: 0,
+    damageFlashTimer: 0
 };
 
 // --- Input Manager ---
@@ -1368,6 +1510,14 @@ function fireBlaster(targetHeading) {
     soundEngine.playLaser(player.spreadShotUntil > Date.now(), currentClass);
 
     const heading = targetHeading !== undefined ? targetHeading : player.heading;
+
+    // Tactical Weapon Recoil & Muzzle Blast (Game Feel)
+    const kickback = currentClass === 'JUGGERNAUT' ? 8 : (currentClass === 'SNIPER' ? 10 : 5);
+    player.recoilDist = kickback;
+    player.recoilAngle = heading;
+    triggerScreenShake(currentClass === 'JUGGERNAUT' ? 5 : (currentClass === 'SNIPER' ? 6 : 2.5), 0.08);
+    addMuzzleFlash(player.x, player.y, heading, currentClass);
+
     gameWs.send(JSON.stringify({
         type: 'ATTACK',
         heading: Math.round(heading * 100) / 100
@@ -1383,6 +1533,11 @@ window.addEventListener('blur', () => {
 function updateProjectiles(dt) {
     const now = performance.now();
     projectiles.forEach((p, id) => {
+        // Accumulate glowing motion trails
+        p.trail = p.trail || [];
+        p.trail.push({ x: p.x, y: p.y });
+        if (p.trail.length > 5) p.trail.shift();
+
         p.x += p.vx * dt;
         p.y += p.vy * dt;
 
@@ -1397,6 +1552,7 @@ function updateProjectiles(dt) {
             for (const obs of obstacles) {
                 if (p.x >= obs.x && p.x <= obs.x + obs.width && p.y >= obs.y && p.y <= obs.y + obs.height) {
                     addFloatingText('✦', p.x, p.y, '#38bdf8');
+                    addCombatSparks(p.x, p.y, '#38bdf8', 10);
                     if (p.shooter === player.name && gameWs && gameWs.readyState === WebSocket.OPEN) {
                         gameWs.send(JSON.stringify({
                             type: 'PROJECTILE_OBSTACLE_HIT',
@@ -1419,6 +1575,7 @@ function updateProjectiles(dt) {
                     const maxDist = (hazard.radius || 16) + (p.radius || 5);
                     if (dx * dx + dy * dy <= maxDist * maxDist) {
                         addFloatingText('💥', p.x, p.y, '#f97316');
+                        addCombatSparks(hazard.x, hazard.y, '#f97316', 14);
                         if (p.shooter === player.name && gameWs && gameWs.readyState === WebSocket.OPEN) {
                             gameWs.send(JSON.stringify({
                                 type: 'PROJECTILE_HAZARD_HIT',
@@ -1441,6 +1598,7 @@ function updateProjectiles(dt) {
                     const dy = p.y - rp.y;
                     const maxDist = (rp.radius || 16) + (p.radius || 5);
                     if (dx * dx + dy * dy <= maxDist * maxDist) {
+                        addCombatSparks(rp.x, rp.y, '#f43f5e', 12);
                         if (gameWs && gameWs.readyState === WebSocket.OPEN) {
                             gameWs.send(JSON.stringify({
                                 type: 'PROJECTILE_HIT',
@@ -1857,6 +2015,180 @@ function renderThrusters(dt) {
         ctx.fill();
     }
     ctx.restore();
+}
+
+// Tactical Combat Impact Sparks
+const combatSparks = [];
+
+function addCombatSparks(x, y, color = '#38bdf8', count = 10) {
+    for (let i = 0; i < count; i++) {
+        const angle = Math.random() * Math.PI * 2;
+        const speed = 70 + Math.random() * 180;
+        combatSparks.push({
+            x,
+            y,
+            vx: Math.cos(angle) * speed,
+            vy: Math.sin(angle) * speed,
+            alpha: 1.0,
+            color,
+            size: 1.6 + Math.random() * 2.2,
+            life: 0.28 + Math.random() * 0.2,
+            maxLife: 0.4
+        });
+    }
+}
+
+function renderCombatSparks(dt) {
+    if (combatSparks.length === 0) return;
+    ctx.save();
+    for (let i = combatSparks.length - 1; i >= 0; i--) {
+        const sp = combatSparks[i];
+        sp.x += sp.vx * dt;
+        sp.y += sp.vy * dt;
+        sp.vx *= 0.94;
+        sp.vy *= 0.94;
+        sp.life -= dt;
+        sp.alpha = Math.max(0, sp.life / sp.maxLife);
+        if (sp.life <= 0) {
+            combatSparks.splice(i, 1);
+            continue;
+        }
+        ctx.globalAlpha = sp.alpha;
+        ctx.fillStyle = sp.color;
+        ctx.shadowColor = sp.color;
+        ctx.shadowBlur = 6;
+        ctx.beginPath();
+        ctx.arc(sp.x, sp.y, sp.size * sp.alpha, 0, Math.PI * 2);
+        ctx.fill();
+    }
+    ctx.restore();
+}
+
+// Tactical Weapon Muzzle Flash Flares
+const muzzleFlashes = [];
+
+function addMuzzleFlash(x, y, heading, warriorClass = 'ASSAULT') {
+    const classInfo = WARRIOR_CLASSES[warriorClass] || WARRIOR_CLASSES.ASSAULT;
+    const barrelDist = (player.radius || 16) + 12;
+    muzzleFlashes.push({
+        x: x + Math.cos(heading) * barrelDist,
+        y: y + Math.sin(heading) * barrelDist,
+        heading,
+        color: classInfo.accentColor || '#38bdf8',
+        radius: warriorClass === 'JUGGERNAUT' ? 18 : (warriorClass === 'SNIPER' ? 22 : 14),
+        life: 0.07,
+        maxLife: 0.07
+    });
+}
+
+function renderMuzzleFlashes(dt) {
+    if (muzzleFlashes.length === 0) return;
+    ctx.save();
+    for (let i = muzzleFlashes.length - 1; i >= 0; i--) {
+        const mf = muzzleFlashes[i];
+        mf.life -= dt;
+        if (mf.life <= 0) {
+            muzzleFlashes.splice(i, 1);
+            continue;
+        }
+        const alpha = mf.life / mf.maxLife;
+        ctx.save();
+        ctx.translate(mf.x, mf.y);
+        ctx.rotate(mf.heading);
+        ctx.globalAlpha = alpha;
+
+        // Core white star flare
+        ctx.beginPath();
+        ctx.arc(0, 0, mf.radius * 0.45, 0, Math.PI * 2);
+        ctx.fillStyle = '#ffffff';
+        ctx.shadowColor = mf.color;
+        ctx.shadowBlur = 16;
+        ctx.fill();
+
+        // Directional flare cones
+        ctx.beginPath();
+        ctx.moveTo(mf.radius * 1.4, 0);
+        ctx.lineTo(-mf.radius * 0.5, -mf.radius * 0.4);
+        ctx.lineTo(-mf.radius * 0.2, 0);
+        ctx.lineTo(-mf.radius * 0.5, mf.radius * 0.4);
+        ctx.closePath();
+        ctx.fillStyle = mf.color;
+        ctx.fill();
+
+        ctx.restore();
+    }
+    ctx.restore();
+}
+
+// High-Octane Tactical Hitmarker Reticle System
+let activeHitmarker = null;
+
+function triggerHitmarker(isCrit = false) {
+    activeHitmarker = {
+        time: performance.now(),
+        isCrit,
+        duration: 130
+    };
+}
+
+function renderHitmarkers() {
+    if (!activeHitmarker) return;
+    const elapsed = performance.now() - activeHitmarker.time;
+    if (elapsed > activeHitmarker.duration) {
+        activeHitmarker = null;
+        return;
+    }
+    const alpha = 1 - (elapsed / activeHitmarker.duration);
+    const expand = (elapsed / activeHitmarker.duration) * 4;
+    const r = (activeHitmarker.isCrit ? 12 : 9) + expand;
+    const len = activeHitmarker.isCrit ? 7 : 5;
+    const color = activeHitmarker.isCrit ? '#ef4444' : '#ffffff';
+
+    const cx = lastAimX || (canvas.width / 2);
+    const cy = lastAimY || (canvas.height / 2);
+
+    ctx.save();
+    ctx.translate(cx, cy);
+    ctx.globalAlpha = alpha;
+    ctx.strokeStyle = color;
+    ctx.lineWidth = activeHitmarker.isCrit ? 2.5 : 2;
+    ctx.shadowColor = color;
+    ctx.shadowBlur = activeHitmarker.isCrit ? 8 : 4;
+
+    const dirs = [
+        [-1, -1], [1, -1], [-1, 1], [1, 1]
+    ];
+    for (const [dx, dy] of dirs) {
+        ctx.beginPath();
+        ctx.moveTo(dx * (r - len), dy * (r - len));
+        ctx.lineTo(dx * r, dy * r);
+        ctx.stroke();
+    }
+    ctx.restore();
+}
+
+let killBannerTimeout = null;
+function showKillBanner(victimName, points = 25) {
+    const banner = document.getElementById('combatKillBanner');
+    const victimEl = document.getElementById('killBannerVictim');
+    if (!banner || !victimEl) return;
+    victimEl.textContent = `+${points} PTS • ${victimName.toUpperCase()} ELIMINATED`;
+    banner.classList.add('active');
+    if (killBannerTimeout) clearTimeout(killBannerTimeout);
+    killBannerTimeout = setTimeout(() => {
+        banner.classList.remove('active');
+    }, 2400);
+}
+
+let damageVignetteTimeout = null;
+function triggerDamageVignette(durationMs = 180) {
+    const vignette = document.getElementById('combatDamageVignette');
+    if (!vignette) return;
+    vignette.style.opacity = '0.75';
+    if (damageVignetteTimeout) clearTimeout(damageVignetteTimeout);
+    damageVignetteTimeout = setTimeout(() => {
+        vignette.style.opacity = '';
+    }, durationMs);
 }
 
 // Global Tactical In-Game HUD Toast
@@ -2378,23 +2710,30 @@ function renderPowerUps() {
     });
 }
 
-// Floating score feedback particles
-function addFloatingText(text, x, y, color = '#fbbf24') {
+// Floating score feedback particles with punchy dynamic scaling
+function addFloatingText(text, x, y, color = '#fbbf24', isCrit = false) {
     floatingTexts.push({
         text,
         x,
         y,
+        vx: (Math.random() - 0.5) * 28,
+        vy: isCrit ? -60 : -45,
         alpha: 1.0,
-        vy: -45,
-        color
+        color,
+        scale: isCrit ? 1.75 : 1.35,
+        isCrit
     });
 }
 
 function renderFloatingTexts(dt) {
     for (let i = floatingTexts.length - 1; i >= 0; i--) {
         const ft = floatingTexts[i];
+        ft.x += (ft.vx || 0) * dt;
         ft.y += ft.vy * dt;
-        ft.alpha -= dt * 1.1;
+        ft.alpha -= dt * 1.05;
+        if (ft.scale > 1.0) {
+            ft.scale = Math.max(1.0, ft.scale - dt * 3.4);
+        }
 
         if (ft.alpha <= 0) {
             floatingTexts.splice(i, 1);
@@ -2403,12 +2742,23 @@ function renderFloatingTexts(dt) {
 
         ctx.save();
         ctx.globalAlpha = Math.max(0, ft.alpha);
-        ctx.fillStyle = ft.color;
-        ctx.font = 'bold 13px Outfit, sans-serif';
+        ctx.translate(ft.x, ft.y);
+        ctx.scale(ft.scale, ft.scale);
+
+        ctx.font = ft.isCrit ? '900 15px Outfit, sans-serif' : '800 12px Outfit, sans-serif';
         ctx.textAlign = 'center';
-        ctx.shadowColor = 'rgba(0,0,0,0.8)';
-        ctx.shadowBlur = 4;
-        ctx.fillText(ft.text, ft.x, ft.y);
+        ctx.textBaseline = 'middle';
+
+        // High-contrast dark outline for maximum arcade readability
+        ctx.strokeStyle = '#050811';
+        ctx.lineWidth = 3.5;
+        ctx.strokeText(ft.text, 0, 0);
+
+        ctx.fillStyle = ft.color;
+        ctx.shadowColor = ft.color;
+        ctx.shadowBlur = ft.isCrit ? 12 : 5;
+        ctx.fillText(ft.text, 0, 0);
+
         ctx.restore();
     }
 }
@@ -2418,11 +2768,27 @@ const remotePlayers = new Map();
 
 function renderProjectiles() {
     projectiles.forEach((p) => {
+        const r = p.radius || 5;
+
+        // Glowing plasma laser streak motion trail
+        if (p.trail && p.trail.length > 1) {
+            ctx.save();
+            ctx.beginPath();
+            ctx.moveTo(p.trail[0].x, p.trail[0].y);
+            for (let t = 1; t < p.trail.length; t++) {
+                ctx.lineTo(p.trail[t].x, p.trail[t].y);
+            }
+            ctx.lineTo(p.x, p.y);
+            ctx.strokeStyle = p.speed >= 700 ? 'rgba(34, 211, 238, 0.45)' : (r >= 7 ? 'rgba(245, 158, 11, 0.45)' : (p.speed >= 580 ? 'rgba(192, 132, 252, 0.45)' : 'rgba(16, 185, 129, 0.45)'));
+            ctx.lineWidth = Math.max(1.8, r * 0.75);
+            ctx.stroke();
+            ctx.restore();
+        }
+
         ctx.save();
         ctx.translate(p.x, p.y);
         ctx.rotate(p.heading);
 
-        const r = p.radius || 5;
         if (r >= 7) {
             // JUGGERNAUT Plasma Cannon Orb (Heavy fiery projectile)
             const pulse = Math.sin(performance.now() * 0.02) * 1.5;
@@ -2610,6 +2976,17 @@ function renderRemotePlayers() {
         ctx.fillStyle = mainColor;
         ctx.fill();
 
+        // Hit flash feedback
+        if (rp.damageFlashTimer > 0) {
+            ctx.beginPath();
+            ctx.arc(0, 0, pRadius + 1.5, 0, Math.PI * 2);
+            ctx.fillStyle = '#ffffff';
+            ctx.shadowColor = '#ffffff';
+            ctx.shadowBlur = 12;
+            ctx.fill();
+            ctx.shadowBlur = 0;
+        }
+
         // 4. Remote player core
         ctx.beginPath();
         ctx.arc(0, 0, pRadius * 0.5, 0, Math.PI * 2);
@@ -2697,7 +3074,17 @@ function renderPlayer() {
         return; // Spectators have no physical combat avatar
     }
     ctx.save();
-    ctx.translate(player.x, player.y);
+
+    // Kinetic Chassis Recoil Kickback (Game Feel)
+    let px = player.x;
+    let py = player.y;
+    if (player.recoilDist > 0) {
+        px -= Math.cos(player.recoilAngle) * player.recoilDist;
+        py -= Math.sin(player.recoilAngle) * player.recoilDist;
+        player.recoilDist *= 0.82;
+        if (player.recoilDist < 0.1) player.recoilDist = 0;
+    }
+    ctx.translate(px, py);
 
     if (!player.alive) {
         ctx.globalAlpha = 0.35;
@@ -2780,6 +3167,17 @@ function renderPlayer() {
     ctx.arc(0, 0, pRadius, 0, Math.PI * 2);
     ctx.fillStyle = classInfo.color;
     ctx.fill();
+
+    // Hit flash feedback for local player
+    if (player.damageFlashTimer > 0) {
+        ctx.beginPath();
+        ctx.arc(0, 0, pRadius + 1.5, 0, Math.PI * 2);
+        ctx.fillStyle = '#ffffff';
+        ctx.shadowColor = '#ffffff';
+        ctx.shadowBlur = 12;
+        ctx.fill();
+        ctx.shadowBlur = 0;
+    }
 
     // 4. Inner core
     ctx.beginPath();
@@ -2888,7 +3286,19 @@ function gameLoop(currentTime) {
         hasShake = true;
     }
 
-    // Visual render step: arena surface -> safe zone -> hazards -> obstacles -> coins -> power-ups -> projectiles -> remote players -> local player -> shockwaves -> floating text
+    // Update hit flash timers
+    if (player.damageFlashTimer > 0) {
+        player.damageFlashTimer -= dt;
+        if (player.damageFlashTimer < 0) player.damageFlashTimer = 0;
+    }
+    remotePlayers.forEach(rp => {
+        if (rp.damageFlashTimer > 0) {
+            rp.damageFlashTimer -= dt;
+            if (rp.damageFlashTimer < 0) rp.damageFlashTimer = 0;
+        }
+    });
+
+    // Visual render step: arena surface -> safe zone -> hazards -> obstacles -> coins -> power-ups -> projectiles -> remote players -> local player -> sparks -> shockwaves -> floating text -> hitmarkers
     renderArena();
     renderSafeZone();
     renderHazards();
@@ -2899,10 +3309,13 @@ function gameLoop(currentTime) {
     renderThrusters(dt);
     renderRemotePlayers();
     renderPlayer();
+    renderMuzzleFlashes(dt);
+    renderCombatSparks(dt);
     renderShockwaves(dt);
     renderPings(dt);
     renderEmotes(dt);
     renderFloatingTexts(dt);
+    renderHitmarkers();
 
     if (hasShake) {
         ctx.restore();
@@ -3796,19 +4209,26 @@ function handleWebSocketMessage(msg) {
             const targetX = isMe ? player.x : (remotePlayers.get(msg.targetUsername)?.x || player.x);
             const targetY = isMe ? player.y : (remotePlayers.get(msg.targetUsername)?.y || player.y);
 
+            // Tactile Combat Sparks & Silhouettes
+            addCombatSparks(targetX, targetY, isMe ? '#f43f5e' : '#38bdf8', 12);
+
             if (msg.shieldDamage > 0) {
                 soundEngine.playShieldDeflect();
-                addFloatingText(`-${msg.shieldDamage} 🛡️`, targetX, targetY - 28, '#06b6d4');
+                addFloatingText(`-${msg.shieldDamage} 🛡️`, targetX, targetY - 28, '#06b6d4', false);
             }
             if (msg.healthDamage > 0) {
+                const isCrit = msg.healthDamage >= 30;
                 soundEngine.playHit();
-                addFloatingText(`-${msg.healthDamage}`, targetX, targetY - 14, isMe ? '#ef4444' : '#f87171');
+                addFloatingText(`-${msg.healthDamage}`, targetX, targetY - 14, isMe ? '#ef4444' : '#f87171', isCrit);
             } else if (!msg.shieldDamage) {
                 soundEngine.playHit();
-                addFloatingText(`-${msg.damage}`, targetX, targetY - 14, isMe ? '#ef4444' : '#f87171');
+                addFloatingText(`-${msg.damage}`, targetX, targetY - 14, isMe ? '#ef4444' : '#f87171', false);
             }
 
             if (isMe) {
+                player.damageFlashTimer = 0.14;
+                triggerDamageVignette(180);
+                triggerScreenShake(msg.healthDamage >= 30 ? 7 : 3.5, 0.15);
                 if (msg.currentShield !== undefined) player.shield = msg.currentShield;
                 player.health = msg.currentHealth;
                 player.alive = !msg.isEliminated;
@@ -3819,9 +4239,16 @@ function handleWebSocketMessage(msg) {
             } else {
                 const rp = remotePlayers.get(msg.targetUsername);
                 if (rp) {
+                    rp.damageFlashTimer = 0.14;
                     if (msg.currentShield !== undefined) rp.shield = msg.currentShield;
                     rp.health = msg.currentHealth;
                     rp.alive = !msg.isEliminated;
+                }
+                // If local player was shooter or fired recently, trigger hitmarker feedback
+                if (msg.shooterUsername === player.name || (performance.now() - player.lastAttackTime < 800)) {
+                    const isCrit = (msg.healthDamage >= 30);
+                    triggerHitmarker(isCrit);
+                    soundEngine.playHitmarker(isCrit);
                 }
             }
             break;
@@ -3851,7 +4278,10 @@ function handleWebSocketMessage(msg) {
                 myScore = msg.killerScore;
                 hudScore.textContent = myScore;
                 updateHudHealth();
-                addFloatingText('+15 KILL!', player.x, player.y - 18, '#fbbf24');
+                soundEngine.playKillSting();
+                showKillBanner(msg.victim, 25);
+                triggerScreenShake(6.5, 0.25);
+                addFloatingText('+25 ELIMINATION!', player.x, player.y - 24, '#fbbf24', true);
                 unlockAchievement('FIRST_BLOOD');
                 if (msg.distance && msg.distance >= 150) {
                     unlockAchievement('SHARPSHOOTER');
@@ -4038,12 +4468,15 @@ function updateHudHealth() {
         hudShieldFill.style.width = `${shieldPct}%`;
     }
 
-    if (hpRatio <= 0.25) {
+    if (hpRatio <= 0.28 && player.alive) {
         hudHp.className = 'low-hp';
+        document.getElementById('combatDamageVignette')?.classList.add('danger-pulse');
     } else if (hpRatio <= 0.5) {
         hudHp.className = 'mid-hp';
+        document.getElementById('combatDamageVignette')?.classList.remove('danger-pulse');
     } else {
         hudHp.className = '';
+        document.getElementById('combatDamageVignette')?.classList.remove('danger-pulse');
     }
     hudKd.textContent = `${player.kills} / ${player.deaths}`;
 
