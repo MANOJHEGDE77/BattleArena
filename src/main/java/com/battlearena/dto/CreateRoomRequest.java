@@ -9,17 +9,24 @@ public class CreateRoomRequest {
     private Integer maxPlayers;
     private String gameMode;
 
+    private String botDifficulty;
+
     public CreateRoomRequest() {
     }
 
     public CreateRoomRequest(String name, Integer maxPlayers) {
-        this(name, maxPlayers, "PVP_FFA");
+        this(name, maxPlayers, "PVP_FFA", "VETERAN");
     }
 
     public CreateRoomRequest(String name, Integer maxPlayers, String gameMode) {
+        this(name, maxPlayers, gameMode, "VETERAN");
+    }
+
+    public CreateRoomRequest(String name, Integer maxPlayers, String gameMode, String botDifficulty) {
         this.name = name;
         this.maxPlayers = maxPlayers;
         this.gameMode = gameMode;
+        this.botDifficulty = botDifficulty;
     }
 
     public String getName() {
@@ -44,5 +51,13 @@ public class CreateRoomRequest {
 
     public void setGameMode(String gameMode) {
         this.gameMode = gameMode;
+    }
+
+    public String getBotDifficulty() {
+        return botDifficulty;
+    }
+
+    public void setBotDifficulty(String botDifficulty) {
+        this.botDifficulty = botDifficulty;
     }
 }

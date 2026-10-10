@@ -16,17 +16,23 @@ public class RoomResponse {
     private List<PlayerRoomDTO> players;
     private boolean canStart;
     private String gameMode = "PVP_FFA";
+    private String botDifficulty = "VETERAN";
 
     public RoomResponse() {
     }
 
     public RoomResponse(String roomId, String name, String hostUsername, int maxPlayers, int currentPlayers,
                         String status, List<PlayerRoomDTO> players, boolean canStart) {
-        this(roomId, name, hostUsername, maxPlayers, currentPlayers, status, players, canStart, "PVP_FFA");
+        this(roomId, name, hostUsername, maxPlayers, currentPlayers, status, players, canStart, "PVP_FFA", "VETERAN");
     }
 
     public RoomResponse(String roomId, String name, String hostUsername, int maxPlayers, int currentPlayers,
                         String status, List<PlayerRoomDTO> players, boolean canStart, String gameMode) {
+        this(roomId, name, hostUsername, maxPlayers, currentPlayers, status, players, canStart, gameMode, "VETERAN");
+    }
+
+    public RoomResponse(String roomId, String name, String hostUsername, int maxPlayers, int currentPlayers,
+                        String status, List<PlayerRoomDTO> players, boolean canStart, String gameMode, String botDifficulty) {
         this.roomId = roomId;
         this.name = name;
         this.hostUsername = hostUsername;
@@ -36,6 +42,7 @@ public class RoomResponse {
         this.players = players;
         this.canStart = canStart;
         this.gameMode = (gameMode != null && !gameMode.isEmpty()) ? gameMode : (maxPlayers == 2 ? "PVP_1V1" : "PVP_FFA");
+        this.botDifficulty = (botDifficulty != null && !botDifficulty.isEmpty()) ? botDifficulty : "VETERAN";
     }
 
     public String getRoomId() {
@@ -108,5 +115,13 @@ public class RoomResponse {
 
     public void setGameMode(String gameMode) {
         this.gameMode = gameMode;
+    }
+
+    public String getBotDifficulty() {
+        return botDifficulty;
+    }
+
+    public void setBotDifficulty(String botDifficulty) {
+        this.botDifficulty = botDifficulty;
     }
 }

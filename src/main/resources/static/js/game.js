@@ -387,8 +387,54 @@ async function selectWarriorClass(className, notifyServer = true) {
     player.speed = cInfo.speed;
 
     if (currentSelectedClassBadge) {
-        currentSelectedClassBadge.textContent = cInfo.badgeText;
+        currentSelectedClassBadge.textContent = `${className} (${cInfo.weaponName})`;
     }
+    const heroChassisSpec = document.getElementById('heroChassisSpec');
+    if (heroChassisSpec) {
+        heroChassisSpec.textContent = `MARK-IV ${className}`;
+    }
+    const hangarOperatorTitle = document.getElementById('hangarOperatorTitle');
+    if (hangarOperatorTitle) {
+        hangarOperatorTitle.textContent = className;
+    }
+    const hangarOperatorRole = document.getElementById('hangarOperatorRole');
+    if (hangarOperatorRole) {
+        hangarOperatorRole.textContent = cInfo.description || cInfo.badgeText;
+    }
+
+    // Update Dossier Stat Meters
+    const hpMeter = document.getElementById('operatorHpMeter');
+    const hpVal = document.getElementById('operatorHpVal');
+    if (hpMeter) hpMeter.style.width = `${Math.min(100, Math.round((cInfo.maxHp / 150) * 100))}%`;
+    if (hpVal) hpVal.textContent = `${cInfo.maxHp} HP`;
+
+    const shieldMeter = document.getElementById('operatorShieldMeter');
+    const shieldVal = document.getElementById('operatorShieldVal');
+    if (shieldMeter) shieldMeter.style.width = `${Math.min(100, Math.round((cInfo.maxShield / 75) * 100))}%`;
+    if (shieldVal) shieldVal.textContent = `${cInfo.maxShield} SHD`;
+
+    const spdMeter = document.getElementById('operatorSpeedMeter');
+    const spdVal = document.getElementById('operatorSpeedVal');
+    if (spdMeter) spdMeter.style.width = `${Math.min(100, Math.round((cInfo.speed / 290) * 100))}%`;
+    if (spdVal) spdVal.textContent = `${cInfo.speed} px/s`;
+
+    const dmgMeter = document.getElementById('operatorDamageMeter');
+    const dmgVal = document.getElementById('operatorDamageVal');
+    const dmgMap = { ASSAULT: 20, JUGGERNAUT: 35, SCOUT: 14, SNIPER: 45 };
+    const dmg = dmgMap[className] || 20;
+    if (dmgMeter) dmgMeter.style.width = `${Math.min(100, Math.round((dmg / 45) * 100))}%`;
+    if (dmgVal) dmgVal.textContent = `${dmg} DMG`;
+
+    const projMeter = document.getElementById('operatorProjSpeedMeter');
+    const projVal = document.getElementById('operatorProjSpeedVal');
+    const projMap = { ASSAULT: 650, JUGGERNAUT: 420, SCOUT: 620, SNIPER: 820 };
+    const pSpeed = projMap[className] || 650;
+    if (projMeter) projMeter.style.width = `${Math.min(100, Math.round((pSpeed / 820) * 100))}%`;
+    if (projVal) projVal.textContent = `${pSpeed} px/s`;
+
+    const hudWeaponName = document.getElementById('hudWeaponName');
+    if (hudWeaponName) hudWeaponName.textContent = cInfo.weaponName;
+
     if (classCardsGrid) {
         classCardsGrid.querySelectorAll('.class-card').forEach(card => {
             if (card.getAttribute('data-class') === className) {
@@ -399,7 +445,7 @@ async function selectWarriorClass(className, notifyServer = true) {
         });
     }
     if (hudClass) {
-        hudClass.textContent = `${cInfo.icon} ${className}`;
+        hudClass.textContent = className;
         hudClass.title = cInfo.weaponName;
     }
     const stagingClassPills = document.getElementById('stagingClassPills');
@@ -424,6 +470,236 @@ async function selectWarriorClass(className, notifyServer = true) {
                 gameWs.send(JSON.stringify({ type: 'SELECT_CLASS', warriorClass: className }));
             }
         } catch {}
+    }
+}
+
+// --- Cinematic Procedural Hero Operator Renderer for Menus ---
+function renderHeroChassis(targetCanvas, className, time) {
+    if (!targetCanvas) return;
+    const hCtx = targetCanvas.getContext('2d');
+    if (!hCtx) return;
+
+    const w = targetCanvas.width;
+    const h = targetCanvas.height;
+    hCtx.clearRect(0, 0, w, h);
+
+    const cx = w / 2;
+    const cy = h / 2;
+    const cInfo = WARRIOR_CLASSES[className] || WARRIOR_CLASSES.ASSAULT;
+    const primaryColor = cInfo.color || '#10b981';
+    const accentColor = cInfo.accentColor || '#34d399';
+
+    hCtx.save();
+    hCtx.translate(cx, cy);
+
+    // Idle breathing scale
+    const breath = 1 + Math.sin(time * 0.0025) * 0.015;
+    hCtx.scale(breath, breath);
+
+    // 1. Ambient back-glow
+    const bgGrad = hCtx.createRadialGradient(0, 0, 10, 0, 0, 180);
+    bgGrad.addColorStop(0, primaryColor + '22');
+    bgGrad.addColorStop(0.5, primaryColor + '08');
+    bgGrad.addColorStop(1, 'transparent');
+    hCtx.fillStyle = bgGrad;
+    hCtx.beginPath();
+    hCtx.arc(0, 0, 180, 0, Math.PI * 2);
+    hCtx.fill();
+
+    // 2. Rotating tactical HUD reticles
+    hCtx.save();
+    hCtx.rotate(time * 0.0004);
+    hCtx.strokeStyle = 'rgba(0, 242, 254, 0.15)';
+    hCtx.lineWidth = 1.5;
+    hCtx.setLineDash([12, 8, 4, 8]);
+    hCtx.beginPath();
+    hCtx.arc(0, 0, 130, 0, Math.PI * 2);
+    hCtx.stroke();
+    hCtx.restore();
+
+    hCtx.save();
+    hCtx.rotate(-time * 0.0003);
+    hCtx.strokeStyle = primaryColor + '33';
+    hCtx.lineWidth = 1;
+    hCtx.setLineDash([20, 15]);
+    hCtx.beginPath();
+    hCtx.arc(0, 0, 155, 0, Math.PI * 2);
+    hCtx.stroke();
+    hCtx.restore();
+
+    // Compass ticks
+    hCtx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
+    hCtx.lineWidth = 1.5;
+    hCtx.setLineDash([]);
+    const tickLen = 8;
+    [0, Math.PI / 2, Math.PI, (3 * Math.PI) / 2].forEach(angle => {
+        const x1 = Math.cos(angle) * 115;
+        const y1 = Math.sin(angle) * 115;
+        const x2 = Math.cos(angle) * (115 + tickLen);
+        const y2 = Math.sin(angle) * (115 + tickLen);
+        hCtx.beginPath();
+        hCtx.moveTo(x1, y1);
+        hCtx.lineTo(x2, y2);
+        hCtx.stroke();
+    });
+
+    // 3. Thruster Flame & Plasma Sparks
+    const thrusterOffset = 42;
+    const flameLen = 25 + Math.sin(time * 0.02) * 8;
+    const thrusterGrad = hCtx.createLinearGradient(0, thrusterOffset, 0, thrusterOffset + flameLen);
+    thrusterGrad.addColorStop(0, '#ffffff');
+    thrusterGrad.addColorStop(0.3, primaryColor);
+    thrusterGrad.addColorStop(1, 'transparent');
+
+    hCtx.fillStyle = thrusterGrad;
+    [-14, 14].forEach(xOff => {
+        hCtx.beginPath();
+        hCtx.moveTo(xOff - 5, thrusterOffset);
+        hCtx.lineTo(xOff, thrusterOffset + flameLen);
+        hCtx.lineTo(xOff + 5, thrusterOffset);
+        hCtx.closePath();
+        hCtx.fill();
+    });
+
+    // 4. Hero Fighter Hull Geometry
+    hCtx.shadowColor = primaryColor;
+    hCtx.shadowBlur = 18;
+
+    if (className === 'ASSAULT') {
+        // Vanguard Diamond Chassis
+        hCtx.fillStyle = '#0f172a';
+        hCtx.strokeStyle = primaryColor;
+        hCtx.lineWidth = 3;
+
+        hCtx.beginPath();
+        hCtx.moveTo(0, -48);
+        hCtx.lineTo(34, 15);
+        hCtx.lineTo(24, 40);
+        hCtx.lineTo(0, 32);
+        hCtx.lineTo(-24, 40);
+        hCtx.lineTo(-34, 15);
+        hCtx.closePath();
+        hCtx.fill();
+        hCtx.stroke();
+
+        // Armored Wing Plates
+        hCtx.fillStyle = primaryColor + '33';
+        hCtx.beginPath();
+        hCtx.moveTo(0, -30);
+        hCtx.lineTo(20, 10);
+        hCtx.lineTo(0, 24);
+        hCtx.lineTo(-20, 10);
+        hCtx.closePath();
+        hCtx.fill();
+
+        // Forward Pulse Cannon
+        hCtx.fillStyle = primaryColor;
+        hCtx.fillRect(-3, -56, 6, 16);
+    } else if (className === 'JUGGERNAUT') {
+        // Heavy Titan Bulkhead Chassis
+        hCtx.fillStyle = '#1e1b18';
+        hCtx.strokeStyle = primaryColor;
+        hCtx.lineWidth = 4;
+
+        hCtx.beginPath();
+        hCtx.moveTo(-28, -36);
+        hCtx.lineTo(28, -36);
+        hCtx.lineTo(44, 10);
+        hCtx.lineTo(32, 42);
+        hCtx.lineTo(-32, 42);
+        hCtx.lineTo(-44, 10);
+        hCtx.closePath();
+        hCtx.fill();
+        hCtx.stroke();
+
+        // Dual Heavy Plasma Barrels
+        hCtx.fillStyle = primaryColor;
+        hCtx.fillRect(-18, -54, 8, 22);
+        hCtx.fillRect(10, -54, 8, 22);
+
+        // Armor Plates
+        hCtx.fillStyle = primaryColor + '33';
+        hCtx.fillRect(-22, -15, 44, 25);
+    } else if (className === 'SCOUT') {
+        // Hyper Agile Delta Wing
+        hCtx.fillStyle = '#180f24';
+        hCtx.strokeStyle = primaryColor;
+        hCtx.lineWidth = 2.5;
+
+        hCtx.beginPath();
+        hCtx.moveTo(0, -52);
+        hCtx.lineTo(40, 26);
+        hCtx.lineTo(16, 38);
+        hCtx.lineTo(0, 28);
+        hCtx.lineTo(-16, 38);
+        hCtx.lineTo(-40, 26);
+        hCtx.closePath();
+        hCtx.fill();
+        hCtx.stroke();
+
+        // Needle Barrels
+        hCtx.fillStyle = primaryColor;
+        hCtx.fillRect(-15, -46, 3, 20);
+        hCtx.fillRect(12, -46, 3, 20);
+    } else if (className === 'SNIPER') {
+        // Precision Long-Range Rail Chassis
+        hCtx.fillStyle = '#091522';
+        hCtx.strokeStyle = primaryColor;
+        hCtx.lineWidth = 2.5;
+
+        hCtx.beginPath();
+        hCtx.moveTo(0, -62);
+        hCtx.lineTo(22, 10);
+        hCtx.lineTo(16, 42);
+        hCtx.lineTo(-16, 42);
+        hCtx.lineTo(-22, 10);
+        hCtx.closePath();
+        hCtx.fill();
+        hCtx.stroke();
+
+        // Extended Hyper Railgun Barrel
+        hCtx.fillStyle = '#ffffff';
+        hCtx.fillRect(-2, -72, 4, 30);
+
+        // Magnetic Coil Rings
+        hCtx.fillStyle = primaryColor;
+        [-65, -55, -45].forEach(yPos => {
+            hCtx.fillRect(-5, yPos, 10, 3);
+        });
+
+        // Laser Sight Beam
+        hCtx.strokeStyle = 'rgba(0, 242, 254, 0.4)';
+        hCtx.lineWidth = 1;
+        hCtx.beginPath();
+        hCtx.moveTo(0, -72);
+        hCtx.lineTo(0, -140);
+        hCtx.stroke();
+    }
+
+    // 5. Glowing Central Fusion Reactor
+    hCtx.shadowBlur = 22;
+    hCtx.shadowColor = accentColor;
+    const coreGrad = hCtx.createRadialGradient(0, 0, 1, 0, 0, 12);
+    coreGrad.addColorStop(0, '#ffffff');
+    coreGrad.addColorStop(0.6, accentColor);
+    coreGrad.addColorStop(1, 'rgba(0,0,0,0)');
+    hCtx.fillStyle = coreGrad;
+    hCtx.beginPath();
+    hCtx.arc(0, 0, 12, 0, Math.PI * 2);
+    hCtx.fill();
+
+    hCtx.restore();
+}
+
+function renderHeroCanvases(time) {
+    const activeClass = mySelectedClass || 'ASSAULT';
+    const heroShowcaseCanvas = document.getElementById('heroShowcaseCanvas');
+    if (heroShowcaseCanvas && heroShowcaseCanvas.offsetParent !== null) {
+        renderHeroChassis(heroShowcaseCanvas, activeClass, time);
+    }
+    const hangarOperatorCanvas = document.getElementById('hangarOperatorCanvas');
+    if (hangarOperatorCanvas && hangarOperatorCanvas.offsetParent !== null) {
+        renderHeroChassis(hangarOperatorCanvas, activeClass, time);
     }
 }
 
@@ -1185,6 +1461,28 @@ function updatePhysics(dt) {
     if (isGameOver) return;
 
     updateProjectiles(dt);
+
+    // Remote players position & heading interpolation (lerp) for smooth 60fps rendering
+    remotePlayers.forEach(rp => {
+        if (rp.targetX !== undefined && rp.targetY !== undefined) {
+            const lerpFactor = Math.min(1, 18 * dt);
+            const dx = rp.targetX - rp.x;
+            const dy = rp.targetY - rp.y;
+            if (Math.hypot(dx, dy) > 200) {
+                rp.x = rp.targetX;
+                rp.y = rp.targetY;
+            } else {
+                rp.x += dx * lerpFactor;
+                rp.y += dy * lerpFactor;
+            }
+        }
+        if (rp.targetHeading !== undefined && rp.heading !== undefined) {
+            let dHeading = rp.targetHeading - rp.heading;
+            while (dHeading > Math.PI) dHeading -= Math.PI * 2;
+            while (dHeading < -Math.PI) dHeading += Math.PI * 2;
+            rp.heading += dHeading * Math.min(1, 18 * dt);
+        }
+    });
 
     if (isSpectator) {
         if (spectateTargetUsername) {
@@ -2610,6 +2908,9 @@ function gameLoop(currentTime) {
         ctx.restore();
     }
 
+    // Render cinematic procedural menu operator canvases if visible
+    renderHeroCanvases(currentTime);
+
     // FPS Counter (sampled every 250ms for low CPU overhead)
     frameCount++;
     if (currentTime - lastFpsUpdate >= 250) {
@@ -2624,22 +2925,29 @@ function gameLoop(currentTime) {
 
 // --- Backend Health Check (reused from Phase 1) ---
 async function checkBackendHealth() {
+    const t0 = performance.now();
     try {
         const response = await fetch('/api/health');
+        const rtt = Math.round(performance.now() - t0);
         if (response.ok) {
-            const data = await response.json();
             statusDot.className = 'status-dot online';
-            statusText.textContent = `Backend: ${data.status} (${data.game})`;
+            statusText.textContent = 'ONLINE';
+            if (hudPing) {
+                hudPing.textContent = `${rtt} ms`;
+                hudPing.className = 'telemetry-ping ' + (rtt < 60 ? 'good' : (rtt < 130 ? 'moderate' : 'high'));
+            }
         } else {
             throw new Error(`HTTP ${response.status}`);
         }
     } catch {
         if (window.location.hostname.includes('github.io')) {
             statusDot.className = 'status-dot checking';
-            statusText.textContent = 'GitHub Pages Preview';
+            statusText.textContent = 'GH PAGES';
+            if (hudPing) hudPing.textContent = 'DEMO';
         } else {
             statusDot.className = 'status-dot offline';
-            statusText.textContent = 'Backend: Offline';
+            statusText.textContent = 'OFFLINE';
+            if (hudPing) hudPing.textContent = '-- ms';
         }
     }
 }
@@ -2709,13 +3017,13 @@ function updateAuthState(user) {
         userProfileBadge.style.display = 'flex';
         if (openMatchHistoryBtn) openMatchHistoryBtn.style.display = 'inline-block';
         usernameDisplay.textContent = user.username;
-        highScoreBadge.textContent = `Best: ${user.highestScore || 0}`;
+        highScoreBadge.textContent = `BEST: ${user.highestScore || 0}`;
         player.name = user.username;
         hudPlayer.textContent = user.username;
     } else {
         userProfileBadge.style.display = 'none';
         if (openMatchHistoryBtn) openMatchHistoryBtn.style.display = 'none';
-        authButtons.style.display = 'block';
+        authButtons.style.display = 'flex';
         player.name = 'Guest';
         hudPlayer.textContent = 'Guest';
     }
@@ -3100,7 +3408,10 @@ function handleWebSocketMessage(msg) {
                         username: msg.username,
                         x: msg.x,
                         y: msg.y,
+                        targetX: msg.x,
+                        targetY: msg.y,
                         heading: msg.heading,
+                        targetHeading: msg.heading,
                         color: msg.color || rpMeta.color,
                         warriorClass: rpClass,
                         radius: 16,
@@ -3112,9 +3423,9 @@ function handleWebSocketMessage(msg) {
                     };
                     remotePlayers.set(msg.username, rp);
                 } else {
-                    rp.x = msg.x;
-                    rp.y = msg.y;
-                    rp.heading = msg.heading;
+                    rp.targetX = msg.x;
+                    rp.targetY = msg.y;
+                    rp.targetHeading = msg.heading;
                     if (msg.warriorClass && msg.warriorClass !== rp.warriorClass) {
                         rp.warriorClass = msg.warriorClass;
                         const rpMeta = WARRIOR_CLASSES[msg.warriorClass] || WARRIOR_CLASSES.ASSAULT;
@@ -3255,7 +3566,10 @@ function handleWebSocketMessage(msg) {
                             username: p.username,
                             x: p.x,
                             y: p.y,
+                            targetX: p.x,
+                            targetY: p.y,
                             heading: p.heading || 0,
+                            targetHeading: p.heading || 0,
                             color: p.color || rpMeta.color,
                             warriorClass: rpClass,
                             radius: p.radius || 16,
@@ -3951,8 +4265,8 @@ async function triggerRematch() {
     }
 }
 
-async function fetchAndShowMatchHistory() {
-    matchHistoryModal.style.display = 'flex';
+async function fetchAndShowMatchHistory(openModalFlag = false) {
+    if (openModalFlag && matchHistoryModal) matchHistoryModal.style.display = 'flex';
     matchHistoryList.innerHTML = '<div class="empty-history-msg">Loading battle records...</div>';
 
     // Populate user career stats
@@ -4017,8 +4331,8 @@ function closeMatchHistoryModal() {
     matchHistoryModal.style.display = 'none';
 }
 
-async function fetchAndShowLeaderboard() {
-    leaderboardModal.style.display = 'flex';
+async function fetchAndShowLeaderboard(openModalFlag = false) {
+    if (openModalFlag && leaderboardModal) leaderboardModal.style.display = 'flex';
     leaderboardTbody.innerHTML = '<tr><td colspan="5" style="text-align: center; color: var(--text-secondary); padding: 24px;">Loading rankings...</td></tr>';
 
     try {
@@ -4069,19 +4383,87 @@ async function fetchRoomDetails(roomId) {
     } catch {}
 }
 
+let currentActiveNavView = 'play';
+
+function switchView(viewName) {
+    currentActiveNavView = viewName;
+    const views = {
+        'play': document.getElementById('viewPlay'),
+        'operators': document.getElementById('viewOperators'),
+        'career': document.getElementById('viewCareer'),
+        'leaderboard': document.getElementById('viewLeaderboard'),
+        'arenas': document.getElementById('viewArenas')
+    };
+
+    // Close any modal that may be open when switching main navigation
+    const activeRoomView = document.getElementById('activeRoomView');
+    if (activeRoomView) activeRoomView.style.display = 'none';
+
+    Object.keys(views).forEach(key => {
+        const el = views[key];
+        if (el) {
+            if (key === viewName) {
+                el.style.display = 'flex';
+                el.classList.add('active');
+            } else {
+                el.style.display = 'none';
+                el.classList.remove('active');
+            }
+        }
+    });
+
+    const navTabs = document.querySelectorAll('.client-topbar .nav-tab');
+    navTabs.forEach(tab => {
+        const tabView = tab.getAttribute('data-view');
+        tab.classList.toggle('active', tabView === viewName);
+    });
+
+    if (viewName === 'leaderboard') {
+        fetchAndShowLeaderboard(false);
+    } else if (viewName === 'career') {
+        fetchAndShowMatchHistory(false);
+        renderAchievementsGrid();
+    } else if (viewName === 'arenas') {
+        fetchRoomsList();
+    }
+}
+
 function updateGameLayoutState() {
-    const lobbyPanel = document.getElementById('lobbyPanel');
-    const hudBar = document.getElementById('gameHudBar') || document.querySelector('.hud-bar');
     const isPlaying = activeRoom && activeRoom.status === 'PLAYING' && !isGameOver;
+    const viewCombat = document.getElementById('viewCombat');
+    const clientTopbar = document.getElementById('clientTopbar');
+    const clientFooter = document.getElementById('clientFooter');
+    const hudBar = document.getElementById('gameHudBar');
+    const activeRoomView = document.getElementById('activeRoomView');
 
     if (isPlaying) {
-        if (lobbyPanel) lobbyPanel.style.display = 'none';
+        if (viewCombat) viewCombat.style.display = 'flex';
         if (hudBar) hudBar.style.display = 'flex';
+        if (clientTopbar) clientTopbar.style.display = 'none';
+        if (clientFooter) clientFooter.style.display = 'none';
+        ['viewPlay', 'viewOperators', 'viewCareer', 'viewLeaderboard', 'viewArenas', 'activeRoomView'].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.style.display = 'none';
+        });
         document.body.classList.add('in-combat-mode');
     } else {
-        if (lobbyPanel) lobbyPanel.style.display = 'flex';
+        if (viewCombat) viewCombat.style.display = 'none';
         if (hudBar) hudBar.style.display = 'none';
+        if (clientTopbar) clientTopbar.style.display = 'flex';
+        if (clientFooter) clientFooter.style.display = 'flex';
         document.body.classList.remove('in-combat-mode');
+
+        if (activeRoom) {
+            if (activeRoomView) activeRoomView.style.display = 'flex';
+            ['viewPlay', 'viewOperators', 'viewCareer', 'viewLeaderboard', 'viewArenas'].forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.style.display = 'none';
+            });
+        } else {
+            if (typeof switchView === 'function') {
+                switchView(currentActiveNavView || 'play');
+            }
+        }
     }
 }
 
@@ -4096,31 +4478,22 @@ function switchToLobbyBrowser() {
     hudScore.textContent = '0';
     liveScoreboard.style.display = 'none';
     closeGameOverModal();
+    const pauseMenuModal = document.getElementById('pauseMenuModal');
+    if (pauseMenuModal) pauseMenuModal.style.display = 'none';
     disconnectGameWebSocket();
     stopRoomPolling();
-    const lobbyHomeScreen = document.getElementById('lobbyHomeScreen');
-    if (lobbyHomeScreen) lobbyHomeScreen.style.display = 'flex';
-    activeRoomView.style.display = 'none';
-    lobbyBrowser.style.display = 'block';
     hudRoom.textContent = 'None (Lobby)';
-    hudState.textContent = 'Phase 6: Collectibles & Scoring';
+    hudState.textContent = 'Combat Ready';
     fetchRoomsList();
     updateGameLayoutState();
+    if (typeof switchView === 'function') {
+        switchView('play');
+    }
 }
 
 function renderActiveRoom(room) {
     activeRoom = room;
     const isPlaying = room.status === 'PLAYING';
-    const lobbyHomeScreen = document.getElementById('lobbyHomeScreen');
-    if (isPlaying) {
-        if (lobbyHomeScreen) lobbyHomeScreen.style.display = 'none';
-        lobbyBrowser.style.display = 'none';
-        activeRoomView.style.display = 'none';
-    } else {
-        if (lobbyHomeScreen) lobbyHomeScreen.style.display = 'none';
-        lobbyBrowser.style.display = 'none';
-        activeRoomView.style.display = 'flex';
-    }
     updateGameLayoutState();
 
     currentRoomId.textContent = room.roomId;
@@ -4130,36 +4503,24 @@ function renderActiveRoom(room) {
     const mode = room.gameMode || (room.maxPlayers === 2 ? 'PVP_1V1' : 'PVP_FFA');
     if (currentRoomModeBadge) {
         if (mode === 'PVP_1V1') {
-            currentRoomModeBadge.textContent = '⚔️ 1v1 DUEL';
+            currentRoomModeBadge.textContent = '1v1 DUEL';
             currentRoomModeBadge.className = 'room-mode-badge mode-1v1';
         } else if (mode === 'PVP_CHAOS') {
-            currentRoomModeBadge.textContent = '🔥 CHAOS FFA';
+            currentRoomModeBadge.textContent = 'CHAOS FFA';
             currentRoomModeBadge.className = 'room-mode-badge mode-chaos';
         } else {
-            currentRoomModeBadge.textContent = '💀 PVP FFA';
+            currentRoomModeBadge.textContent = 'FFA DEATHMATCH';
             currentRoomModeBadge.className = 'room-mode-badge mode-ffa';
         }
     }
 
     if (hudModeBadge) {
         if (mode === 'PVP_1V1') {
-            hudModeBadge.textContent = '⚔️ 1v1 DUEL';
-            hudModeBadge.className = 'hud-mode-pill';
-            hudModeBadge.style.color = '#fca5a5';
-            hudModeBadge.style.borderColor = 'rgba(239, 68, 68, 0.4)';
-            hudModeBadge.style.background = 'rgba(239, 68, 68, 0.2)';
+            hudModeBadge.textContent = '1v1 DUEL';
         } else if (mode === 'PVP_CHAOS') {
-            hudModeBadge.textContent = '🔥 CHAOS';
-            hudModeBadge.className = 'hud-mode-pill';
-            hudModeBadge.style.color = '#e9d5ff';
-            hudModeBadge.style.borderColor = 'rgba(168, 85, 247, 0.4)';
-            hudModeBadge.style.background = 'rgba(168, 85, 247, 0.2)';
+            hudModeBadge.textContent = 'CHAOS FFA';
         } else {
-            hudModeBadge.textContent = '💀 FFA';
-            hudModeBadge.className = 'hud-mode-pill';
-            hudModeBadge.style.color = '#6ee7b7';
-            hudModeBadge.style.borderColor = 'rgba(16, 185, 129, 0.4)';
-            hudModeBadge.style.background = 'rgba(16, 185, 129, 0.2)';
+            hudModeBadge.textContent = 'FFA DEATHMATCH';
         }
     }
 
@@ -4463,10 +4824,45 @@ function escapeHtml(str) {
     }[m]));
 }
 
+let isMatchmakingBusy = false;
+let currentBotDifficulty = 'VETERAN';
+
+function setMatchmakingBusy(busy, statusMessage) {
+    isMatchmakingBusy = busy;
+    const giantPlayNowBtn = document.getElementById('giantPlayNowBtn');
+    const cancelMatchmakingBtn = document.getElementById('cancelMatchmakingBtn');
+    const matchmakingStatusText = document.getElementById('matchmakingStatusText');
+
+    if (giantPlayNowBtn) {
+        if (busy) {
+            giantPlayNowBtn.classList.add('busy');
+        } else {
+            giantPlayNowBtn.classList.remove('busy');
+        }
+    }
+
+    if (cancelMatchmakingBtn) {
+        cancelMatchmakingBtn.style.display = busy ? 'inline-flex' : 'none';
+    }
+
+    if (matchmakingStatusText) {
+        if (statusMessage) {
+            matchmakingStatusText.textContent = statusMessage;
+        } else if (!busy) {
+            matchmakingStatusText.textContent = 'Ready for tactical deployment. Select a mode or jump into instant combat.';
+        }
+    }
+}
+
 async function quickPvPDuel() {
+    if (isMatchmakingBusy) return;
+    setMatchmakingBusy(true, 'Searching for 1v1 PvP Duel sector...');
     if (!isAuthenticated()) {
         const ok = await quickGuestPlay();
-        if (!ok) return;
+        if (!ok) {
+            setMatchmakingBusy(false);
+            return;
+        }
     }
     try {
         const response = await fetch('/api/rooms', { headers: getAuthHeaders() });
@@ -4474,28 +4870,41 @@ async function quickPvPDuel() {
             const rooms = await response.json();
             const joinable = rooms.find(r => (r.gameMode === 'PVP_1V1' || r.maxPlayers === 2) && r.status === 'WAITING' && r.currentPlayers < r.maxPlayers);
             if (joinable) {
-                joinRoom(joinable.roomId);
+                await joinRoom(joinable.roomId);
+                setMatchmakingBusy(false);
                 return;
             }
         }
         const randId = Math.floor(1000 + Math.random() * 9000);
-        createRoom(`⚔️ 1v1 Duel #${randId}`, 2, 'PVP_1V1');
+        await createRoom(`⚔️ 1v1 Duel #${randId}`, 2, 'PVP_1V1');
     } catch {
         openCreateRoomModal();
+    } finally {
+        setMatchmakingBusy(false);
     }
 }
 
 async function startPracticeBattle() {
+    if (isMatchmakingBusy) return;
+    setMatchmakingBusy(true, `Initializing AI Dojo simulation (${currentBotDifficulty})...`);
     if (!isAuthenticated()) {
         const ok = await quickGuestPlay();
-        if (!ok) return;
+        if (!ok) {
+            setMatchmakingBusy(false);
+            return;
+        }
     }
     try {
         const randId = Math.floor(1000 + Math.random() * 9000);
         const res = await fetch('/api/rooms', {
             method: 'POST',
             headers: getAuthHeaders(),
-            body: JSON.stringify({ name: `🤖 Practice Dojo #${randId}`, maxPlayers: 2, gameMode: 'PVP_1V1' })
+            body: JSON.stringify({ 
+                name: `🤖 Practice Dojo #${randId}`, 
+                maxPlayers: 2, 
+                gameMode: 'PVP_1V1',
+                botDifficulty: currentBotDifficulty
+            })
         });
         if (res.ok) {
             const roomData = await res.json();
@@ -4505,20 +4914,42 @@ async function startPracticeBattle() {
                 method: 'POST',
                 headers: getAuthHeaders()
             });
-            const updated = await fetch(`/api/rooms/${roomData.roomId}`, { headers: getAuthHeaders() });
-            if (updated.ok) {
-                renderActiveRoom(await updated.json());
+            // Auto launch combat match immediately for seamless training flow
+            const startRes = await fetch(`/api/rooms/${roomData.roomId}/start`, {
+                method: 'POST',
+                headers: getAuthHeaders()
+            });
+            if (startRes.ok) {
+                const startedRoom = await startRes.json();
+                renderActiveRoom(startedRoom);
+                connectGameWebSocket(startedRoom.roomId);
+            } else {
+                const updated = await fetch(`/api/rooms/${roomData.roomId}`, { headers: getAuthHeaders() });
+                if (updated.ok) {
+                    renderActiveRoom(await updated.json());
+                }
             }
+        } else {
+            const err = await res.json().catch(() => ({}));
+            showTacticalToast('Training Launch Failed', err.error || 'Server error', '⚠️');
         }
     } catch (err) {
         console.error('Failed to create practice arena:', err);
+        showTacticalToast('Training Launch Failed', err.message, '⚠️');
+    } finally {
+        setMatchmakingBusy(false);
     }
 }
 
 async function quickBattle() {
+    if (isMatchmakingBusy) return;
+    setMatchmakingBusy(true, 'Searching for Quick Match FFA sector...');
     if (!isAuthenticated()) {
         const ok = await quickGuestPlay();
-        if (!ok) return;
+        if (!ok) {
+            setMatchmakingBusy(false);
+            return;
+        }
     }
     try {
         const response = await fetch('/api/rooms', { headers: getAuthHeaders() });
@@ -4526,14 +4957,17 @@ async function quickBattle() {
             const rooms = await response.json();
             const joinable = rooms.find(r => r.status === 'WAITING' && r.currentPlayers < r.maxPlayers);
             if (joinable) {
-                joinRoom(joinable.roomId);
+                await joinRoom(joinable.roomId);
+                setMatchmakingBusy(false);
                 return;
             }
         }
         const randId = Math.floor(1000 + Math.random() * 9000);
-        createRoom(`Cyber Arena #${randId}`, 4, 'PVP_FFA');
+        await createRoom(`Cyber Arena #${randId}`, 4, 'PVP_FFA');
     } catch {
         openCreateRoomModal();
+    } finally {
+        setMatchmakingBusy(false);
     }
 }
 
@@ -4542,14 +4976,42 @@ function setupRoomEventListeners() {
     closeCreateRoomModalBtn.addEventListener('click', closeCreateRoomModal);
     refreshRoomsBtn.addEventListener('click', fetchRoomsList);
 
-    // Header & Modal Instant Guest Play buttons
+    // Header & Modal Instant Guest Play buttons: activate guest profile without forced combat deploy
     const quickGuestPlayBtn = document.getElementById('quickGuestPlayBtn');
     if (quickGuestPlayBtn) {
-        quickGuestPlayBtn.addEventListener('click', () => quickGuestPlay().then(() => quickBattle()));
+        quickGuestPlayBtn.addEventListener('click', () => {
+            quickGuestPlay();
+        });
     }
     const modalGuestPlayBtn = document.getElementById('modalGuestPlayBtn');
     if (modalGuestPlayBtn) {
-        modalGuestPlayBtn.addEventListener('click', () => quickGuestPlay().then(() => quickBattle()));
+        modalGuestPlayBtn.addEventListener('click', () => {
+            quickGuestPlay().then(() => closeModal());
+        });
+    }
+
+    // Cancel Matchmaking Button
+    const cancelMatchmakingBtn = document.getElementById('cancelMatchmakingBtn');
+    if (cancelMatchmakingBtn) {
+        cancelMatchmakingBtn.addEventListener('click', () => {
+            setMatchmakingBusy(false, 'Deployment cancelled. Standing by in orbit.');
+            showTacticalToast('Deployment Aborted', 'Matchmaking cancelled by operator', '⏹️');
+        });
+    }
+
+    // AI Training Dojo Difficulty Protocol Pills
+    const practiceDifficultyPills = document.getElementById('practiceDifficultyPills');
+    if (practiceDifficultyPills) {
+        practiceDifficultyPills.querySelectorAll('.diff-pill').forEach(pill => {
+            pill.addEventListener('click', (e) => {
+                e.stopPropagation();
+                practiceDifficultyPills.querySelectorAll('.diff-pill').forEach(p => p.classList.remove('active'));
+                pill.classList.add('active');
+                currentBotDifficulty = pill.getAttribute('data-diff') || 'VETERAN';
+                if (soundEngine) soundEngine.playEmote();
+                showTacticalToast('AI Protocol Selected', `Autonomous combat bot set to ${currentBotDifficulty}`, '🤖');
+            });
+        });
     }
 
     // Structured Combat Launchpad & Game Mode Selector
@@ -4588,7 +5050,7 @@ function setupRoomEventListeners() {
             } else if (mode === 'PRACTICE') {
                 giantPlayNowBtn.classList.add('mode-practice');
                 giantPlayLabel.textContent = 'ENTER DOJO';
-                giantPlaySub.textContent = 'Practice vs AI Bot • Solo Training';
+                giantPlaySub.textContent = `Practice vs ${currentBotDifficulty} Bot • Solo Training`;
             }
         }
     }
@@ -4651,6 +5113,7 @@ function setupRoomEventListeners() {
     const giantPlayNowBtn = document.getElementById('giantPlayNowBtn');
     if (giantPlayNowBtn) {
         giantPlayNowBtn.addEventListener('click', () => {
+            if (isMatchmakingBusy) return;
             if (soundEngine) soundEngine.playEmote();
             if (currentLobbyMode === 'FFA') {
                 quickBattle();
@@ -4774,6 +5237,116 @@ function setupRoomEventListeners() {
             });
         });
     }
+
+    // Primary Client View Navigation Tabs
+    const navTabPlay = document.getElementById('navTabPlay');
+    const navTabOperators = document.getElementById('navTabOperators');
+    const navTabCareer = document.getElementById('navTabCareer');
+    const navTabLeaderboard = document.getElementById('navTabLeaderboard');
+    const navTabArenas = document.getElementById('navTabArenas');
+    const topbarBrandBtn = document.getElementById('topbarBrandBtn');
+    const heroChangeOperatorBtn = document.getElementById('heroChangeOperatorBtn');
+    const heroCustomBtn = document.getElementById('heroCustomBtn');
+    const quickCardCustom = document.getElementById('quickCardCustom');
+
+    if (navTabPlay) navTabPlay.addEventListener('click', () => switchView('play'));
+    if (navTabOperators) navTabOperators.addEventListener('click', () => switchView('operators'));
+    if (navTabCareer) navTabCareer.addEventListener('click', () => switchView('career'));
+    if (navTabLeaderboard) navTabLeaderboard.addEventListener('click', () => switchView('leaderboard'));
+    if (navTabArenas) navTabArenas.addEventListener('click', () => switchView('arenas'));
+    if (topbarBrandBtn) topbarBrandBtn.addEventListener('click', () => switchView('play'));
+    if (heroChangeOperatorBtn) heroChangeOperatorBtn.addEventListener('click', () => switchView('operators'));
+    if (heroCustomBtn) heroCustomBtn.addEventListener('click', () => switchView('arenas'));
+
+    if (quickCardCustom) {
+        quickCardCustom.addEventListener('click', () => {
+            setLobbyBattleMode('CUSTOM');
+            switchView('arenas');
+        });
+    }
+
+    // Equip Operator Loadout Button
+    const equipOperatorBtn = document.getElementById('equipOperatorBtn');
+    if (equipOperatorBtn) {
+        equipOperatorBtn.addEventListener('click', () => {
+            if (soundEngine) soundEngine.playLevelUp();
+            showTacticalToast('Operator Deployed', `${mySelectedClass} confirmed as active combat chassis`, '🛡️');
+            const equipNote = document.getElementById('equipStatusNote');
+            if (equipNote) {
+                equipNote.textContent = `✓ ${mySelectedClass} Active & Primed for Combat`;
+                equipNote.style.color = 'var(--emerald-green)';
+            }
+        });
+    }
+
+    // Refresh Leaderboard Button
+    const refreshLeaderboardBtn = document.getElementById('refreshLeaderboardBtn');
+    if (refreshLeaderboardBtn) {
+        refreshLeaderboardBtn.addEventListener('click', () => {
+            if (soundEngine) soundEngine.playEmote();
+            fetchAndShowLeaderboard(false);
+        });
+    }
+
+    // In-Combat Pause Menu Controls
+    const pauseMenuModal = document.getElementById('pauseMenuModal');
+    const hudPauseTriggerBtn = document.getElementById('hudPauseTriggerBtn');
+    const pauseResumeBtn = document.getElementById('pauseResumeBtn');
+    const pauseAudioToggleBtn = document.getElementById('pauseAudioToggleBtn');
+    const pauseAudioToggleText = document.getElementById('pauseAudioToggleText');
+    const pauseSettingsBtn = document.getElementById('pauseSettingsBtn');
+    const pauseIntelBtn = document.getElementById('pauseIntelBtn');
+    const pauseLeaveMatchBtn = document.getElementById('pauseLeaveMatchBtn');
+
+    function togglePauseMenu(forceOpen) {
+        if (!pauseMenuModal) return;
+        const isCurrentlyOpen = pauseMenuModal.style.display === 'flex';
+        const shouldOpen = (forceOpen !== undefined) ? forceOpen : !isCurrentlyOpen;
+        pauseMenuModal.style.display = shouldOpen ? 'flex' : 'none';
+        if (shouldOpen && pauseAudioToggleText && soundEngine) {
+            pauseAudioToggleText.textContent = soundEngine.isMuted() ? 'AUDIO SYNTHESIZER: MUTED' : 'AUDIO SYNTHESIZER: ACTIVE';
+        }
+    }
+
+    if (hudPauseTriggerBtn) {
+        hudPauseTriggerBtn.addEventListener('click', () => togglePauseMenu());
+    }
+    if (pauseResumeBtn) {
+        pauseResumeBtn.addEventListener('click', () => togglePauseMenu(false));
+    }
+    if (pauseAudioToggleBtn) {
+        pauseAudioToggleBtn.addEventListener('click', () => {
+            soundEngine.init();
+            const muted = soundEngine.toggleMute();
+            updateSoundButtonUi(muted);
+            if (pauseAudioToggleText) {
+                pauseAudioToggleText.textContent = muted ? 'AUDIO SYNTHESIZER: MUTED' : 'AUDIO SYNTHESIZER: ACTIVE';
+            }
+        });
+    }
+    if (pauseSettingsBtn) {
+        pauseSettingsBtn.addEventListener('click', () => {
+            togglePauseMenu(false);
+            openSettingsModal();
+        });
+    }
+    if (pauseIntelBtn) {
+        pauseIntelBtn.addEventListener('click', () => {
+            togglePauseMenu(false);
+            openIntelModal();
+        });
+    }
+    if (pauseLeaveMatchBtn) {
+        pauseLeaveMatchBtn.addEventListener('click', () => {
+            togglePauseMenu(false);
+            leaveRoom();
+        });
+    }
+    if (pauseMenuModal) {
+        pauseMenuModal.addEventListener('click', (e) => {
+            if (e.target === pauseMenuModal) togglePauseMenu(false);
+        });
+    }
 }
 
 function setupAuthEventListeners() {
@@ -4810,13 +5383,28 @@ function setupAuthEventListeners() {
         }
         if (e.key === 'Escape') {
             closeEmoteWheel();
-            if (authModal && authModal.style.display === 'flex') closeModal();
-            if (createRoomModal && createRoomModal.style.display === 'flex') closeCreateRoomModal();
-            if (leaderboardModal && leaderboardModal.style.display === 'flex') closeLeaderboardModal();
-            if (matchHistoryModal && matchHistoryModal.style.display === 'flex') closeMatchHistoryModal();
-            if (gameOverModal && gameOverModal.style.display === 'flex') closeGameOverModal();
-            if (settingsModal && settingsModal.style.display === 'flex') closeSettingsModal();
-            if (intelModal && intelModal.style.display === 'flex') closeIntelModal();
+            const pauseModal = document.getElementById('pauseMenuModal');
+            if (pauseModal && pauseModal.style.display === 'flex') {
+                pauseModal.style.display = 'none';
+                return;
+            }
+            if (authModal && authModal.style.display === 'flex') { closeModal(); return; }
+            if (createRoomModal && createRoomModal.style.display === 'flex') { closeCreateRoomModal(); return; }
+            if (leaderboardModal && leaderboardModal.style.display === 'flex') { closeLeaderboardModal(); return; }
+            if (matchHistoryModal && matchHistoryModal.style.display === 'flex') { closeMatchHistoryModal(); return; }
+            if (gameOverModal && gameOverModal.style.display === 'flex') { return; }
+            if (settingsModal && settingsModal.style.display === 'flex') { closeSettingsModal(); return; }
+            if (intelModal && intelModal.style.display === 'flex') { closeIntelModal(); return; }
+
+            // If in active combat and no modal was open, open the pause menu!
+            const isPlaying = activeRoom && activeRoom.status === 'PLAYING' && !isGameOver;
+            if (isPlaying && pauseModal) {
+                pauseModal.style.display = 'flex';
+                const pauseAudioToggleText = document.getElementById('pauseAudioToggleText');
+                if (pauseAudioToggleText && soundEngine) {
+                    pauseAudioToggleText.textContent = soundEngine.isMuted() ? 'AUDIO SYNTHESIZER: MUTED' : 'AUDIO SYNTHESIZER: ACTIVE';
+                }
+            }
         }
     });
 }

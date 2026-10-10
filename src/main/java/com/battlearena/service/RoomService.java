@@ -49,7 +49,7 @@ public class RoomService {
                 ? request.getGameMode().trim().toUpperCase()
                 : (maxPlayers == 2 ? "PVP_1V1" : "PVP_FFA");
 
-        Room room = new Room(roomId, roomName, hostUsername, maxPlayers, gameMode);
+        Room room = new Room(roomId, roomName, hostUsername, maxPlayers, gameMode, request.getBotDifficulty());
         rooms.put(roomId, room);
         playerToRoom.put(hostUsername, roomId);
 
@@ -214,7 +214,8 @@ public class RoomService {
                 room.getStatus().name(),
                 playerList,
                 room.canStart(requestingUser),
-                room.getGameMode()
+                room.getGameMode(),
+                room.getBotDifficulty()
         );
     }
 

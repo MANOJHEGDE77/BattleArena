@@ -30,6 +30,7 @@ public class Room {
     private volatile RoomStatus status;
     private final Instant createdAt;
     private final String gameMode;
+    private volatile String botDifficulty = "VETERAN";
 
     private final List<ChatMessage> chatHistory = new CopyOnWriteArrayList<>();
     private final ConcurrentMap<String, Long> lastChatTimes = new ConcurrentHashMap<>();
@@ -37,20 +38,35 @@ public class Room {
     private final ConcurrentMap<String, PlayerRoomState> players = new ConcurrentHashMap<>();
 
     public Room(String roomId, String name, String hostUsername, int maxPlayers) {
-        this(roomId, name, hostUsername, maxPlayers, (maxPlayers == 2 ? "PVP_1V1" : "PVP_FFA"));
+        this(roomId, name, hostUsername, maxPlayers, (maxPlayers == 2 ? "PVP_1V1" : "PVP_FFA"), "VETERAN");
     }
 
     public Room(String roomId, String name, String hostUsername, int maxPlayers, String gameMode) {
+        this(roomId, name, hostUsername, maxPlayers, gameMode, "VETERAN");
+    }
+
+    public Room(String roomId, String name, String hostUsername, int maxPlayers, String gameMode, String botDifficulty) {
         this.roomId = roomId;
         this.name = name;
         this.hostUsername = hostUsername;
         this.maxPlayers = maxPlayers;
         this.gameMode = (gameMode != null && !gameMode.isEmpty()) ? gameMode : (maxPlayers == 2 ? "PVP_1V1" : "PVP_FFA");
+        this.botDifficulty = (botDifficulty != null && !botDifficulty.trim().isEmpty()) ? botDifficulty.trim().toUpperCase() : "VETERAN";
         this.status = RoomStatus.WAITING;
         this.createdAt = Instant.now();
 
         // Host is automatically added as first player with host privileges
         this.players.put(hostUsername, new PlayerRoomState(hostUsername, true));
+    }
+
+    public String getBotDifficulty() {
+        return botDifficulty != null ? botDifficulty : "VETERAN";
+    }
+
+    public void setBotDifficulty(String botDifficulty) {
+        if (botDifficulty != null && !botDifficulty.trim().isEmpty()) {
+            this.botDifficulty = botDifficulty.trim().toUpperCase();
+        }
     }
 
     public String getGameMode() {

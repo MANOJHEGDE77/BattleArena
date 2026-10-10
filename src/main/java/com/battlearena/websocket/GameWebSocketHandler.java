@@ -932,8 +932,16 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
                 double dy = target.getY() - bot.getY();
                 heading = Math.atan2(dy, dx);
 
-                // Tactical Navigation
-                double moveSpeed = bot.getSpeed() * 0.45;
+                // Tactical Navigation tailored by Bot Difficulty (RECRUIT | VETERAN | NIGHTMARE)
+                String difficulty = room.getBotDifficulty();
+                double speedMult = "RECRUIT".equalsIgnoreCase(difficulty) ? 0.32 :
+                                   "NIGHTMARE".equalsIgnoreCase(difficulty) ? 0.65 : 0.45;
+                double maxEngagementRange = "RECRUIT".equalsIgnoreCase(difficulty) ? 320.0 :
+                                            "NIGHTMARE".equalsIgnoreCase(difficulty) ? 480.0 : 420.0;
+                double aimVariance = "RECRUIT".equalsIgnoreCase(difficulty) ? 0.30 :
+                                     "NIGHTMARE".equalsIgnoreCase(difficulty) ? 0.04 : 0.15;
+
+                double moveSpeed = bot.getSpeed() * speedMult;
                 double stepX = 0;
                 double stepY = 0;
 
@@ -983,8 +991,8 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
                 checkCoinCollisions(room, roomId, bot.getUsername());
                 checkPowerUpCollisions(room, roomId, bot.getUsername());
 
-                if (minDist <= 420.0) {
-                    double aimHeading = heading + (rnd.nextDouble() - 0.5) * 0.15;
+                if (minDist <= maxEngagementRange) {
+                    double aimHeading = heading + (rnd.nextDouble() - 0.5) * aimVariance;
                     List<Projectile> projs = room.fireProjectiles(bot.getUsername(), aimHeading);
                     for (Projectile proj : projs) {
                         Map<String, Object> payloadMap = new LinkedHashMap<>();

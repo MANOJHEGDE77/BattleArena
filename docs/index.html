@@ -3,278 +3,577 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Battle Arena - Real-time 2D Multiplayer</title>
+    <title>CYBER BATTLE ARENA | Tactical Multiplayer Combat</title>
     <link rel="stylesheet" href="css/style.css">
-    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='46' fill='%230f172a' stroke='%2306b6d4' stroke-width='4'/%3E%3Ccircle cx='50' cy='50' r='26' fill='none' stroke='%238b5cf6' stroke-width='3' stroke-dasharray='4 2'/%3E%3Ccircle cx='50' cy='50' r='8' fill='%23ef4444'/%3E%3Cline x1='50' y1='10' x2='50' y2='30' stroke='%2306b6d4' stroke-width='4'/%3E%3Cline x1='50' y1='70' x2='50' y2='90' stroke='%2306b6d4' stroke-width='4'/%3E%3Cline x1='10' y1='50' x2='30' y2='50' stroke='%2306b6d4' stroke-width='4'/%3E%3Cline x1='70' y1='50' x2='90' y2='50' stroke='%2306b6d4' stroke-width='4'/%3E%3C/svg%3E">
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cpolygon points='50,8 90,28 90,72 50,92 10,72 10,28' fill='%23080c16' stroke='%2300f2fe' stroke-width='4'/%3E%3Cpolygon points='50,22 78,36 78,64 50,78 22,64 22,36' fill='none' stroke='%23f43f5e' stroke-width='2' stroke-dasharray='6 3'/%3E%3Ccircle cx='50' cy='50' r='10' fill='%2300f2fe'/%3E%3C/svg%3E">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;600;700;800;900&family=Outfit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Orbitron:wght@500;600;700;800;900&family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 </head>
-<body>
-    <div class="app-container">
-        <header class="app-header">
-            <div class="logo">
-                <span class="icon">⚔️</span>
-                <div class="logo-text">
-                    <h1>CYBER ARENA</h1>
-                    <span class="logo-sub">AUTHORITATIVE REAL-TIME SHOOTER</span>
+<body class="client-root">
+    <!-- Ambient Background FX Container -->
+    <div class="ambient-fx-layer" aria-hidden="true">
+        <div class="ambient-vignette"></div>
+        <div class="ambient-grid"></div>
+        <div class="ambient-scanlines"></div>
+    </div>
+
+    <!-- MAIN GAME CLIENT SHELL -->
+    <div class="game-client-app" id="gameClientApp">
+
+        <!-- 1. PERSISTENT TOP NAVIGATION BAR -->
+        <header class="client-topbar" id="clientTopbar">
+            <!-- Brand Identity -->
+            <div class="topbar-brand" id="topbarBrandBtn" role="button" tabindex="0" title="CYBER ARENA Home">
+                <div class="brand-insignia">
+                    <svg viewBox="0 0 32 32" fill="none" class="insignia-svg">
+                        <polygon points="16,2 30,9 30,23 16,30 2,23 2,9" stroke="#00f2fe" stroke-width="2" fill="rgba(0, 242, 254, 0.08)"/>
+                        <polygon points="16,8 24,12 24,20 16,24 8,20 8,12" stroke="#f43f5e" stroke-width="1.5" fill="none"/>
+                        <circle cx="16" cy="16" r="3.5" fill="#00f2fe"/>
+                    </svg>
+                </div>
+                <div class="brand-text">
+                    <div class="brand-title">CYBER ARENA</div>
+                    <div class="brand-subtitle">AUTHORITATIVE COMBAT</div>
                 </div>
             </div>
-            <div class="header-right">
-                <a href="https://github.com/MANOJHEGDE77/BattleArena" target="_blank" rel="noopener noreferrer" class="btn-github" id="githubRepoLink" title="View Source on GitHub">
-                    <svg height="15" width="15" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
-                    <span>GitHub</span>
-                    <span class="gh-star-badge">★</span>
-                </a>
-                <button class="btn-intel" id="openIntelBtn" title="Controls & Tactical Intel [H]">❓ Guide</button>
-                <button class="btn-settings" id="openSettingsBtn" title="Audio & Match Settings">⚙️ Settings</button>
-                <button class="btn-sound-toggle" id="soundToggleBtn" title="Toggle Audio Synthesizer [M]"><span class="sound-eq-icon active"><span></span><span></span><span></span></span> <span id="soundToggleText">Sound: ON</span></button>
-                <button class="btn-leaderboard" id="openLeaderboardBtn" title="Global Leaderboard">🏆 Ranks</button>
-                <button class="btn-history" id="openMatchHistoryBtn" title="Career Log & Achievements" style="display: none;">📜 Career</button>
-                <div class="user-profile-badge" id="userProfileBadge" style="display: none;">
-                    <span class="avatar-icon">👤</span>
-                    <span class="username-display" id="usernameDisplay">Player</span>
-                    <span class="high-score-badge" id="highScoreBadge">Best: 0</span>
-                    <button class="btn-text" id="logoutBtn" title="Logout">Logout</button>
-                </div>
-                <div class="auth-buttons" id="authButtons">
-                    <button class="btn-guest-play" id="quickGuestPlayBtn" title="Instant Action — Play now as Guest">⚡ Guest Play</button>
-                    <button class="btn-primary" id="openAuthModalBtn">Login</button>
-                </div>
-                <div class="server-status" id="serverStatus" title="Cluster Connectivity">
+
+            <!-- Main Navigation Tabs -->
+            <nav class="topbar-nav" id="topbarNav" aria-label="Main Navigation">
+                <button class="nav-tab active" data-view="play" id="navTabPlay" type="button">
+                    <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                    <span>PLAY</span>
+                </button>
+                <button class="nav-tab" data-view="operators" id="navTabOperators" type="button">
+                    <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+                    <span>OPERATORS</span>
+                </button>
+                <button class="nav-tab" data-view="career" id="navTabCareer" type="button">
+                    <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+                    <span>CAREER</span>
+                </button>
+                <button class="nav-tab" data-view="leaderboard" id="navTabLeaderboard" type="button">
+                    <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.45 1-1 1H7c-.55 0-1-.45-1-1v-2.34"/><path d="M18 14.66V17c0 .55-.45 1-1 1h-2c-.55 0-1-.45-1-1v-2.34"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2z"/></svg>
+                    <span>RANKS</span>
+                </button>
+                <button class="nav-tab" data-view="arenas" id="navTabArenas" type="button">
+                    <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+                    <span>CUSTOM ARENAS</span>
+                </button>
+            </nav>
+
+            <!-- Right Telemetry & Actions -->
+            <div class="topbar-actions">
+                <!-- Sound Toggle -->
+                <button class="icon-action-btn" id="soundToggleBtn" type="button" title="Audio Synthesizer [M]">
+                    <svg class="action-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
+                    <span class="audio-bars-indicator active" id="audioBarsIndicator"><span></span><span></span><span></span></span>
+                    <span id="soundToggleText" style="display: none;">Sound: ON</span>
+                </button>
+
+                <!-- Tactical Intel / Guide [H] -->
+                <button class="icon-action-btn" id="openIntelBtn" type="button" title="Intel & Keybinds [H]">
+                    <svg class="action-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                </button>
+
+                <!-- Settings [Esc] -->
+                <button class="icon-action-btn" id="openSettingsBtn" type="button" title="Audio & Systems Settings">
+                    <svg class="action-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+                </button>
+
+                <!-- Network Telemetry -->
+                <div class="telemetry-pill" id="serverStatus" title="Server Connectivity">
                     <span class="status-dot checking"></span>
-                    <span class="status-text" id="statusText">Connecting...</span>
+                    <span class="telemetry-text" id="statusText">ONLINE</span>
+                    <span class="telemetry-sep">|</span>
+                    <span class="telemetry-ping" id="hudPing">-- ms</span>
+                </div>
+
+                <!-- User Profile Badge (When Logged In) -->
+                <div class="player-profile-badge" id="userProfileBadge" style="display: none;">
+                    <div class="profile-avatar">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                    </div>
+                    <div class="profile-info">
+                        <span class="profile-callsign" id="usernameDisplay">Pilot</span>
+                        <span class="profile-stat" id="highScoreBadge">BEST: 0</span>
+                    </div>
+                    <button class="btn-logout-icon" id="logoutBtn" type="button" title="Disconnect Session">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+                    </button>
+                </div>
+
+                <!-- Auth Triggers (When Logged Out) -->
+                <div class="auth-buttons-wrap" id="authButtons">
+                    <button class="btn-ghost-action" id="quickGuestPlayBtn" type="button" title="Instant Play as Guest Pilot">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+                        <span>GUEST ENTRY</span>
+                    </button>
+                    <button class="btn-accent-action" id="openAuthModalBtn" type="button">LOGIN</button>
                 </div>
             </div>
         </header>
 
-        <main class="arena-wrapper">
-            <!-- Room & Lobby Management Panel -->
-            <!-- Room & Lobby Management Panel -->
-            <section class="lobby-panel" id="lobbyPanel">
-                <!-- VIEW 1: MAIN LOBBY / HOME SCREEN (Shown when not in an active room) -->
-                <div class="lobby-home-screen" id="lobbyHomeScreen">
-                    <!-- Hero Command Deck: Split View (Pilot Loadout left, Mode & Battle Launchpad right) -->
-                    <div class="home-command-deck" id="homeCommandDeck">
-                        <!-- Left Panel: Warrior Loadout & Pilot Spec -->
-                        <div class="hero-deck-card loadout-card">
-                            <div class="deck-card-header">
-                                <div class="deck-card-title">
-                                    <span class="deck-icon">⚡</span>
-                                    <span>PILOT LOADOUT</span>
-                                </div>
-                                <span class="class-selected-badge" id="currentSelectedClassBadge">ASSAULT (Pulse Blaster)</span>
-                            </div>
+        <!-- 2. MAIN CLIENT VIEWPORT -->
+        <main class="client-viewport" id="clientViewport">
 
-                            <!-- Phase 16: Warrior Class Specialization Selector -->
-                            <div class="class-selection-container" id="classSelectContainer">
-                                <div class="class-cards-grid" id="classCardsGrid">
-                                    <div class="class-card selected" data-class="ASSAULT">
-                                        <div class="class-card-icon">🛡️</div>
-                                        <div class="class-card-body">
-                                            <div class="class-card-name">ASSAULT</div>
-                                            <div class="class-card-desc">Balanced Vanguard</div>
-                                            <div class="class-stat-bars">
-                                                <div class="class-stat-bar-item">
-                                                    <span class="stat-name">HP</span>
-                                                    <div class="stat-meter"><div class="stat-fill hp-fill-meter" style="width: 66%;"></div></div>
-                                                    <span class="stat-val">100</span>
-                                                </div>
-                                                <div class="class-stat-bar-item">
-                                                    <span class="stat-name">SPD</span>
-                                                    <div class="stat-meter"><div class="stat-fill spd-fill-meter" style="width: 82%;"></div></div>
-                                                    <span class="stat-val">240</span>
-                                                </div>
-                                            </div>
-                                            <div class="class-weapon-tag">⚡ Pulse Blaster (20 DMG)</div>
-                                        </div>
-                                    </div>
-                                    <div class="class-card" data-class="JUGGERNAUT">
-                                        <div class="class-card-icon">🦾</div>
-                                        <div class="class-card-body">
-                                            <div class="class-card-name">JUGGERNAUT</div>
-                                            <div class="class-card-desc">Heavy Armored Titan</div>
-                                            <div class="class-stat-bars">
-                                                <div class="class-stat-bar-item">
-                                                    <span class="stat-name">HP</span>
-                                                    <div class="stat-meter"><div class="stat-fill hp-fill-meter" style="width: 100%;"></div></div>
-                                                    <span class="stat-val">150</span>
-                                                </div>
-                                                <div class="class-stat-bar-item">
-                                                    <span class="stat-name">SPD</span>
-                                                    <div class="stat-meter"><div class="stat-fill spd-fill-meter" style="width: 67%;"></div></div>
-                                                    <span class="stat-val">195</span>
-                                                </div>
-                                            </div>
-                                            <div class="class-weapon-tag">💥 Plasma Cannon (35 DMG)</div>
-                                        </div>
-                                    </div>
-                                    <div class="class-card" data-class="SCOUT">
-                                        <div class="class-card-icon">⚡</div>
-                                        <div class="class-card-body">
-                                            <div class="class-card-name">SCOUT</div>
-                                            <div class="class-card-desc">Agile Skirmisher</div>
-                                            <div class="class-stat-bars">
-                                                <div class="class-stat-bar-item">
-                                                    <span class="stat-name">HP</span>
-                                                    <div class="stat-meter"><div class="stat-fill hp-fill-meter" style="width: 50%;"></div></div>
-                                                    <span class="stat-val">75</span>
-                                                </div>
-                                                <div class="class-stat-bar-item">
-                                                    <span class="stat-name">SPD</span>
-                                                    <div class="stat-meter"><div class="stat-fill spd-fill-meter" style="width: 100%;"></div></div>
-                                                    <span class="stat-val">290</span>
-                                                </div>
-                                            </div>
-                                            <div class="class-weapon-tag">✦ Twin Needles (14 DMG)</div>
-                                        </div>
-                                    </div>
-                                    <div class="class-card" data-class="SNIPER">
-                                        <div class="class-card-icon">🎯</div>
-                                        <div class="class-card-body">
-                                            <div class="class-card-name">SNIPER</div>
-                                            <div class="class-card-desc">Precision Marksman</div>
-                                            <div class="class-stat-bars">
-                                                <div class="class-stat-bar-item">
-                                                    <span class="stat-name">HP</span>
-                                                    <div class="stat-meter"><div class="stat-fill hp-fill-meter" style="width: 56%;"></div></div>
-                                                    <span class="stat-val">85</span>
-                                                </div>
-                                                <div class="class-stat-bar-item">
-                                                    <span class="stat-name">SPD</span>
-                                                    <div class="stat-meter"><div class="stat-fill spd-fill-meter" style="width: 75%;"></div></div>
-                                                    <span class="stat-val">220</span>
-                                                </div>
-                                            </div>
-                                            <div class="class-weapon-tag">🔭 Hyper Railgun (45 DMG)</div>
-                                        </div>
-                                    </div>
-                                </div>
+            <!-- ========================================================================= -->
+            <!-- VIEW 1: PLAY VIEW (Cinematic Hero Stage & Game Mode Selection) -->
+            <!-- ========================================================================= -->
+            <section class="view-panel view-play active" id="viewPlay" aria-label="Play Hub">
+                <!-- Atmospheric Hero Stage -->
+                <div class="hero-stage">
+                    <!-- Left Hero Combat Intelligence Column -->
+                    <div class="hero-dossier-column">
+                        <div class="hero-badge-row">
+                            <span class="tactical-badge live">LIVE NETWORK</span>
+                            <span class="tactical-badge mode" id="heroActiveModeBadge">FFA DEATHMATCH</span>
+                        </div>
+                        <h1 class="hero-title">
+                            <span class="title-sub">TACTICAL MULTIPLAYER</span>
+                            <span class="title-main">CYBER ARENA</span>
+                        </h1>
+                        <p class="hero-summary">
+                            Real-time server-authoritative 2D combat. Select your warrior class, adapt to environmental hazards, outmaneuver rivals, and dominate the leaderboard.
+                        </p>
+
+                        <!-- Active Operator Quick Card -->
+                        <div class="hero-operator-pill" id="heroOperatorQuickCard">
+                            <div class="operator-pill-avatar" id="heroOperatorAvatar">
+                                <svg viewBox="0 0 32 32" class="avatar-svg"><polygon points="16,4 28,12 28,24 16,30 4,24 4,12" stroke="#10b981" stroke-width="2" fill="rgba(16, 185, 129, 0.15)"/><circle cx="16" cy="17" r="5" fill="#10b981"/></svg>
                             </div>
+                            <div class="operator-pill-meta">
+                                <div class="pill-label">DEPLOYED OPERATOR</div>
+                                <div class="pill-name" id="currentSelectedClassBadge">ASSAULT (Pulse Blaster)</div>
+                            </div>
+                            <button class="pill-change-btn" id="heroChangeOperatorBtn" type="button">MODIFY</button>
                         </div>
 
-                        <!-- Right Panel: Game Mode Selector & Big Hero Launch Button -->
-                        <div class="hero-deck-card battle-launch-card">
-                            <div class="deck-card-header">
-                                <div class="deck-card-title">
-                                    <span class="deck-icon">🎯</span>
-                                    <span>SELECT GAME MODE</span>
-                                </div>
-                                <span class="deck-mode-indicator" id="deckSelectedModeBadge">MODE: QUICK FFA</span>
-                            </div>
-
-                            <!-- Quick Battle Hub: 3 Mode Selector Tiles -->
-                            <div class="quick-battle-hub" id="quickBattleHub">
-                                <div class="quick-hero-card ffa-hero active-mode" id="quickCardFfa" data-mode="FFA" title="Instant Free-For-All 4-Player Battle">
-                                    <div class="hero-card-glow"></div>
-                                    <div class="hero-card-badge">POPULAR FFA</div>
-                                    <div class="hero-card-icon">⚡</div>
-                                    <div class="hero-card-info">
-                                        <h4>Quick Match FFA</h4>
-                                        <p>4-player free-for-all. First to 100 points wins!</p>
+                        <!-- THE PRIMARY PLAY LAUNCH ACTION -->
+                        <div class="hero-launch-section">
+                            <button class="btn-primary-launch" id="giantPlayNowBtn" type="button">
+                                <div class="btn-launch-glow"></div>
+                                <div class="btn-launch-content">
+                                    <div class="btn-launch-icon">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="5 3 19 12 5 21 5 3"/></svg>
                                     </div>
-                                    <button class="hero-card-btn" id="heroQuickPlayBtn" type="button">SELECT</button>
-                                </div>
-                                <div class="quick-hero-card duel-hero" id="quickCardDuel" data-mode="DUEL" title="1v1 Head-to-Head Duel">
-                                    <div class="hero-card-glow"></div>
-                                    <div class="hero-card-badge duel-badge">1v1 DUEL</div>
-                                    <div class="hero-card-icon">⚔️</div>
-                                    <div class="hero-card-info">
-                                        <h4>1v1 PvP Duel</h4>
-                                        <p>First pilot to score 3 eliminations takes glory!</p>
+                                    <div class="btn-launch-text">
+                                        <span class="launch-label" id="giantPlayLabel">DEPLOY MATCH</span>
+                                        <span class="launch-desc" id="giantPlaySub">Quick Match FFA • 4 Pilots</span>
                                     </div>
-                                    <button class="hero-card-btn" id="heroDuelBtn" type="button">SELECT</button>
+                                    <div class="btn-launch-arrow">➔</div>
                                 </div>
-                                <div class="quick-hero-card pve-hero" id="quickCardPve" data-mode="PRACTICE" title="Solo Practice Dojo vs AI Bot">
-                                    <div class="hero-card-glow"></div>
-                                    <div class="hero-card-badge pve-badge">SOLO PRACTICE</div>
-                                    <div class="hero-card-icon">🤖</div>
-                                    <div class="hero-card-info">
-                                        <h4>Practice vs AI Bot</h4>
-                                        <p>Sharpen aim & test loadouts against combat bot!</p>
-                                    </div>
-                                    <button class="hero-card-btn" id="heroPracticeBtn" type="button">SELECT</button>
-                                </div>
-                            </div>
-
-                            <!-- THE GIANT UNMISSABLE HERO "PLAY NOW" BUTTON -->
-                            <div class="hero-launch-action-wrap">
-                                <button class="btn-giant-play mode-ffa" id="giantPlayNowBtn" type="button">
-                                    <span class="btn-giant-icon">⚔️</span>
-                                    <span class="btn-giant-text">
-                                        <span class="giant-label-main" id="giantPlayLabel">BATTLE NOW</span>
-                                        <span class="giant-label-sub" id="giantPlaySub">Quick Match FFA • 4 Pilots</span>
-                                    </span>
-                                    <span class="btn-giant-arrow">➔</span>
-                                </button>
-                            </div>
+                            </button>
+                            <div class="launch-sub-status" id="matchmakingStatusText">Ready for tactical deployment. Select a mode or jump into instant combat.</div>
+                            <button class="btn-cancel-search" id="cancelMatchmakingBtn" type="button" style="display: none;">✕ CANCEL DEPLOYMENT</button>
                         </div>
                     </div>
 
-                    <!-- View A: Lobby Browser (Collapsible / Clean Custom Arenas) -->
-                    <div class="lobby-browser" id="lobbyBrowser">
-                        <div class="lobby-header">
-                            <div class="lobby-title">
-                                <h3>🌐 Custom Arenas & Server Browser</h3>
-                                <span class="room-count-badge" id="roomCountBadge">0 Arenas</span>
-                            </div>
-                            <div class="lobby-actions">
-                                <button class="btn-primary" id="openCreateRoomBtn">+ Create Arena</button>
-                                <button class="btn-secondary" id="refreshRoomsBtn" title="Refresh room list">🔄 Refresh</button>
-                                <!-- Preserved compatibility buttons (hidden from toolbar to keep UI clean) -->
-                                <button class="btn-pvp-duel" id="pvpDuelBtn" style="display: none;">⚔️ 1v1 Duel</button>
-                                <button class="btn-success btn-quick-play" id="quickBattleBtn" style="display: none;">⚡ Quick Play</button>
-                                <button class="btn-pve-practice" id="pvePracticeBtn" style="display: none;">🤖 Practice vs Bot</button>
-                            </div>
-                        </div>
-                        <div class="lobby-filter-bar" id="lobbyFilterBar">
-                            <div class="search-input-wrap">
-                                <span class="search-icon">🔍</span>
-                                <input type="text" id="roomSearchInput" placeholder="Filter arenas by name..." maxlength="30">
-                            </div>
-                            <div class="mode-filter-pills" id="modeFilterPills">
-                                <button class="filter-pill active" data-filter="ALL" type="button">All Arenas</button>
-                                <button class="filter-pill" data-filter="PVP_FFA" type="button">💀 FFA</button>
-                                <button class="filter-pill" data-filter="PVP_1V1" type="button">⚔️ 1v1 Duel</button>
-                                <button class="filter-pill" data-filter="OPEN" type="button">🟢 Open Slots</button>
-                            </div>
-                        </div>
-                        <div class="rooms-container" id="roomsContainer">
-                            <div class="empty-rooms" id="emptyRoomsMsg">No active arenas found. Click Create Arena to host a private match!</div>
+                    <!-- Right Cinematic Interactive Operator Stage (Procedural Canvas) -->
+                    <div class="hero-stage-visual">
+                        <div class="stage-backdrop-ring"></div>
+                        <canvas class="hero-showcase-canvas" id="heroShowcaseCanvas" width="560" height="480"></canvas>
+                        <div class="stage-telemetry-tag">
+                            <span class="telemetry-label">COMBAT CHASSIS</span>
+                            <span class="telemetry-spec" id="heroChassisSpec">MARK-IV VANGUARD</span>
                         </div>
                     </div>
                 </div>
 
-                <!-- VIEW 2: CURRENT ACTIVE ROOM / STAGING BAY (Shown ONLY when inside a room) -->
-                <div class="active-room-view" id="activeRoomView" style="display: none;">
-                    <!-- Staging Bay Header -->
-                    <div class="active-room-header">
-                        <div class="room-info">
-                            <button class="btn-room-back" id="roomBackToLobbyBtn" type="button" title="Return to Main Menu">← Menu</button>
-                            <div class="room-tag-row">
-                                <span class="room-tag" id="currentRoomId">ARENA-0000</span>
-                                <button class="btn-copy-code" id="copyRoomIdBtn" type="button" title="Copy Room ID to clipboard">📋 Copy ID</button>
-                            </div>
-                            <span class="room-mode-badge mode-ffa" id="currentRoomModeBadge">💀 PVP FFA</span>
-                            <h3 id="currentRoomName">Battle Arena Alpha</h3>
+                <!-- Dedicated Game Mode Selector Tray -->
+                <div class="mode-selector-tray">
+                    <div class="tray-header">
+                        <div class="tray-title-group">
+                            <span class="tray-title">ENGAGEMENT DIRECTIVES</span>
+                            <span class="tray-hint">Select a combat scenario to deploy</span>
                         </div>
-                        <div class="room-status-badge waiting" id="currentRoomStatus">WAITING FOR PLAYERS</div>
+                        <span class="tray-selection-indicator" id="deckSelectedModeBadge">MODE: QUICK FFA</span>
                     </div>
 
-                    <!-- Tactical Combatants Pods Grid -->
+                    <div class="mode-cards-grid">
+                        <!-- Mode 1: Quick Match FFA -->
+                        <div class="mode-card active-mode" id="quickCardFfa" data-mode="FFA" role="button" tabindex="0">
+                            <div class="mode-card-edge"></div>
+                            <div class="mode-card-header">
+                                <div class="mode-icon-box">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="m4.93 4.93 4.24 4.24"/><path d="m14.83 9.17 4.24-4.24"/><path d="m14.83 14.83 4.24 4.24"/><path d="m9.17 14.83-4.24 4.24"/></svg>
+                                </div>
+                                <span class="mode-tag tag-ffa">POPULAR</span>
+                            </div>
+                            <div class="mode-card-body">
+                                <h3 class="mode-name">Quick Match FFA</h3>
+                                <p class="mode-description">4-Pilot Free-For-All deathmatch. Eliminate opponents and collect power cores. First to 100 points wins.</p>
+                            </div>
+                            <div class="mode-card-footer">
+                                <span class="mode-capacity">4 Pilots Max</span>
+                                <button class="mode-select-btn" id="heroQuickPlayBtn" type="button">SELECT</button>
+                            </div>
+                        </div>
+
+                        <!-- Mode 2: 1v1 PvP Duel -->
+                        <div class="mode-card" id="quickCardDuel" data-mode="DUEL" role="button" tabindex="0">
+                            <div class="mode-card-edge"></div>
+                            <div class="mode-card-header">
+                                <div class="mode-icon-box">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="14.5 17.5 3 6 3 3 6 3 17.5 14.5"/><line x1="13" y1="19" x2="19" y2="13"/><line x1="16" y1="16" x2="20" y2="20"/><line x1="19" y1="21" x2="21" y2="19"/></svg>
+                                </div>
+                                <span class="mode-tag tag-duel">RANKED</span>
+                            </div>
+                            <div class="mode-card-body">
+                                <h3 class="mode-name">1v1 PvP Duel</h3>
+                                <p class="mode-description">Head-to-head tactical showdown. Pure mechanical skill, obstacle maneuvering, and aim. First to 3 kills claims victory.</p>
+                            </div>
+                            <div class="mode-card-footer">
+                                <span class="mode-capacity">2 Pilots (1v1)</span>
+                                <button class="mode-select-btn" id="heroDuelBtn" type="button">SELECT</button>
+                            </div>
+                        </div>
+
+                        <!-- Mode 3: AI Training Dojo -->
+                        <div class="mode-card" id="quickCardPve" data-mode="PRACTICE" role="button" tabindex="0">
+                            <div class="mode-card-edge"></div>
+                            <div class="mode-card-header">
+                                <div class="mode-icon-box">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="10" rx="2"/><circle cx="12" cy="5" r="2"/><path d="M12 7v4"/><line x1="8" y1="16" x2="8.01" y2="16"/><line x1="16" y1="16" x2="16.01" y2="16"/></svg>
+                                </div>
+                                <span class="mode-tag tag-practice">SOLO DOJO</span>
+                            </div>
+                            <div class="mode-card-body">
+                                <h3 class="mode-name">AI Training Dojo</h3>
+                                <p class="mode-description">Solo simulated combat against autonomous tactical AI bots. Test weapon ballistic profiles, practice dodging, and warm up.</p>
+                                <div class="mode-difficulty-row" id="practiceDifficultyPills">
+                                    <span class="diff-label">AI PROTOCOL:</span>
+                                    <button type="button" class="diff-pill" data-diff="RECRUIT">RECRUIT</button>
+                                    <button type="button" class="diff-pill active" data-diff="VETERAN">VETERAN</button>
+                                    <button type="button" class="diff-pill" data-diff="NIGHTMARE">APEX</button>
+                                </div>
+                            </div>
+                            <div class="mode-card-footer">
+                                <span class="mode-capacity">Solo vs Bot</span>
+                                <button class="mode-select-btn" id="heroPracticeBtn" type="button">SELECT</button>
+                            </div>
+                        </div>
+
+                        <!-- Mode 4: Custom Arenas Browser -->
+                        <div class="mode-card" id="quickCardCustom" data-mode="CUSTOM" role="button" tabindex="0">
+                            <div class="mode-card-edge"></div>
+                            <div class="mode-card-header">
+                                <div class="mode-icon-box">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg>
+                                </div>
+                                <span class="mode-tag tag-custom">BROWSE</span>
+                            </div>
+                            <div class="mode-card-body">
+                                <h3 class="mode-name">Custom Arenas</h3>
+                                <p class="mode-description">Host private lobbies, customize player capacity and rules, or browse and join open community matches.</p>
+                            </div>
+                            <div class="mode-card-footer">
+                                <span class="mode-capacity">Custom Slots</span>
+                                <button class="mode-select-btn" id="heroCustomBtn" type="button">BROWSE</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Hidden compatibility buttons maintaining script API stability -->
+                <button id="pvpDuelBtn" style="display: none;"></button>
+                <button id="pvePracticeBtn" style="display: none;"></button>
+                <button id="quickBattleBtn" style="display: none;"></button>
+            </section>
+
+            <!-- ========================================================================= -->
+            <!-- VIEW 2: OPERATORS VIEW (Full-Width Character & Loadout Hangar) -->
+            <!-- ========================================================================= -->
+            <section class="view-panel view-operators" id="viewOperators" style="display: none;" aria-label="Operators Hangar">
+                <div class="hangar-layout">
+                    <!-- Left: Large Live Interactive Operator Showcase -->
+                    <div class="hangar-showcase-panel">
+                        <div class="hangar-showcase-header">
+                            <span class="hangar-dossier-tag">OPERATOR SPECIFICATION</span>
+                            <h2 class="hangar-operator-title" id="hangarOperatorTitle">ASSAULT</h2>
+                            <span class="hangar-operator-role" id="hangarOperatorRole">Vanguard All-Rounder</span>
+                        </div>
+
+                        <div class="hangar-canvas-wrap">
+                            <canvas id="hangarOperatorCanvas" width="500" height="440"></canvas>
+                        </div>
+
+                        <div class="hangar-action-bar">
+                            <button class="btn-equip-operator" id="equipOperatorBtn" type="button">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+                                <span id="equipOperatorBtnText">EQUIP OPERATOR</span>
+                            </button>
+                            <span class="equip-status-note" id="equipStatusNote">Active in your combat loadout</span>
+                        </div>
+                    </div>
+
+                    <!-- Right: Operator Selection Grid & Detailed Tactical Dossier -->
+                    <div class="hangar-selection-panel">
+                        <div class="panel-section-title">COMBAT CLASSES</div>
+
+                        <!-- Class Selection Cards Grid -->
+                        <div class="class-selection-container" id="classSelectContainer">
+                            <div class="class-cards-grid" id="classCardsGrid">
+                                <!-- ASSAULT -->
+                                <div class="class-card selected" data-class="ASSAULT" role="button" tabindex="0">
+                                    <div class="class-card-accent" style="background: #10b981;"></div>
+                                    <div class="class-card-icon-box">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                                    </div>
+                                    <div class="class-card-body">
+                                        <div class="class-card-name">ASSAULT</div>
+                                        <div class="class-card-desc">Balanced Vanguard</div>
+                                        <div class="class-weapon-tag">Pulse Blaster • 20 DMG</div>
+                                    </div>
+                                    <div class="class-selected-check">✓</div>
+                                </div>
+
+                                <!-- JUGGERNAUT -->
+                                <div class="class-card" data-class="JUGGERNAUT" role="button" tabindex="0">
+                                    <div class="class-card-accent" style="background: #f59e0b;"></div>
+                                    <div class="class-card-icon-box">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18"/><path d="M9 21V9"/></svg>
+                                    </div>
+                                    <div class="class-card-body">
+                                        <div class="class-card-name">JUGGERNAUT</div>
+                                        <div class="class-card-desc">Armored Fortress</div>
+                                        <div class="class-weapon-tag">Plasma Cannon • 35 DMG</div>
+                                    </div>
+                                    <div class="class-selected-check">✓</div>
+                                </div>
+
+                                <!-- SCOUT -->
+                                <div class="class-card" data-class="SCOUT" role="button" tabindex="0">
+                                    <div class="class-card-accent" style="background: #a855f7;"></div>
+                                    <div class="class-card-icon-box">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="#a855f7" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+                                    </div>
+                                    <div class="class-card-body">
+                                        <div class="class-card-name">SCOUT</div>
+                                        <div class="class-card-desc">Agile Skirmisher</div>
+                                        <div class="class-weapon-tag">Twin Needles • 14 DMG</div>
+                                    </div>
+                                    <div class="class-selected-check">✓</div>
+                                </div>
+
+                                <!-- SNIPER -->
+                                <div class="class-card" data-class="SNIPER" role="button" tabindex="0">
+                                    <div class="class-card-accent" style="background: #06b6d4;"></div>
+                                    <div class="class-card-icon-box">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="#06b6d4" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="22" y1="12" x2="18" y2="12"/><line x1="6" y1="12" x2="2" y2="12"/><line x1="12" y1="6" x2="12" y2="2"/><line x1="12" y1="22" x2="12" y2="18"/></svg>
+                                    </div>
+                                    <div class="class-card-body">
+                                        <div class="class-card-name">SNIPER</div>
+                                        <div class="class-card-desc">Precision Marksman</div>
+                                        <div class="class-weapon-tag">Hyper Railgun • 45 DMG</div>
+                                    </div>
+                                    <div class="class-selected-check">✓</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Operator Attributes & Ballistics -->
+                        <div class="dossier-metrics-box">
+                            <div class="metrics-header">BALLISTICS & VITALITY SPEC</div>
+                            <div class="stat-meters-list">
+                                <div class="stat-row">
+                                    <span class="stat-lbl">HULL HEALTH (HP)</span>
+                                    <div class="stat-meter-track"><div class="stat-meter-fill" id="operatorHpMeter" style="width: 66%; background: #10b981;"></div></div>
+                                    <span class="stat-val-num" id="operatorHpVal">100 HP</span>
+                                </div>
+                                <div class="stat-row">
+                                    <span class="stat-lbl">ENERGY SHIELD</span>
+                                    <div class="stat-meter-track"><div class="stat-meter-fill" id="operatorShieldMeter" style="width: 66%; background: #38bdf8;"></div></div>
+                                    <span class="stat-val-num" id="operatorShieldVal">50 SHD</span>
+                                </div>
+                                <div class="stat-row">
+                                    <span class="stat-lbl">MOVEMENT SPEED</span>
+                                    <div class="stat-meter-track"><div class="stat-meter-fill" id="operatorSpeedMeter" style="width: 82%; background: #f59e0b;"></div></div>
+                                    <span class="stat-val-num" id="operatorSpeedVal">240 px/s</span>
+                                </div>
+                                <div class="stat-row">
+                                    <span class="stat-lbl">WEAPON DAMAGE</span>
+                                    <div class="stat-meter-track"><div class="stat-meter-fill" id="operatorDamageMeter" style="width: 44%; background: #f43f5e;"></div></div>
+                                    <span class="stat-val-num" id="operatorDamageVal">20 DMG</span>
+                                </div>
+                                <div class="stat-row">
+                                    <span class="stat-lbl">PROJECTILE VELOCITY</span>
+                                    <div class="stat-meter-track"><div class="stat-meter-fill" id="operatorProjSpeedMeter" style="width: 63%; background: #a855f7;"></div></div>
+                                    <span class="stat-val-num" id="operatorProjSpeedVal">650 px/s</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ========================================================================= -->
+            <!-- VIEW 3: CAREER & RECORDS VIEW -->
+            <!-- ========================================================================= -->
+            <section class="view-panel view-career" id="viewCareer" style="display: none;" aria-label="Career Records">
+                <div class="career-container">
+                    <div class="career-header">
+                        <div class="career-title-group">
+                            <span class="tactical-badge">COMBAT LOGS</span>
+                            <h2>CAREER DOSSIER & ACHIEVEMENTS</h2>
+                        </div>
+                        <div class="career-tab-toggles">
+                            <button class="career-toggle active" id="tabMatchLogsBtn" type="button">Battle Records</button>
+                            <button class="career-toggle" id="tabAchievementsBtn" type="button">Milestones (<span id="unlockedAchievementsCount">0/6</span>)</button>
+                        </div>
+                    </div>
+
+                    <!-- Career Stats Strip -->
+                    <div class="career-stats-summary" id="profileStatsSummary">
+                        <div class="career-stat-card">
+                            <span class="stat-card-label">CALLSIGN</span>
+                            <span class="stat-card-value" id="profileStatUsername">Guest</span>
+                        </div>
+                        <div class="career-stat-card">
+                            <span class="stat-card-label">TOTAL MATCHES</span>
+                            <span class="stat-card-value" id="profileStatGames">0</span>
+                        </div>
+                        <div class="career-stat-card">
+                            <span class="stat-card-label">CAREER POINTS</span>
+                            <span class="stat-card-value" id="profileStatTotalScore">0</span>
+                        </div>
+                        <div class="career-stat-card">
+                            <span class="stat-card-label">PERSONAL BEST</span>
+                            <span class="stat-card-value" id="profileStatHighScore">0</span>
+                        </div>
+                    </div>
+
+                    <!-- Section A: Match History List -->
+                    <div class="career-content-area" id="matchRecordsSection">
+                        <div class="match-history-list" id="matchHistoryList">
+                            <div class="empty-state-card">No recorded combat operations. Deploy into an arena to establish your combat record!</div>
+                        </div>
+                    </div>
+
+                    <!-- Section B: Achievements Grid -->
+                    <div class="career-content-area" id="achievementsSection" style="display: none;">
+                        <div class="achievements-grid" id="achievementsGrid">
+                            <!-- Populated dynamically via renderAchievementsGrid -->
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ========================================================================= -->
+            <!-- VIEW 4: LEADERBOARD VIEW -->
+            <!-- ========================================================================= -->
+            <section class="view-panel view-leaderboard" id="viewLeaderboard" style="display: none;" aria-label="Global Ranks">
+                <div class="leaderboard-container">
+                    <div class="leaderboard-view-header">
+                        <div>
+                            <span class="tactical-badge">GLOBAL STANDINGS</span>
+                            <h2>HALL OF FAME</h2>
+                        </div>
+                        <button class="btn-refresh-ranks" id="refreshLeaderboardBtn" type="button">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+                            <span>REFRESH</span>
+                        </button>
+                    </div>
+
+                    <div class="leaderboard-table-card">
+                        <table class="ranks-table">
+                            <thead>
+                                <tr>
+                                    <th>RANK</th>
+                                    <th>PILOT CALLSIGN</th>
+                                    <th>HIGHEST SCORE</th>
+                                    <th>CAREER SCORE</th>
+                                    <th>MATCHES</th>
+                                </tr>
+                            </thead>
+                            <tbody id="leaderboardTbody">
+                                <tr><td colspan="5" style="text-align: center; color: var(--text-muted); padding: 32px;">Loading global rankings...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ========================================================================= -->
+            <!-- VIEW 5: CUSTOM ARENAS BROWSER VIEW -->
+            <!-- ========================================================================= -->
+            <section class="view-panel view-arenas" id="viewArenas" style="display: none;" aria-label="Custom Arenas">
+                <div class="lobby-browser" id="lobbyBrowser">
+                    <div class="arenas-view-header">
+                        <div>
+                            <span class="tactical-badge">MULTIPLAYER DIRECTORY</span>
+                            <h2>CUSTOM COMBAT ARENAS</h2>
+                        </div>
+                        <div class="arenas-header-actions">
+                            <button class="btn-primary-action" id="openCreateRoomBtn" type="button">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                                <span>HOST ARENA</span>
+                            </button>
+                            <button class="btn-secondary-action" id="refreshRoomsBtn" type="button" title="Refresh room list">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+                                <span>REFRESH</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="lobby-filter-bar" id="lobbyFilterBar">
+                        <div class="search-input-wrap">
+                            <svg class="search-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                            <input type="text" id="roomSearchInput" placeholder="Search arena by name, ID, or host..." maxlength="30" autocomplete="off">
+                        </div>
+                        <div class="mode-filter-pills" id="modeFilterPills">
+                            <button class="filter-pill active" data-filter="ALL" type="button">All Arenas</button>
+                            <button class="filter-pill" data-filter="PVP_FFA" type="button">FFA Deathmatch</button>
+                            <button class="filter-pill" data-filter="PVP_1V1" type="button">1v1 Duel</button>
+                            <button class="filter-pill" data-filter="OPEN" type="button">Open Slots Only</button>
+                        </div>
+                        <span class="room-count-badge" id="roomCountBadge">0 Arenas</span>
+                    </div>
+
+                    <div class="rooms-container" id="roomsContainer">
+                        <div class="empty-rooms" id="emptyRoomsMsg">No active arenas discovered. Host a custom battle room to recruit combatants!</div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ========================================================================= -->
+            <!-- VIEW 6: ROOM STAGING BAY (Pre-Match Tactical Lobby) -->
+            <!-- ========================================================================= -->
+            <section class="active-room-view" id="activeRoomView" style="display: none;" aria-label="Staging Bay">
+                <div class="staging-bay-container">
+                    <div class="active-room-header">
+                        <div class="room-info">
+                            <button class="btn-staging-back" id="roomBackToLobbyBtn" type="button" title="Return to Main Menu">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+                                <span>EXIT BAY</span>
+                            </button>
+                            <div class="room-tag-row">
+                                <span class="room-tag" id="currentRoomId">ARENA-0000</span>
+                                <button class="btn-copy-code" id="copyRoomIdBtn" type="button" title="Copy Room ID">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                                    <span>COPY ID</span>
+                                </button>
+                            </div>
+                            <span class="room-mode-badge mode-ffa" id="currentRoomModeBadge">FFA DEATHMATCH</span>
+                            <h2 class="staging-room-name" id="currentRoomName">Battle Arena Alpha</h2>
+                        </div>
+                        <div class="room-status-badge waiting" id="currentRoomStatus">WAITING FOR PILOTS</div>
+                    </div>
+
+                    <!-- Tactical Combatants Roster Grid -->
                     <div class="staging-roster-section">
                         <div class="staging-section-label">
-                            <span>COMBATANTS IN ARENA</span>
-                            <span class="staging-hint">Ready up or launch when pilots are ready</span>
+                            <span>COMBATANTS IN BAY</span>
+                            <span class="staging-hint">All human pilots must be Ready to initiate deployment</span>
                         </div>
                         <div class="players-roster" id="playersRoster">
-                            <!-- Player cards rendered dynamically -->
+                            <!-- Dynamic player pods rendered by game.js -->
                         </div>
                     </div>
 
                     <!-- In-Lobby Class Loadout Quick Switcher -->
                     <div class="staging-loadout-bar" id="stagingLoadoutBar">
-                        <span class="staging-loadout-label">⚡ CHANGE CLASS:</span>
+                        <span class="staging-loadout-label">QUICK CLASS SWITCH:</span>
                         <div class="staging-class-pills" id="stagingClassPills">
                             <button class="staging-class-pill active" data-class="ASSAULT" type="button">🛡️ ASSAULT</button>
                             <button class="staging-class-pill" data-class="JUGGERNAUT" type="button">🦾 JUGGERNAUT</button>
@@ -283,249 +582,287 @@
                         </div>
                     </div>
 
-                    <!-- Docked Bottom Staging Controls -->
+                    <!-- Bottom Staging Controls -->
                     <div class="room-controls">
-                        <button class="btn-danger btn-leave-staging" id="leaveRoomBtn">🚪 Leave Room</button>
+                        <button class="btn-danger-action" id="leaveRoomBtn" type="button">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+                            <span>LEAVE ROOM</span>
+                        </button>
                         <div class="room-primary-actions">
-                            <button class="btn-secondary btn-add-bot-staging" id="addBotBtn" style="display: none;" title="Spawn an AI Bot Combatant to practice or fill room">🤖 + Add AI Bot</button>
-                            <button class="btn-warning btn-ready-staging" id="readyBtn" style="display: none;">Ready Up</button>
-                            <button class="btn-success btn-start-staging" id="startGameBtn" style="display: none;">⚔️ START MATCH</button>
+                            <button class="btn-secondary-action" id="addBotBtn" style="display: none;" type="button" title="Spawn AI Combat Bot">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="10" rx="2"/><circle cx="12" cy="5" r="2"/><path d="M12 7v4"/></svg>
+                                <span>+ ADD AI BOT</span>
+                            </button>
+                            <button class="btn-warning-action" id="readyBtn" style="display: none;" type="button">READY UP</button>
+                            <button class="btn-launch-match" id="startGameBtn" style="display: none;" type="button">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                                <span>START MATCH</span>
+                            </button>
                         </div>
                     </div>
                 </div>
             </section>
 
-            <!-- In-Game Tactical Combat HUD (Docked directly atop arena in combat) -->
-            <div class="hud-bar" id="gameHudBar" style="display: none;">
-                <div class="hud-item hud-pilot-item">
-                    <span class="hud-label">PILOT</span>
-                    <span id="hudPlayer" class="hud-val-bold">Guest</span>
-                </div>
-                <div class="hud-item hud-mode-item" id="hudModeItem">
-                    <span class="hud-label">MODE</span>
-                    <span id="hudModeBadge" class="hud-mode-pill">💀 PVP FFA</span>
-                </div>
-                <div class="hud-item hud-class-item">
-                    <span class="hud-label">CLASS</span>
-                    <span id="hudClass" class="hud-val-class">ASSAULT</span>
-                </div>
-                <div class="hud-item hud-vitals-item">
-                    <div class="hud-vital-row">
-                        <span class="hud-label-mini">HP</span>
-                        <div class="hud-bar-track hp-track">
-                            <div class="hud-bar-fill hp-fill" id="hudHpFill" style="width: 100%;"></div>
+            <!-- ========================================================================= -->
+            <!-- VIEW 7: IN-COMBAT ARENA VIEW (EDGE-ANCHORED COMBAT HUD + CANVAS) -->
+            <!-- ========================================================================= -->
+            <section class="view-combat" id="viewCombat" style="display: none;" aria-label="Live Combat Arena">
+                <!-- TOP HUD STRIP -->
+                <div class="combat-hud-top" id="gameHudBar">
+                    <!-- Top Left: Pilot Telemetry -->
+                    <div class="hud-top-left">
+                        <div class="hud-pilot-box">
+                            <div class="hud-pilot-callsign" id="hudPlayer">Pilot</div>
+                            <div class="hud-class-badge" id="hudClass">ASSAULT</div>
                         </div>
-                        <span class="hud-num"><span id="hudHp">100</span>/<span id="hudMaxHp">100</span></span>
-                    </div>
-                    <div class="hud-vital-row shield-row">
-                        <span class="hud-label-mini">SHD</span>
-                        <div class="hud-bar-track shield-track">
-                            <div class="hud-bar-fill shield-fill" id="hudShieldFill" style="width: 0%;"></div>
+                        <div class="hud-perf-box">
+                            <span class="hud-fps-val" id="hudFps">60 FPS</span>
+                            <span class="hud-sep">|</span>
+                            <span class="hud-ping-val" id="hudPingCombat">-- ms</span>
                         </div>
-                        <span class="hud-num"><span id="hudShield">0</span></span>
                     </div>
-                </div>
-                <div class="hud-item hud-timer-item">
-                    <span class="hud-label">TIMER</span>
-                    <span id="hudTimer" class="hud-timer-num">02:00</span>
-                </div>
-                <div class="hud-item hud-score-item">
-                    <div class="hud-score-top">
-                        <span class="hud-label-mini">SCORE</span>
-                        <span class="hud-num"><span id="hudScore">0</span> / <span id="hudTarget">100</span></span>
+
+                    <!-- Top Center: Objective & Timer -->
+                    <div class="hud-top-center">
+                        <div class="hud-timer-badge">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                            <span id="hudTimer">02:00</span>
+                        </div>
+                        <div class="hud-score-tracker">
+                            <div class="score-meta">
+                                <span class="score-label" id="hudModeBadge">FFA DEATHMATCH</span>
+                                <span class="score-target"><span id="hudScore">0</span> / <span id="hudTarget">100</span> PTS</span>
+                            </div>
+                            <div class="score-bar-track">
+                                <div class="score-bar-fill" id="hudScoreFill" style="width: 0%;"></div>
+                            </div>
+                        </div>
                     </div>
-                    <div class="hud-bar-track score-track">
-                        <div class="hud-bar-fill score-fill" id="hudScoreFill" style="width: 0%;"></div>
+
+                    <!-- Top Right: Kill Feed & Quick Leave -->
+                    <div class="hud-top-right">
+                        <div class="hud-kd-counter">
+                            <span class="kd-label">K / D</span>
+                            <span class="kd-value" id="hudKd">0 / 0</span>
+                        </div>
+                        <button class="hud-pause-btn" id="hudPauseTriggerBtn" type="button" title="Tactical Pause [Esc]">PAUSE [ESC]</button>
                     </div>
-                </div>
-                <div class="hud-item hud-kd-item">
-                    <span class="hud-label">K / D</span>
-                    <span id="hudKd" class="hud-kd-val">0 / 0</span>
-                </div>
-                <div class="hud-item hud-perf-item">
-                    <span id="hudFps">60 FPS</span>
-                    <span class="hud-perf-sep">|</span>
-                    <span id="hudPing" class="hud-ping-val">-- ms</span>
-                </div>
-                <div class="hud-actions-item">
-                    <button type="button" class="hud-emote-trigger-btn" id="hudEmoteTriggerBtn" title="Press T or Click for Callout Wheel">💬 [T]</button>
-                    <button type="button" class="hud-leave-btn" id="hudLeaveMatchBtn" title="Leave Match">🚪 Exit</button>
                 </div>
 
-                <!-- Hidden diagnostic DOM elements maintaining full script compatibility -->
-                <span id="hudRoom" style="display: none;">None (Lobby)</span>
+                <!-- COMBAT CANVAS VIEWPORT -->
+                <div class="combat-canvas-viewport">
+                    <div class="canvas-container" id="canvasContainer">
+                        <canvas id="gameCanvas" width="800" height="600"></canvas>
+
+                        <!-- Minimalist Sliding Kill Feed -->
+                        <div class="kill-feed" id="killFeed"></div>
+
+                        <!-- Live Tab Scoreboard -->
+                        <div class="live-scoreboard" id="liveScoreboard" style="display: none;">
+                            <div class="scoreboard-title">ARENA STANDINGS (TARGET: <span id="scoreboardGoal">100</span>)</div>
+                            <div class="scoreboard-list" id="scoreboardList"></div>
+                        </div>
+
+                        <!-- Tactical Elimination Killcam Overlay -->
+                        <div class="respawn-overlay" id="respawnOverlay" style="display: none;">
+                            <div class="killcam-card">
+                                <div class="killcam-title">ELIMINATED</div>
+                                <div class="killcam-killer-row">
+                                    <div class="killcam-avatar-box" id="killcamAvatar">🤖</div>
+                                    <div class="killcam-meta">
+                                        <div class="killcam-name" id="killcamKillerName">Enemy Warrior</div>
+                                        <span class="killcam-class-badge" id="killcamClassBadge">ASSAULT</span>
+                                    </div>
+                                </div>
+                                <div class="killcam-stats-grid">
+                                    <div class="killcam-stat-cell">
+                                        <span class="cell-lbl">KILLER VITALITY</span>
+                                        <span class="cell-val" id="killcamKillerHp">HP 100 | Shield 50</span>
+                                    </div>
+                                    <div class="killcam-stat-cell">
+                                        <span class="cell-lbl">WEAPONRY</span>
+                                        <span class="cell-val" id="killcamWeapon">Pulse Blaster</span>
+                                    </div>
+                                    <div class="killcam-stat-cell">
+                                        <span class="cell-lbl">RANGE</span>
+                                        <span class="cell-val" id="killcamDistance">150m</span>
+                                    </div>
+                                    <div class="killcam-stat-cell">
+                                        <span class="cell-lbl">FATAL DAMAGE</span>
+                                        <span class="cell-val text-combat" id="killcamDamage">-20 HP</span>
+                                    </div>
+                                </div>
+                                <div class="respawn-countdown" id="respawnCountdown">Tactical Respawn in 2.5s...</div>
+                                <div class="respawn-progress-bar">
+                                    <div class="respawn-progress-fill" id="respawnProgressFill"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Tactical Emote Wheel Overlay -->
+                        <div class="emote-wheel-overlay" id="emoteWheelOverlay" style="display: none;">
+                            <div class="emote-wheel-container">
+                                <div class="emote-wheel-title">TACTICAL CALLOUT WHEEL <span class="emote-hint">[Press 1-8]</span></div>
+                                <div class="emote-grid">
+                                    <button class="emote-btn" data-emote="TARGET_SPOTTED" type="button"><span class="emote-num">1</span><span class="emote-icon">🎯</span><span class="emote-label">Enemy Sighted</span></button>
+                                    <button class="emote-btn" data-emote="DEFEND_POS" type="button"><span class="emote-num">2</span><span class="emote-icon">🛡️</span><span class="emote-label">Defend Position</span></button>
+                                    <button class="emote-btn" data-emote="RUSH_ATTACK" type="button"><span class="emote-num">3</span><span class="emote-icon">⚡</span><span class="emote-label">Charge Forward</span></button>
+                                    <button class="emote-btn" data-emote="DANGER_ALERT" type="button"><span class="emote-num">4</span><span class="emote-icon">💥</span><span class="emote-label">Danger Ahead</span></button>
+                                    <button class="emote-btn" data-emote="NEED_BACKUP" type="button"><span class="emote-num">5</span><span class="emote-icon">🚨</span><span class="emote-label">Request Backup</span></button>
+                                    <button class="emote-btn" data-emote="TAUNT_FLEX" type="button"><span class="emote-num">6</span><span class="emote-icon">💀</span><span class="emote-label">Taunt Flex</span></button>
+                                    <button class="emote-btn" data-emote="CELEBRATE_GG" type="button"><span class="emote-num">7</span><span class="emote-icon">👑</span><span class="emote-label">Good Game</span></button>
+                                    <button class="emote-btn" data-emote="HEAL_REQUEST" type="button"><span class="emote-num">8</span><span class="emote-icon">❤️</span><span class="emote-label">Request Repairs</span></button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Real-Time In-Game Chat Overlay -->
+                        <div class="chat-overlay" id="chatOverlay">
+                            <div class="chat-messages" id="chatMessages"></div>
+                            <form class="chat-input-form" id="chatInputForm">
+                                <input type="text" id="chatInput" class="chat-input" placeholder="Press Enter to transmit tactical comms..." maxlength="120" autocomplete="off">
+                                <button type="submit" class="chat-send-btn" id="chatSendBtn">SEND</button>
+                            </form>
+                        </div>
+
+                        <!-- Spectator Free Cam Banner -->
+                        <div class="spectator-banner" id="spectatorBanner" style="display: none;">
+                            <div class="spectator-badge">OBSERVER DRONE</div>
+                            <div class="spectator-target" id="spectatorTargetText">Free Cam (WASD Pan, [1-8] Track, [Space] Center)</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- BOTTOM COMBAT HUD DOCKED CONTROLS -->
+                <div class="combat-hud-bottom">
+                    <!-- Bottom Left: Massive Vitality Gauge -->
+                    <div class="hud-vitality-gauge">
+                        <div class="vitality-row hp-row">
+                            <div class="vitality-tag">HULL</div>
+                            <div class="vitality-track hp-track">
+                                <div class="vitality-fill hp-fill" id="hudHpFill" style="width: 100%;"></div>
+                            </div>
+                            <div class="vitality-digits"><span id="hudHp">100</span> / <span id="hudMaxHp">100</span></div>
+                        </div>
+                        <div class="vitality-row shield-row">
+                            <div class="vitality-tag">SHIELD</div>
+                            <div class="vitality-track shield-track">
+                                <div class="vitality-fill shield-fill" id="hudShieldFill" style="width: 0%;"></div>
+                            </div>
+                            <div class="vitality-digits"><span id="hudShield">0</span></div>
+                        </div>
+                    </div>
+
+                    <!-- Center Tactical Crosshair Actions -->
+                    <div class="hud-center-controls">
+                        <button class="btn-hud-action" id="hudEmoteTriggerBtn" type="button" title="Tactical Callouts [T]">CALLOUTS [T]</button>
+                    </div>
+
+                    <!-- Bottom Right: Weapon Status -->
+                    <div class="hud-weapon-gauge">
+                        <div class="weapon-info-box">
+                            <span class="weapon-label">BALLISTIC CANNON</span>
+                            <span class="weapon-name" id="hudWeaponName">Pulse Blaster</span>
+                        </div>
+                        <div class="weapon-status-indicator active" id="weaponReadyIndicator">READY</div>
+                        <button class="btn-hud-exit" id="hudLeaveMatchBtn" type="button" title="Exit Match">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Hidden DOM nodes preserving script synchronization -->
+                <span id="hudRoom" style="display: none;">None</span>
                 <span id="hudPos" style="display: none;">X: 0, Y: 0</span>
-                <span id="hudState" style="display: none;">Combat Ready</span>
-            </div>
-
-            <div class="canvas-container">
-                <canvas id="gameCanvas" width="800" height="600"></canvas>
-                <div class="kill-feed" id="killFeed"></div>
-                <!-- Phase 19: Dynamic Death Cam & Tactical Elimination Review -->
-                <div class="respawn-overlay" id="respawnOverlay" style="display: none;">
-                    <div class="killcam-card">
-                        <div class="respawn-title">☠️ YOU WERE ELIMINATED</div>
-                        <div class="killcam-killer-row">
-                            <span class="killcam-killer-avatar" id="killcamAvatar">🤖</span>
-                            <div class="killcam-killer-meta">
-                                <div class="killcam-killer-name" id="killcamKillerName">Killer</div>
-                                <span class="killcam-class-badge" id="killcamClassBadge">ASSAULT</span>
-                            </div>
-                        </div>
-                        <div class="killcam-stats-grid">
-                            <div class="killcam-stat-item">
-                                <span class="stat-lbl">Killer Status</span>
-                                <span class="stat-val" id="killcamKillerHp">HP 100 | Shield 50</span>
-                            </div>
-                            <div class="killcam-stat-item">
-                                <span class="stat-lbl">Elimination Tool</span>
-                                <span class="stat-val" id="killcamWeapon">Pulse Blaster</span>
-                            </div>
-                            <div class="killcam-stat-item">
-                                <span class="stat-lbl">Range</span>
-                                <span class="stat-val" id="killcamDistance">150m</span>
-                            </div>
-                            <div class="killcam-stat-item">
-                                <span class="stat-lbl">Impact Damage</span>
-                                <span class="stat-val text-red" id="killcamDamage">-20 HP</span>
-                            </div>
-                        </div>
-                        <div class="respawn-countdown" id="respawnCountdown">Tactical Respawn in 2.5s...</div>
-                        <div class="respawn-progress-bar">
-                            <div class="respawn-progress-fill" id="respawnProgressFill"></div>
-                        </div>
-                    </div>
-                </div>
-                <div class="live-scoreboard" id="liveScoreboard" style="display: none;">
-                    <div class="scoreboard-title">⚡ Match Standings (Goal: <span id="scoreboardGoal">100</span>)</div>
-                    <div class="scoreboard-list" id="scoreboardList"></div>
-                </div>
-
-                <!-- Phase 18: Tactical Emote Wheel & Radial Callout HUD -->
-                <div class="emote-wheel-overlay" id="emoteWheelOverlay" style="display: none;">
-                    <div class="emote-wheel-container">
-                        <div class="emote-wheel-title">TACTICAL CALLOUTS <span class="emote-hint">[Hold T / Press 1-8]</span></div>
-                        <div class="emote-grid">
-                            <button class="emote-btn" data-emote="TARGET_SPOTTED" title="1: Enemy Sighted!">
-                                <span class="emote-num">1</span>
-                                <span class="emote-icon">🎯</span>
-                                <span class="emote-label">Enemy Sighted</span>
-                            </button>
-                            <button class="emote-btn" data-emote="DEFEND_POS" title="2: Defend Here!">
-                                <span class="emote-num">2</span>
-                                <span class="emote-icon">🛡️</span>
-                                <span class="emote-label">Defend Here</span>
-                            </button>
-                            <button class="emote-btn" data-emote="RUSH_ATTACK" title="3: Charge Forward!">
-                                <span class="emote-num">3</span>
-                                <span class="emote-icon">⚡</span>
-                                <span class="emote-label">Charge In</span>
-                            </button>
-                            <button class="emote-btn" data-emote="DANGER_ALERT" title="4: Danger Ahead!">
-                                <span class="emote-num">4</span>
-                                <span class="emote-icon">💥</span>
-                                <span class="emote-label">Danger Ahead</span>
-                            </button>
-                            <button class="emote-btn" data-emote="NEED_BACKUP" title="5: Need Backup!">
-                                <span class="emote-num">5</span>
-                                <span class="emote-icon">🚨</span>
-                                <span class="emote-label">Need Backup</span>
-                            </button>
-                            <button class="emote-btn" data-emote="TAUNT_FLEX" title="6: Can't Touch This!">
-                                <span class="emote-num">6</span>
-                                <span class="emote-icon">💀</span>
-                                <span class="emote-label">Taunt Flex</span>
-                            </button>
-                            <button class="emote-btn" data-emote="CELEBRATE_GG" title="7: Good Game!">
-                                <span class="emote-num">7</span>
-                                <span class="emote-icon">👑</span>
-                                <span class="emote-label">Good Game</span>
-                            </button>
-                            <button class="emote-btn" data-emote="HEAL_REQUEST" title="8: Need Repairs!">
-                                <span class="emote-num">8</span>
-                                <span class="emote-icon">❤️</span>
-                                <span class="emote-label">Need Repairs</span>
-                            </button>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Phase 14: In-Game Real-Time Match Chat Overlay -->
-                <div class="chat-overlay" id="chatOverlay">
-                    <div class="chat-messages" id="chatMessages"></div>
-                    <form class="chat-input-form" id="chatInputForm">
-                        <input type="text" id="chatInput" class="chat-input" placeholder="Press Enter to chat..." maxlength="120" autocomplete="off">
-                        <button type="submit" class="chat-send-btn" id="chatSendBtn">Send</button>
-                    </form>
-                </div>
-
-                <!-- Phase 15: Spectator Mode & Free Camera Observer Banner -->
-                <div class="spectator-banner" id="spectatorBanner" style="display: none;">
-                    <div class="spectator-badge">👁️ SPECTATOR OBSERVER</div>
-                    <div class="spectator-target" id="spectatorTargetText">Free Cam (WASD Pan, [1-8] Track, [Space] Center)</div>
-                </div>
-            </div>
-
-            <div class="controls-legend">
-                <span>Movement: <strong>W, A, S, D</strong> / <strong>Arrows</strong></span>
-                <span>Attack: <strong>Left-Click</strong> / <strong>Space</strong> (+15 pts)</span>
-                <span>Emotes: <strong>[T]</strong> / <strong>[1-8]</strong></span>
-                <span>Chat: <strong>Enter</strong></span>
-                <span>Settings: <strong>[Esc]</strong></span>
-                <span>Guide: <strong>[H]</strong></span>
-                <span>Mute: <strong>[M]</strong></span>
-            </div>
+                <span id="hudState" style="display: none;">Combat</span>
+            </section>
         </main>
 
-        <footer class="app-footer">
-            <p>Battle Arena | Real-Time Authoritative Multiplayer Monolith (Phase 20: 100% Full Production Release)</p>
+        <!-- 3. CLIENT FOOTER (Minimalist Status & Guide Link) -->
+        <footer class="client-footer" id="clientFooter">
+            <div class="footer-left">
+                <span class="footer-tag">CYBER ARENA v2.0</span>
+                <span class="footer-sep">•</span>
+                <span class="footer-note">Authoritative Java 21 & WebSocket Engine</span>
+            </div>
+            <div class="footer-controls-hint">
+                <span>[WASD] Move</span>
+                <span>[Mouse] Aim</span>
+                <span>[Click / Space] Fire</span>
+                <span>[T] Callouts</span>
+                <span>[Enter] Comms</span>
+                <span>[Esc] Pause</span>
+            </div>
         </footer>
     </div>
 
-    <!-- Create Room Modal -->
+    <!-- ========================================================================= -->
+    <!-- IN-GAME TACTICAL PAUSE MENU OVERLAY [ESC] -->
+    <!-- ========================================================================= -->
+    <div class="modal-overlay" id="pauseMenuModal" style="display: none;">
+        <div class="modal-card pause-menu-card">
+            <div class="pause-menu-header">
+                <span class="tactical-badge">OPERATIONAL PAUSE</span>
+                <h3>CYBER COMBAT ARENA</h3>
+            </div>
+            <div class="pause-menu-actions">
+                <button class="btn-menu-option primary" id="pauseResumeBtn" type="button">RESUME COMBAT</button>
+                <button class="btn-menu-option" id="pauseAudioToggleBtn" type="button">TOGGLE SOUND [M]</button>
+                <button class="btn-menu-option" id="pauseSettingsBtn" type="button">SETTINGS & AUDIO</button>
+                <button class="btn-menu-option" id="pauseIntelBtn" type="button">TACTICAL MANUAL [H]</button>
+                <button class="btn-menu-option danger" id="pauseLeaveMatchBtn" type="button">LEAVE MATCH TO MENU</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========================================================================= -->
+    <!-- CREATE ROOM MODAL -->
+    <!-- ========================================================================= -->
     <div class="modal-overlay" id="createRoomModal" style="display: none;">
         <div class="modal-card">
             <div class="modal-header">
-                <h3>Create New Arena</h3>
+                <h3>HOST CUSTOM ARENA</h3>
                 <button class="modal-close-btn" id="closeCreateRoomModalBtn" type="button">&times;</button>
             </div>
             <div class="modal-body">
                 <div class="auth-alert" id="createRoomAlert" style="display: none;"></div>
                 <form id="createRoomForm">
                     <div class="form-group">
-                        <label for="roomNameInput">Arena Name</label>
-                        <input type="text" id="roomNameInput" placeholder="e.g. Champions Colosseum" required maxlength="30">
+                        <label for="roomNameInput">Arena Designation</label>
+                        <input type="text" id="roomNameInput" placeholder="e.g. Neo-Tokyo Colosseum" required maxlength="30" autocomplete="off">
                     </div>
                     <div class="form-group">
-                        <label for="roomGameModeSelect">Battle Mode</label>
+                        <label for="roomGameModeSelect">Combat Directive</label>
                         <select id="roomGameModeSelect" class="form-select">
-                            <option value="PVP_1V1">⚔️ 1v1 PvP Duel (First to 3 Kills / 45 pts)</option>
-                            <option value="PVP_FFA" selected>💀 Free-For-All PvP (Target 100 pts)</option>
-                            <option value="PVP_CHAOS">🔥 Mayhem FFA (8-Player High Octane)</option>
+                            <option value="PVP_FFA" selected>Free-For-All Deathmatch (Target 100 Pts)</option>
+                            <option value="PVP_1V1">1v1 PvP Duel (First to 3 Kills)</option>
+                            <option value="PVP_CHAOS">8-Player Mayhem FFA (High Octane)</option>
                         </select>
                     </div>
                     <div class="form-group">
-                        <label for="maxPlayersSelect">Max Players</label>
+                        <label for="maxPlayersSelect">Pilot Capacity</label>
                         <select id="maxPlayersSelect" class="form-select">
-                            <option value="2">2 Players (Duel)</option>
-                            <option value="4" selected>4 Players (Classic)</option>
-                            <option value="6">6 Players (Brawl)</option>
-                            <option value="8">8 Players (Chaos)</option>
+                            <option value="2">2 Pilots (Duel)</option>
+                            <option value="4" selected>4 Pilots (Standard Squad)</option>
+                            <option value="6">6 Pilots (Brawl)</option>
+                            <option value="8">8 Pilots (Chaos)</option>
                         </select>
                     </div>
-                    <button type="submit" class="btn-submit" id="createRoomSubmitBtn">Create Arena</button>
+                    <button type="submit" class="btn-submit" id="createRoomSubmitBtn">INITIALIZE ARENA</button>
                 </form>
             </div>
         </div>
     </div>
 
-    <!-- Auth Modal (Login / Register) -->
+    <!-- ========================================================================= -->
+    <!-- AUTH MODAL (Login / Register / Instant Guest) -->
+    <!-- ========================================================================= -->
     <div class="modal-overlay" id="authModal" style="display: none;">
         <div class="modal-card">
             <div class="modal-header">
                 <div class="tab-group">
-                    <button class="tab-btn active" id="tabLoginBtn" type="button">Login</button>
-                    <button class="tab-btn" id="tabRegisterBtn" type="button">Register</button>
+                    <button class="tab-btn active" id="tabLoginBtn" type="button">AUTHENTICATE</button>
+                    <button class="tab-btn" id="tabRegisterBtn" type="button">NEW PILOT</button>
                 </div>
                 <button class="modal-close-btn" id="closeAuthModalBtn" type="button">&times;</button>
             </div>
@@ -533,112 +870,82 @@
                 <div class="auth-alert" id="authAlert" style="display: none;"></div>
                 <form id="authForm">
                     <div class="form-group">
-                        <label for="authUsername">Username</label>
-                        <input type="text" id="authUsername" placeholder="Enter username (3+ chars)" required autocomplete="username" maxlength="20">
+                        <label for="authUsername">Callsign</label>
+                        <input type="text" id="authUsername" placeholder="Pilot callsign (3+ chars)" required autocomplete="username" maxlength="20">
                     </div>
                     <div class="form-group">
-                        <label for="authPassword">Password</label>
-                        <input type="password" id="authPassword" placeholder="Enter password (6+ chars)" required autocomplete="current-password">
+                        <label for="authPassword">Security Key</label>
+                        <input type="password" id="authPassword" placeholder="Passcode (6+ chars)" required autocomplete="current-password">
                     </div>
-                    <button type="submit" class="btn-submit" id="authSubmitBtn">Log In</button>
+                    <button type="submit" class="btn-submit" id="authSubmitBtn">AUTHORIZE ENTRY</button>
                 </form>
                 <div class="auth-guest-divider">
-                    <span>OR JUMP STRAIGHT IN</span>
+                    <span>OR INSTANT COMBAT ENTRY</span>
                 </div>
-                <button type="button" class="btn-guest-instant" id="modalGuestPlayBtn">⚡ Instant Guest Entry (No Password Needed)</button>
+                <button type="button" class="btn-guest-instant" id="modalGuestPlayBtn">⚡ DEPLOY INSTANT GUEST PILOT</button>
             </div>
         </div>
     </div>
 
-    <!-- Global Leaderboard Modal -->
-    <div class="modal-overlay" id="leaderboardModal" style="display: none;">
-        <div class="modal-card modal-large">
+    <!-- ========================================================================= -->
+    <!-- TACTICAL IN-COMBAT PAUSE MODAL [ESC] -->
+    <!-- ========================================================================= -->
+    <div class="modal-overlay" id="pauseMenuModal" style="display: none;">
+        <div class="modal-card modal-pause-menu">
             <div class="modal-header">
-                <h3>🏆 Global Hall of Fame</h3>
-                <button class="modal-close-btn" id="closeLeaderboardModalBtn" type="button">&times;</button>
+                <h3>TACTICAL PAUSE</h3>
+                <span class="pause-status-pill">OPERATION SUSPENDED</span>
             </div>
             <div class="modal-body">
-                <div class="leaderboard-table-wrapper">
-                    <table class="leaderboard-table">
-                        <thead>
-                            <tr>
-                                <th>Rank</th>
-                                <th>Warrior</th>
-                                <th>Highest Score</th>
-                                <th>Career Total</th>
-                                <th>Matches</th>
-                            </tr>
-                        </thead>
-                        <tbody id="leaderboardTbody">
-                            <tr><td colspan="5" style="text-align: center; color: var(--text-secondary); padding: 24px;">Loading rankings...</td></tr>
-                        </tbody>
-                    </table>
+                <div class="pause-menu-actions">
+                    <button type="button" class="btn-primary-action pause-action-btn" id="pauseResumeBtn">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                        <span>RESUME COMBAT</span>
+                    </button>
+                    <button type="button" class="btn-secondary-action pause-action-btn" id="pauseAudioToggleBtn">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
+                        <span id="pauseAudioToggleText">AUDIO SYNTHESIZER: ON</span>
+                    </button>
+                    <button type="button" class="btn-secondary-action pause-action-btn" id="pauseSettingsBtn">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+                        <span>SYSTEMS & AUDIO SETTINGS</span>
+                    </button>
+                    <button type="button" class="btn-secondary-action pause-action-btn" id="pauseIntelBtn">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                        <span>INTEL & CONTROLS [H]</span>
+                    </button>
+                    <button type="button" class="btn-danger-action pause-action-btn" id="pauseLeaveMatchBtn">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+                        <span>ABORT MISSION / LEAVE ARENA</span>
+                    </button>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Match History & Career Modal -->
-    <div class="modal-overlay" id="matchHistoryModal" style="display: none;">
-        <div class="modal-card modal-large">
-            <div class="modal-header">
-                <div class="tab-group">
-                    <button class="tab-btn active" id="tabMatchLogsBtn" type="button">📜 Battle Records</button>
-                    <button class="tab-btn" id="tabAchievementsBtn" type="button">🎖️ Career Achievements</button>
-                </div>
-                <button class="modal-close-btn" id="closeMatchHistoryModalBtn" type="button">&times;</button>
-            </div>
-            <div class="modal-body">
-                <!-- Section 1: Match Logs & Career Stats -->
-                <div id="matchRecordsSection">
-                    <div class="profile-stats-summary" id="profileStatsSummary">
-                        <div class="stat-pill"><span class="stat-label">Warrior:</span> <strong id="profileStatUsername">-</strong></div>
-                        <div class="stat-pill"><span class="stat-label">Total Matches:</span> <strong id="profileStatGames">0</strong></div>
-                        <div class="stat-pill"><span class="stat-label">Career Total:</span> <strong id="profileStatTotalScore">0</strong></div>
-                        <div class="stat-pill"><span class="stat-label">Personal Best:</span> <strong id="profileStatHighScore">0</strong></div>
-                    </div>
-                    <div class="history-list-header">
-                        <h4>Recent Battles</h4>
-                    </div>
-                    <div class="match-history-list" id="matchHistoryList">
-                        <div class="empty-history-msg">No completed matches yet. Jump into an arena to record your first battle!</div>
-                    </div>
-                </div>
-
-                <!-- Section 2: Career Achievements Grid -->
-                <div id="achievementsSection" style="display: none;">
-                    <div class="achievements-header">
-                        <h4>Cyber Warrior Milestones (<span id="unlockedAchievementsCount">0/6</span> Unlocked)</h4>
-                    </div>
-                    <div class="achievements-grid" id="achievementsGrid">
-                        <!-- Populated dynamically -->
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Phase 20: Cyber Systems & Audio Settings Modal -->
+    <!-- ========================================================================= -->
+    <!-- SETTINGS & AUDIO MODAL -->
+    <!-- ========================================================================= -->
     <div class="modal-overlay" id="settingsModal" style="display: none;">
         <div class="modal-card">
             <div class="modal-header">
-                <h3>⚙️ Systems & Audio Settings</h3>
+                <h3>SYSTEMS & AUDIO SYNTHESIZER</h3>
                 <button class="modal-close-btn" id="closeSettingsModalBtn" type="button">&times;</button>
             </div>
             <div class="modal-body">
                 <div class="settings-group">
                     <div class="settings-row">
-                        <label for="masterVolumeRange">🔊 Master Volume (<span id="masterVolDisplay">50%</span>)</label>
+                        <label for="masterVolumeRange">Master Volume (<span id="masterVolDisplay">50%</span>)</label>
                         <input type="range" id="masterVolumeRange" min="0" max="100" value="50" class="settings-slider">
                     </div>
                     <div class="settings-row">
-                        <label for="sfxVolumeRange">💥 SFX Volume (<span id="sfxVolDisplay">75%</span>)</label>
+                        <label for="sfxVolumeRange">SFX Combat Synthesis (<span id="sfxVolDisplay">75%</span>)</label>
                         <input type="range" id="sfxVolumeRange" min="0" max="100" value="75" class="settings-slider">
                     </div>
                     <div class="settings-toggle-row">
                         <div class="toggle-info">
-                            <span class="toggle-title">🎵 Ambient Cyber Drone</span>
-                            <span class="toggle-desc">Procedural 55Hz sub-bass binaural atmospheric synthesizer</span>
+                            <span class="toggle-title">Atmospheric Cyber Drone</span>
+                            <span class="toggle-desc">Procedural 55Hz sub-bass binaural harmonic oscillator</span>
                         </div>
                         <label class="switch">
                             <input type="checkbox" id="ambientDroneToggle">
@@ -647,8 +954,8 @@
                     </div>
                     <div class="settings-toggle-row">
                         <div class="toggle-info">
-                            <span class="toggle-title">📳 Screen Shake FX</span>
-                            <span class="toggle-desc">Dynamic recoil and blast impulse feedback</span>
+                            <span class="toggle-title">Combat Screen Recoil Shake</span>
+                            <span class="toggle-desc">Dynamic blast impulse and projectile recoil feedback</span>
                         </div>
                         <label class="switch">
                             <input type="checkbox" id="screenShakeToggle" checked>
@@ -657,21 +964,23 @@
                     </div>
                 </div>
                 <div class="settings-footer">
-                    <button type="button" class="btn-secondary" id="modalSoundToggleBtn">🔊 Audio: ACTIVE</button>
-                    <button type="button" class="btn-primary" id="saveSettingsBtn">Done</button>
+                    <button type="button" class="btn-secondary-action" id="modalSoundToggleBtn">AUDIO: ACTIVE</button>
+                    <button type="button" class="btn-primary-action" id="saveSettingsBtn">SAVE & CLOSE</button>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Phase 20: Tactical Operations & Intel Manual Modal -->
+    <!-- ========================================================================= -->
+    <!-- TACTICAL INTEL & KEYBINDS MODAL -->
+    <!-- ========================================================================= -->
     <div class="modal-overlay" id="intelModal" style="display: none;">
         <div class="modal-card modal-large">
             <div class="modal-header">
                 <div class="tab-group">
-                    <button class="tab-btn active" id="tabIntelControlsBtn" type="button">🎮 Controls & Keybinds</button>
-                    <button class="tab-btn" id="tabIntelClassesBtn" type="button">⚡ Warrior Classes</button>
-                    <button class="tab-btn" id="tabIntelHazardsBtn" type="button">💥 Arena Hazards</button>
+                    <button class="tab-btn active" id="tabIntelControlsBtn" type="button">Controls & Keybinds</button>
+                    <button class="tab-btn" id="tabIntelClassesBtn" type="button">Warrior Classes</button>
+                    <button class="tab-btn" id="tabIntelHazardsBtn" type="button">Arena Hazards</button>
                 </div>
                 <button class="modal-close-btn" id="closeIntelModalBtn" type="button">&times;</button>
             </div>
@@ -680,34 +989,34 @@
                 <div id="intelControlsSection">
                     <div class="keybinds-grid">
                         <div class="keybind-card">
-                            <div class="key-badge">W A S D / ⬆️⬇️⬅️➡️</div>
+                            <div class="key-badge">W A S D / ARROWS</div>
                             <div class="key-title">Locomotion</div>
-                            <div class="key-desc">Omnidirectional arena movement and strafing with obstacle collision clamp.</div>
+                            <div class="key-desc">Omnidirectional arena thrust with obstacle barrier slide physics.</div>
                         </div>
                         <div class="keybind-card">
                             <div class="key-badge">MOUSE + CLICK / SPACE</div>
-                            <div class="key-title">Aim & Precision Fire</div>
-                            <div class="key-desc">Rotate to aim projectile vector trajectory; launch class weapon blast.</div>
+                            <div class="key-title">Precision Aim & Fire</div>
+                            <div class="key-desc">Rotate to align ballistics vector; launch class weapon projectile blast.</div>
                         </div>
                         <div class="keybind-card">
-                            <div class="key-badge">T / 1 - 8</div>
+                            <div class="key-badge">T / [1 - 8]</div>
                             <div class="key-title">Tactical Callout Wheel</div>
-                            <div class="key-desc">Open radial wheel or instant-cast tactical ping beacons & holographic speech bubbles.</div>
+                            <div class="key-desc">Broadcast holographic pings and tactical team notifications.</div>
                         </div>
                         <div class="keybind-card">
                             <div class="key-badge">ENTER</div>
                             <div class="key-title">Tactical Comms Chat</div>
-                            <div class="key-desc">Transmit real-time room messages to teammates and spectators.</div>
+                            <div class="key-desc">Transmit real-time room communication to combatants.</div>
                         </div>
                         <div class="keybind-card">
-                            <div class="key-badge">M / ESC</div>
-                            <div class="key-title">Audio & Settings</div>
-                            <div class="key-desc">Instant mute toggle [M] and full audio/synthesizer configuration [ESC].</div>
+                            <div class="key-badge">ESC / M</div>
+                            <div class="key-title">Pause & Audio Mute</div>
+                            <div class="key-desc">Open operational pause menu [Esc] or instantly toggle audio [M].</div>
                         </div>
                         <div class="keybind-card">
-                            <div class="key-badge">1 - 8 / SPACE (Spectator)</div>
+                            <div class="key-badge">SPACE / [1 - 8] (Spectator)</div>
                             <div class="key-title">Observer Drone</div>
-                            <div class="key-desc">Snap focus to combatant or free-cam pan arena across live match.</div>
+                            <div class="key-desc">Lock camera tracking to combatant or free-pan the battle area.</div>
                         </div>
                     </div>
                 </div>
@@ -716,34 +1025,34 @@
                 <div id="intelClassesSection" style="display: none;">
                     <div class="intel-classes-grid">
                         <div class="intel-class-card assault">
-                            <div class="intel-class-header">🛡️ ASSAULT (Vanguard)</div>
+                            <div class="intel-class-header">ASSAULT (Vanguard)</div>
                             <p class="intel-class-role">Balanced frontline combatant with all-around durability and cadence.</p>
                             <ul class="intel-class-specs">
                                 <li>Health: 100 HP | Energy Shield: 50</li>
                                 <li>Speed: 240 px/s (Balanced)</li>
-                                <li>Weapon: <strong>Pulse Blaster</strong> (20 DMG, 650 vel, 350ms CD)</li>
+                                <li>Weapon: <strong>Pulse Blaster</strong> (20 DMG, 650 vel, 320ms CD)</li>
                             </ul>
                         </div>
                         <div class="intel-class-card juggernaut">
-                            <div class="intel-class-header">🦾 JUGGERNAUT (Titan)</div>
+                            <div class="intel-class-header">JUGGERNAUT (Titan)</div>
                             <p class="intel-class-role">Heavy fortress tank designed to absorb heavy barrages and break enemy lines.</p>
                             <ul class="intel-class-specs">
                                 <li>Health: 150 HP | Energy Shield: 75</li>
                                 <li>Speed: 195 px/s (Heavy Armor)</li>
-                                <li>Weapon: <strong>Plasma Cannon</strong> (35 DMG, 420 vel, 550ms CD)</li>
+                                <li>Weapon: <strong>Plasma Cannon</strong> (35 DMG, 420 vel, 480ms CD)</li>
                             </ul>
                         </div>
                         <div class="intel-class-card scout">
-                            <div class="intel-class-header">⚡ SCOUT (Skirmisher)</div>
+                            <div class="intel-class-header">SCOUT (Skirmisher)</div>
                             <p class="intel-class-role">Hyper-agile skirmisher excelling at rapid coin collection and hit-and-run tactics.</p>
                             <ul class="intel-class-specs">
                                 <li>Health: 75 HP | Energy Shield: 35</li>
                                 <li>Speed: 290 px/s (Rapid Sprinter)</li>
-                                <li>Weapon: <strong>Twin Needles</strong> (14 DMG, 720 vel, 220ms CD)</li>
+                                <li>Weapon: <strong>Twin Needles</strong> (14 DMG, 620 vel, 240ms CD)</li>
                             </ul>
                         </div>
                         <div class="intel-class-card sniper">
-                            <div class="intel-class-header">🎯 SNIPER (Marksman)</div>
+                            <div class="intel-class-header">SNIPER (Marksman)</div>
                             <p class="intel-class-role">Precision marksman delivering lethal long-range hyper railgun strikes.</p>
                             <ul class="intel-class-specs">
                                 <li>Health: 85 HP | Energy Shield: 40</li>
@@ -759,23 +1068,23 @@
                     <div class="intel-hazards-grid">
                         <div class="hazard-card">
                             <div class="hazard-icon">⚡</div>
-                            <div class="hazard-title">Jump Launch Pads</div>
-                            <div class="hazard-desc">Spring-loaded boost conduits that launch warriors at 340 px/s across arena terrain.</div>
+                            <div class="hazard-title">Jump Boost Conduits</div>
+                            <div class="hazard-desc">Accelerators that launch warriors at 340 px/s across arena terrain.</div>
                         </div>
                         <div class="hazard-card">
                             <div class="hazard-icon">🌋</div>
-                            <div class="hazard-title">Thermal Lava Pools</div>
-                            <div class="hazard-desc">Superheated geothermal vents dealing 15 damage/sec to any warriors attempting to camp.</div>
+                            <div class="hazard-title">Thermal Geothermal Vents</div>
+                            <div class="hazard-desc">Superheated energy pools dealing 15 damage/sec to camp prevention zones.</div>
                         </div>
                         <div class="hazard-card">
                             <div class="hazard-icon">💥</div>
                             <div class="hazard-title">Volatile Fuel Barrels</div>
-                            <div class="hazard-desc">Explosive canisters detonating on bullet impact with a 90px blast radius dealing 35 damage.</div>
+                            <div class="hazard-desc">Detonates on bullet impact with a 90px blast radius dealing 35 damage.</div>
                         </div>
                         <div class="hazard-card">
                             <div class="hazard-icon">⛈️</div>
                             <div class="hazard-title">Sudden Death Safe Zone</div>
-                            <div class="hazard-desc">Shrinking energy perimeter collapsing inward during match endgame; exterior suffers toxic storm damage.</div>
+                            <div class="hazard-desc">Collapsing perimeter during match endgame; exterior suffers storm damage.</div>
                         </div>
                     </div>
                 </div>
@@ -783,38 +1092,43 @@
         </div>
     </div>
 
-    <!-- Phase 20: Celebratory Achievement Toast Notification Container -->
-    <div class="achievement-toast-container" id="achievementToastContainer"></div>
-
-    <!-- Match Game Over Modal -->
+    <!-- ========================================================================= -->
+    <!-- MATCH OVER GAME OVER MODAL -->
+    <!-- ========================================================================= -->
     <div class="modal-overlay" id="gameOverModal" style="display: none;">
         <div class="modal-card modal-game-over">
             <div class="modal-header">
-                <h3 id="gameOverTitle">🏆 VICTORY!</h3>
+                <h3 id="gameOverTitle">COMBAT COMPLETE</h3>
             </div>
             <div class="modal-body">
                 <div class="match-meta-pill" id="matchMetaPill" style="display: none;">Match #0</div>
                 <p class="winner-announcement" id="winnerAnnouncement">Player reached the target score!</p>
 
-                <!-- Phase 19: Post-Match Accolades & Highlights -->
                 <div class="match-accolades-row" id="matchAccoladesRow"></div>
                 <div class="match-highlights-box" id="matchHighlightsBox">
-                    <div class="highlights-header">⚡ COMBAT TIMELINE & HIGHLIGHTS</div>
+                    <div class="highlights-header">COMBAT TIMELINE & HIGHLIGHTS</div>
                     <div class="highlights-list" id="highlightsList"></div>
                 </div>
 
-                <div class="match-summary-scores" id="matchSummaryScores">
-                    <!-- Final scores populated dynamically -->
-                </div>
-                <div class="modal-actions" style="margin-top: 20px; display: flex; justify-content: center; gap: 12px; flex-wrap: wrap;">
-                    <button class="btn-copy-report" id="copyBattleReportBtn">📋 Share Battle Report</button>
-                    <button class="btn-success" id="rematchBtn" style="display: none;">🔄 Rematch</button>
-                    <button class="btn-primary" id="returnToLobbyBtn">Return to Arenas</button>
-                    <button class="btn-secondary" id="viewLeaderboardFromGameOverBtn">View Leaderboard</button>
+                <div class="match-summary-scores" id="matchSummaryScores"></div>
+                <div class="modal-actions">
+                    <button class="btn-secondary-action" id="copyBattleReportBtn" type="button">SHARE REPORT</button>
+                    <button class="btn-primary-action" id="rematchBtn" style="display: none;" type="button">REMATCH</button>
+                    <button class="btn-accent-action" id="returnToLobbyBtn" type="button">RETURN TO MENU</button>
+                    <button class="btn-ghost-action" id="viewLeaderboardFromGameOverBtn" type="button">RANKS</button>
                 </div>
             </div>
         </div>
     </div>
+
+    <!-- Achievement Toast Notifications Container -->
+    <div class="achievement-toast-container" id="achievementToastContainer"></div>
+
+    <!-- Hidden compatibility elements ensuring no script crashes -->
+    <div id="leaderboardModal" style="display: none;"><button id="closeLeaderboardModalBtn"></button></div>
+    <div id="matchHistoryModal" style="display: none;"><button id="closeMatchHistoryModalBtn"></button></div>
+    <button id="openLeaderboardBtn" style="display: none;"></button>
+    <button id="openMatchHistoryBtn" style="display: none;"></button>
 
     <script src="js/game.js"></script>
 </body>
