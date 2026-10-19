@@ -49,7 +49,9 @@ public class RoomService {
                 ? request.getGameMode().trim().toUpperCase()
                 : (maxPlayers == 2 ? "PVP_1V1" : "PVP_FFA");
 
-        Room room = new Room(roomId, roomName, hostUsername, maxPlayers, gameMode, request.getBotDifficulty());
+        String mapId = request.getMapId();
+
+        Room room = new Room(roomId, roomName, hostUsername, maxPlayers, gameMode, request.getBotDifficulty(), mapId);
         rooms.put(roomId, room);
         playerToRoom.put(hostUsername, roomId);
 
@@ -69,7 +71,9 @@ public class RoomService {
                         r.getPlayerCount(),
                         r.getMaxPlayers(),
                         r.getStatus().name(),
-                        r.getGameMode()
+                        r.getGameMode(),
+                        r.getMapId(),
+                        r.getBotDifficulty()
                 ))
                 .toList();
     }
@@ -205,7 +209,7 @@ public class RoomService {
                         p.getWarriorClass() != null ? p.getWarriorClass().name() : "ASSAULT", p.isBot()))
                 .toList();
 
-        return new RoomResponse(
+        RoomResponse response = new RoomResponse(
                 room.getRoomId(),
                 room.getName(),
                 room.getHostUsername(),
@@ -215,8 +219,12 @@ public class RoomService {
                 playerList,
                 room.canStart(requestingUser),
                 room.getGameMode(),
-                room.getBotDifficulty()
+                room.getBotDifficulty(),
+                room.getMapId()
         );
+        response.setObstacles(room.getObstacles());
+        response.setHazards(room.getHazards());
+        return response;
     }
 
     /**

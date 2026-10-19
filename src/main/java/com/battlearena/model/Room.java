@@ -37,26 +37,78 @@ public class Room {
 
     private final ConcurrentMap<String, PlayerRoomState> players = new ConcurrentHashMap<>();
 
+    private final String mapId;
+    private final List<Obstacle> obstacles;
+    private final List<ArenaHazard> hazards;
+
+    // Overcharge Beacon Dynamic Arena Event
+    public static final double BEACON_X = 400.0;
+    public static final double BEACON_Y = 300.0;
+    public static final double BEACON_RADIUS = 65.0;
+    private volatile boolean beaconActive = false;
+    private volatile String beaconCapturedBy = null;
+
     public Room(String roomId, String name, String hostUsername, int maxPlayers) {
-        this(roomId, name, hostUsername, maxPlayers, (maxPlayers == 2 ? "PVP_1V1" : "PVP_FFA"), "VETERAN");
+        this(roomId, name, hostUsername, maxPlayers, (maxPlayers == 2 ? "PVP_1V1" : "PVP_FFA"), "VETERAN", "CYBER_CORE");
     }
 
     public Room(String roomId, String name, String hostUsername, int maxPlayers, String gameMode) {
-        this(roomId, name, hostUsername, maxPlayers, gameMode, "VETERAN");
+        this(roomId, name, hostUsername, maxPlayers, gameMode, "VETERAN", "CYBER_CORE");
     }
 
     public Room(String roomId, String name, String hostUsername, int maxPlayers, String gameMode, String botDifficulty) {
+        this(roomId, name, hostUsername, maxPlayers, gameMode, botDifficulty, "CYBER_CORE");
+    }
+
+    public Room(String roomId, String name, String hostUsername, int maxPlayers, String gameMode, String botDifficulty, String mapId) {
         this.roomId = roomId;
         this.name = name;
         this.hostUsername = hostUsername;
         this.maxPlayers = maxPlayers;
         this.gameMode = (gameMode != null && !gameMode.isEmpty()) ? gameMode : (maxPlayers == 2 ? "PVP_1V1" : "PVP_FFA");
         this.botDifficulty = (botDifficulty != null && !botDifficulty.trim().isEmpty()) ? botDifficulty.trim().toUpperCase() : "VETERAN";
+        this.mapId = (mapId != null && !mapId.trim().isEmpty()) ? mapId.trim().toUpperCase() : "CYBER_CORE";
         this.status = RoomStatus.WAITING;
         this.createdAt = Instant.now();
+        this.obstacles = buildObstacles(this.mapId);
+        this.hazards = buildHazards(this.mapId);
 
         // Host is automatically added as first player with host privileges
         this.players.put(hostUsername, new PlayerRoomState(hostUsername, true));
+    }
+
+    public String getMapId() {
+        return mapId != null ? mapId : "CYBER_CORE";
+    }
+
+    public boolean isBeaconActive() {
+        return beaconActive;
+    }
+
+    public void setBeaconActive(boolean active) {
+        this.beaconActive = active;
+    }
+
+    public String getBeaconCapturedBy() {
+        return beaconCapturedBy;
+    }
+
+    public void setBeaconCapturedBy(String username) {
+        this.beaconCapturedBy = username;
+    }
+
+    public double getBeaconX() { return BEACON_X; }
+    public double getBeaconY() { return BEACON_Y; }
+    public double getBeaconRadius() { return BEACON_RADIUS; }
+
+    public boolean checkBeaconActiveState(long remainingSeconds) {
+        long mod = remainingSeconds % 30;
+        boolean shouldBeActive = (remainingSeconds > 10 && remainingSeconds < MATCH_DURATION_SECONDS - 5) && (mod == 0 || mod > 15);
+        this.beaconActive = shouldBeActive;
+        if (!shouldBeActive) {
+            this.beaconCapturedBy = null;
+        }
+        return shouldBeActive;
     }
 
     public String getBotDifficulty() {
@@ -281,29 +333,87 @@ public class Room {
     private volatile String winnerUsername = null;
     private volatile Instant matchStartedAt = null;
 
-    private static final List<Obstacle> ARENA_OBSTACLES = List.of(
-            // Central Tech Bunker / Core Fortress
-            new Obstacle("OBS-CENTER", 360.0, 260.0, 80.0, 80.0, "BUNKER"),
-            // Flank cover barriers (horizontal / vertical tactical shields)
-            new Obstacle("OBS-TL", 240.0, 110.0, 30.0, 100.0, "BARRIER"),
-            new Obstacle("OBS-TR", 530.0, 110.0, 30.0, 100.0, "BARRIER"),
-            new Obstacle("OBS-BL", 240.0, 390.0, 30.0, 100.0, "BARRIER"),
-            new Obstacle("OBS-BR", 530.0, 390.0, 30.0, 100.0, "BARRIER")
-    );
+    private static List<Obstacle> buildObstacles(String mapId) {
+        if ("NEON_OUTPOST".equalsIgnoreCase(mapId)) {
+            return List.of(
+                    // Heavy blast bunkers north and south
+                    new Obstacle("OBS-NORTH-BUNKER", 260.0, 130.0, 280.0, 35.0, "BUNKER"),
+                    new Obstacle("OBS-SOUTH-BUNKER", 260.0, 435.0, 280.0, 35.0, "BUNKER"),
+                    // Tactical flank barricades
+                    new Obstacle("OBS-WEST-WING", 130.0, 240.0, 35.0, 120.0, "BARRIER"),
+                    new Obstacle("OBS-EAST-WING", 635.0, 240.0, 35.0, 120.0, "BARRIER"),
+                    // Central energy choke barriers
+                    new Obstacle("OBS-CORE-L", 325.0, 275.0, 35.0, 50.0, "BARRIER"),
+                    new Obstacle("OBS-CORE-R", 440.0, 275.0, 35.0, 50.0, "BARRIER")
+            );
+        } else if ("ORBITAL_STATION".equalsIgnoreCase(mapId)) {
+            return List.of(
+                    // Central high-voltage plasma reactor core
+                    new Obstacle("OBS-REACTOR-CORE", 375.0, 215.0, 50.0, 170.0, "REACTOR"),
+                    // Four quadrant perimeter shields
+                    new Obstacle("OBS-SHIELD-NW", 170.0, 130.0, 100.0, 35.0, "BARRIER"),
+                    new Obstacle("OBS-SHIELD-NE", 530.0, 130.0, 100.0, 35.0, "BARRIER"),
+                    new Obstacle("OBS-SHIELD-SW", 170.0, 435.0, 100.0, 35.0, "BARRIER"),
+                    new Obstacle("OBS-SHIELD-SE", 530.0, 435.0, 100.0, 35.0, "BARRIER")
+            );
+        } else {
+            // CYBER_CORE (Default)
+            return List.of(
+                    new Obstacle("OBS-CENTER", 360.0, 260.0, 80.0, 80.0, "BUNKER"),
+                    new Obstacle("OBS-TL", 240.0, 110.0, 30.0, 100.0, "BARRIER"),
+                    new Obstacle("OBS-TR", 530.0, 110.0, 30.0, 100.0, "BARRIER"),
+                    new Obstacle("OBS-BL", 240.0, 390.0, 30.0, 100.0, "BARRIER"),
+                    new Obstacle("OBS-BR", 530.0, 390.0, 30.0, 100.0, "BARRIER")
+            );
+        }
+    }
 
-    private final List<ArenaHazard> arenaHazards = List.of(
-            // Kinetic Jump Pads
-            ArenaHazard.createJumpPad("PAD-1", 140.0, 160.0, 0.785, 340.0),
-            ArenaHazard.createJumpPad("PAD-2", 660.0, 440.0, 3.927, 340.0),
-            // Thermal Plasma Lava Pools
-            ArenaHazard.createLavaPool("LAVA-TOP", 400.0, 75.0, 32.0),
-            ArenaHazard.createLavaPool("LAVA-BOT", 400.0, 525.0, 32.0),
-            // Volatile Explosive Barrels
-            ArenaHazard.createExplosiveBarrel("BARREL-1", 160.0, 430.0),
-            ArenaHazard.createExplosiveBarrel("BARREL-2", 640.0, 170.0),
-            ArenaHazard.createExplosiveBarrel("BARREL-3", 400.0, 195.0),
-            ArenaHazard.createExplosiveBarrel("BARREL-4", 400.0, 405.0)
-    );
+    private static List<ArenaHazard> buildHazards(String mapId) {
+        if ("NEON_OUTPOST".equalsIgnoreCase(mapId)) {
+            return List.of(
+                    // Kinetic Jump Pads (Corner slingshots into central battle zone)
+                    ArenaHazard.createJumpPad("PAD-1", 130.0, 140.0, 0.785, 340.0),
+                    ArenaHazard.createJumpPad("PAD-2", 670.0, 140.0, 2.356, 340.0),
+                    ArenaHazard.createJumpPad("PAD-3", 130.0, 460.0, -0.785, 340.0),
+                    ArenaHazard.createJumpPad("PAD-4", 670.0, 460.0, -2.356, 340.0),
+                    // Central Thermal Plasma Core
+                    ArenaHazard.createLavaPool("LAVA-MID", 400.0, 300.0, 28.0),
+                    // Volatile Explosive Barrels placed near cover choke-points
+                    ArenaHazard.createExplosiveBarrel("BARREL-1", 200.0, 200.0),
+                    ArenaHazard.createExplosiveBarrel("BARREL-2", 600.0, 200.0),
+                    ArenaHazard.createExplosiveBarrel("BARREL-3", 200.0, 400.0),
+                    ArenaHazard.createExplosiveBarrel("BARREL-4", 600.0, 400.0),
+                    ArenaHazard.createExplosiveBarrel("BARREL-5", 400.0, 175.0),
+                    ArenaHazard.createExplosiveBarrel("BARREL-6", 400.0, 425.0)
+            );
+        } else if ("ORBITAL_STATION".equalsIgnoreCase(mapId)) {
+            return List.of(
+                    // Lateral Accelerators
+                    ArenaHazard.createJumpPad("PAD-1", 220.0, 285.0, 0.0, 360.0),
+                    ArenaHazard.createJumpPad("PAD-2", 580.0, 315.0, 3.1415, 360.0),
+                    // Perimeter Plasma Exits
+                    ArenaHazard.createLavaPool("LAVA-WEST", 90.0, 300.0, 32.0),
+                    ArenaHazard.createLavaPool("LAVA-EAST", 710.0, 300.0, 32.0),
+                    // Symmetrical Explosive Cores
+                    ArenaHazard.createExplosiveBarrel("BARREL-1", 280.0, 200.0),
+                    ArenaHazard.createExplosiveBarrel("BARREL-2", 520.0, 200.0),
+                    ArenaHazard.createExplosiveBarrel("BARREL-3", 280.0, 400.0),
+                    ArenaHazard.createExplosiveBarrel("BARREL-4", 520.0, 400.0)
+            );
+        } else {
+            // CYBER_CORE (Default)
+            return List.of(
+                    ArenaHazard.createJumpPad("PAD-1", 140.0, 160.0, 0.785, 340.0),
+                    ArenaHazard.createJumpPad("PAD-2", 660.0, 440.0, 3.927, 340.0),
+                    ArenaHazard.createLavaPool("LAVA-TOP", 400.0, 75.0, 32.0),
+                    ArenaHazard.createLavaPool("LAVA-BOT", 400.0, 525.0, 32.0),
+                    ArenaHazard.createExplosiveBarrel("BARREL-1", 160.0, 430.0),
+                    ArenaHazard.createExplosiveBarrel("BARREL-2", 640.0, 170.0),
+                    ArenaHazard.createExplosiveBarrel("BARREL-3", 400.0, 195.0),
+                    ArenaHazard.createExplosiveBarrel("BARREL-4", 400.0, 405.0)
+            );
+        }
+    }
 
     public record CombatEvent(
             long timestamp,
@@ -422,11 +532,11 @@ public class Room {
     }
 
     public List<Obstacle> getObstacles() {
-        return ARENA_OBSTACLES;
+        return obstacles;
     }
 
     public boolean isPositionInsideAnyObstacle(double x, double y, double radius) {
-        for (Obstacle obs : ARENA_OBSTACLES) {
+        for (Obstacle obs : obstacles) {
             if (obs.intersectsCircle(x, y, radius)) {
                 return true;
             }
@@ -442,7 +552,7 @@ public class Room {
         long now = System.currentTimeMillis();
         double px = proj.getCurrentX(now);
         double py = proj.getCurrentY(now);
-        for (Obstacle obs : ARENA_OBSTACLES) {
+        for (Obstacle obs : obstacles) {
             if (obs.intersectsSegment(proj.getStartX(), proj.getStartY(), px, py) ||
                     obs.intersectsCircle(px, py, proj.getRadius())) {
                 projectiles.remove(projectileId);
@@ -453,7 +563,7 @@ public class Room {
     }
 
     public List<ArenaHazard> getHazards() {
-        return arenaHazards;
+        return hazards;
     }
 
     public record JumpPadEvent(
@@ -493,7 +603,7 @@ public class Room {
         if (status != RoomStatus.PLAYING) return Collections.emptyList();
         List<JumpPadEvent> events = new ArrayList<>();
         long now = System.currentTimeMillis();
-        for (ArenaHazard h : arenaHazards) {
+        for (ArenaHazard h : hazards) {
             if (h.getType() == ArenaHazard.HazardType.JUMP_PAD && h.isActive()) {
                 if (now - h.getLastTriggerTime() < 2200L) continue;
                 for (GamePlayer p : gamePlayers.values()) {
@@ -517,7 +627,7 @@ public class Room {
     public synchronized List<HazardDamageEvent> tickLavaPools() {
         if (status != RoomStatus.PLAYING) return Collections.emptyList();
         List<HazardDamageEvent> events = new ArrayList<>();
-        for (ArenaHazard h : arenaHazards) {
+        for (ArenaHazard h : hazards) {
             if (h.getType() == ArenaHazard.HazardType.LAVA_POOL && h.isActive()) {
                 for (GamePlayer p : gamePlayers.values()) {
                     if (p.isAlive() && h.intersectsCircle(p.getX(), p.getY(), 16.0)) {
@@ -533,7 +643,7 @@ public class Room {
     public synchronized void tickBarrelRespawns() {
         if (status != RoomStatus.PLAYING) return;
         long now = System.currentTimeMillis();
-        for (ArenaHazard h : arenaHazards) {
+        for (ArenaHazard h : hazards) {
             if (h.getType() == ArenaHazard.HazardType.EXPLOSIVE_BARREL && !h.isActive()) {
                 if (now >= h.getRespawnTime()) {
                     h.reset();
@@ -554,7 +664,7 @@ public class Room {
         double px = proj.getCurrentX(now);
         double py = proj.getCurrentY(now);
 
-        for (ArenaHazard h : arenaHazards) {
+        for (ArenaHazard h : hazards) {
             if (h.getType() == ArenaHazard.HazardType.EXPLOSIVE_BARREL && h.isActive()) {
                 boolean hit = false;
                 if (targetHazardId != null && targetHazardId.equals(h.getId())) {
@@ -667,7 +777,7 @@ public class Room {
         this.projectiles.clear();
         this.powerUps.clear();
         this.combatEvents.clear();
-        for (ArenaHazard h : arenaHazards) {
+        for (ArenaHazard h : hazards) {
             h.reset();
         }
 
@@ -962,7 +1072,7 @@ public class Room {
         }
 
         // 1. Raycast Cover Check: ensure direct line of sight between projectile start and target isn't blocked by obstacles
-        for (Obstacle obs : ARENA_OBSTACLES) {
+        for (Obstacle obs : obstacles) {
             if (obs.intersectsSegment(proj.getStartX(), proj.getStartY(), target.getX(), target.getY())) {
                 // Blocked by cover obstacle! Consume projectile with no damage dealt.
                 projectiles.remove(projectileId);
@@ -1041,7 +1151,7 @@ public class Room {
         GamePlayer player = gamePlayers.get(username);
         if (player != null) {
             double[] pos = new double[]{ x, y };
-            for (Obstacle obs : ARENA_OBSTACLES) {
+            for (Obstacle obs : obstacles) {
                 obs.resolveCircle(pos, player.getRadius());
             }
             player.updatePosition(pos[0], pos[1], heading);

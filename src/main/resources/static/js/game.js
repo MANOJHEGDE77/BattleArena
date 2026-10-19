@@ -7,6 +7,17 @@
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 
+// --- Resolution & High-DPI Display Scaling ---
+const ARENA_WIDTH = 800;
+const ARENA_HEIGHT = 600;
+const dpr = Math.min(window.devicePixelRatio || 1, 2);
+if (canvas) {
+    canvas.width = ARENA_WIDTH * dpr;
+    canvas.height = ARENA_HEIGHT * dpr;
+    canvas.style.width = ARENA_WIDTH + 'px';
+    canvas.style.height = ARENA_HEIGHT + 'px';
+}
+
 const hudPos = document.getElementById('hudPos');
 const hudFps = document.getElementById('hudFps');
 const hudPlayer = document.getElementById('hudPlayer');
@@ -1383,8 +1394,8 @@ const floatingTexts = [];
 
 // --- Player State (Authoritative model for Phase 2 & 3) ---
 const player = {
-    x: canvas.width / 2,
-    y: canvas.height / 2,
+    x: ARENA_WIDTH / 2,
+    y: ARENA_HEIGHT / 2,
     radius: 16,
     speed: 240, // pixels per second
     heading: 0, // radians
@@ -1392,6 +1403,8 @@ const player = {
     accentColor: '#818cf8',
     warriorClass: 'ASSAULT',
     name: 'Guest',
+    equippedTitle: 'RECRUIT',
+    equippedTrail: 'CYAN_PULSE',
     health: 100,
     maxHealth: 100,
     shield: 0,
@@ -1474,8 +1487,8 @@ let lastAimY = null;
 canvas.addEventListener('pointermove', (e) => {
     if (isGameOver || !player.alive || isSpectator) return;
     const rect = canvas.getBoundingClientRect();
-    const scaleX = canvas.width / rect.width;
-    const scaleY = canvas.height / rect.height;
+    const scaleX = ARENA_WIDTH / rect.width;
+    const scaleY = ARENA_HEIGHT / rect.height;
     lastAimX = (e.clientX - rect.left) * scaleX;
     lastAimY = (e.clientY - rect.top) * scaleY;
     player.heading = Math.atan2(lastAimY - player.y, lastAimX - player.x);
@@ -1485,8 +1498,8 @@ canvas.addEventListener('pointermove', (e) => {
 canvas.addEventListener('pointerdown', (e) => {
     if (isGameOver || !player.alive || isSpectator) return;
     const rect = canvas.getBoundingClientRect();
-    const scaleX = canvas.width / rect.width;
-    const scaleY = canvas.height / rect.height;
+    const scaleX = ARENA_WIDTH / rect.width;
+    const scaleY = ARENA_HEIGHT / rect.height;
     lastAimX = (e.clientX - rect.left) * scaleX;
     lastAimY = (e.clientY - rect.top) * scaleY;
     const heading = Math.atan2(lastAimY - player.y, lastAimX - player.x);
@@ -1520,7 +1533,8 @@ function fireBlaster(targetHeading) {
 
     gameWs.send(JSON.stringify({
         type: 'ATTACK',
-        heading: Math.round(heading * 100) / 100
+        heading: Math.round(heading * 100) / 100,
+        equippedTrail: player.equippedTrail || 'CYAN_PULSE'
     }));
 }
 
@@ -1542,7 +1556,7 @@ function updateProjectiles(dt) {
         p.y += p.vy * dt;
 
         // Boundary or lifetime expiration
-        if (p.x < 0 || p.x > canvas.width || p.y < 0 || p.y > canvas.height || (now - p.clientCreatedAt > 2200)) {
+        if (p.x < 0 || p.x > ARENA_WIDTH || p.y < 0 || p.y > ARENA_HEIGHT || (now - p.clientCreatedAt > 2200)) {
             projectiles.delete(id);
             return;
         }
@@ -1697,9 +1711,9 @@ function updatePhysics(dt) {
 
         // Arena boundary collision detection (clamping within walls)
         const minX = player.radius + 2;
-        const maxX = canvas.width - player.radius - 2;
+        const maxX = ARENA_WIDTH - player.radius - 2;
         const minY = player.radius + 2;
-        const maxY = canvas.height - player.radius - 2;
+        const maxY = ARENA_HEIGHT - player.radius - 2;
 
         player.x = Math.max(minX, Math.min(maxX, player.x));
         player.y = Math.max(minY, Math.min(maxY, player.y));
@@ -1757,41 +1771,55 @@ function broadcastPlayerMovement() {
 
 // --- Vector Rendering Engine (0 Images, Pure Canvas Geometry) ---
 function renderArena() {
-    // 1. Clear background with deep cyber hue
-    ctx.fillStyle = '#0a0e1a';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    const map = (activeRoom && activeRoom.mapId) ? activeRoom.mapId : 'CYBER_CORE';
+
+    // 1. Clear background with deep cyber hue tailored to map
+    if (map === 'NEON_OUTPOST') {
+        ctx.fillStyle = '#0f0e1c';
+    } else if (map === 'ORBITAL_STATION') {
+        ctx.fillStyle = '#060a14';
+    } else {
+        ctx.fillStyle = '#0a0e1a';
+    }
+    ctx.fillRect(0, 0, ARENA_WIDTH, ARENA_HEIGHT);
 
     // 2. High-tech cyber neon grid
-    ctx.strokeStyle = 'rgba(56, 189, 248, 0.06)';
+    if (map === 'NEON_OUTPOST') {
+        ctx.strokeStyle = 'rgba(168, 85, 247, 0.08)';
+    } else if (map === 'ORBITAL_STATION') {
+        ctx.strokeStyle = 'rgba(16, 185, 129, 0.07)';
+    } else {
+        ctx.strokeStyle = 'rgba(56, 189, 248, 0.06)';
+    }
     ctx.lineWidth = 1;
     const gridSize = 40;
 
     ctx.beginPath();
-    for (let x = 0; x <= canvas.width; x += gridSize) {
+    for (let x = 0; x <= ARENA_WIDTH; x += gridSize) {
         ctx.moveTo(x, 0);
-        ctx.lineTo(x, canvas.height);
+        ctx.lineTo(x, ARENA_HEIGHT);
     }
-    for (let y = 0; y <= canvas.height; y += gridSize) {
+    for (let y = 0; y <= ARENA_HEIGHT; y += gridSize) {
         ctx.moveTo(0, y);
-        ctx.lineTo(canvas.width, y);
+        ctx.lineTo(ARENA_WIDTH, y);
     }
     ctx.stroke();
 
     // 2b. High-tech glowing grid intersection points
-    ctx.fillStyle = 'rgba(56, 189, 248, 0.15)';
-    for (let x = gridSize; x < canvas.width; x += gridSize * 2) {
-        for (let y = gridSize; y < canvas.height; y += gridSize * 2) {
+    ctx.fillStyle = map === 'NEON_OUTPOST' ? 'rgba(236, 72, 153, 0.2)' : (map === 'ORBITAL_STATION' ? 'rgba(16, 185, 129, 0.2)' : 'rgba(56, 189, 248, 0.15)');
+    for (let x = gridSize; x < ARENA_WIDTH; x += gridSize * 2) {
+        for (let y = gridSize; y < ARENA_HEIGHT; y += gridSize * 2) {
             ctx.fillRect(x - 1, y - 1, 2, 2);
         }
     }
 
     // 3. Center arena tactical radar rings & dynamic holographic sweep cone
-    const cx = canvas.width / 2;
-    const cy = canvas.height / 2;
+    const cx = ARENA_WIDTH / 2;
+    const cy = ARENA_HEIGHT / 2;
     const nowTime = performance.now();
 
     ctx.save();
-    ctx.strokeStyle = 'rgba(168, 85, 247, 0.12)';
+    ctx.strokeStyle = map === 'NEON_OUTPOST' ? 'rgba(236, 72, 153, 0.15)' : 'rgba(168, 85, 247, 0.12)';
     ctx.lineWidth = 1.5;
     ctx.beginPath();
     ctx.arc(cx, cy, 140, 0, Math.PI * 2);
@@ -1801,8 +1829,9 @@ function renderArena() {
     // Rotating holographic radar sweep
     const sweepAngle = (nowTime * 0.001) % (Math.PI * 2);
     const sweepGrad = ctx.createRadialGradient(cx, cy, 0, cx, cy, 150);
-    sweepGrad.addColorStop(0, 'rgba(56, 189, 248, 0.14)');
-    sweepGrad.addColorStop(1, 'rgba(56, 189, 248, 0)');
+    const sweepColor = map === 'NEON_OUTPOST' ? 'rgba(236, 72, 153, 0.14)' : (map === 'ORBITAL_STATION' ? 'rgba(16, 185, 129, 0.14)' : 'rgba(56, 189, 248, 0.14)');
+    sweepGrad.addColorStop(0, sweepColor);
+    sweepGrad.addColorStop(1, 'rgba(0, 0, 0, 0)');
     ctx.fillStyle = sweepGrad;
     ctx.beginPath();
     ctx.moveTo(cx, cy);
@@ -1814,8 +1843,8 @@ function renderArena() {
     // 3b. Floating ambient cyber dust particles
     if (!window._ambientParticles) {
         window._ambientParticles = Array.from({ length: 22 }, () => ({
-            x: Math.random() * canvas.width,
-            y: Math.random() * canvas.height,
+            x: Math.random() * ARENA_WIDTH,
+            y: Math.random() * ARENA_HEIGHT,
             speed: 12 + Math.random() * 16,
             size: 1 + Math.random() * 1.6,
             alpha: 0.15 + Math.random() * 0.25
@@ -1824,7 +1853,7 @@ function renderArena() {
     ctx.save();
     window._ambientParticles.forEach(p => {
         p.y -= p.speed * 0.016;
-        if (p.y < 0) { p.y = canvas.height; p.x = Math.random() * canvas.width; }
+        if (p.y < 0) { p.y = ARENA_HEIGHT; p.x = Math.random() * ARENA_WIDTH; }
         ctx.fillStyle = `rgba(56, 189, 248, ${p.alpha})`;
         ctx.beginPath();
         ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
@@ -1834,25 +1863,26 @@ function renderArena() {
 
     // 4. Glowing electric arena boundary walls
     ctx.save();
-    ctx.strokeStyle = 'rgba(56, 189, 248, 0.7)';
+    const wallColor = map === 'NEON_OUTPOST' ? 'rgba(236, 72, 153, 0.7)' : (map === 'ORBITAL_STATION' ? 'rgba(245, 158, 11, 0.7)' : 'rgba(56, 189, 248, 0.7)');
+    ctx.strokeStyle = wallColor;
     ctx.lineWidth = 3;
-    ctx.shadowColor = 'rgba(56, 189, 248, 0.5)';
+    ctx.shadowColor = wallColor;
     ctx.shadowBlur = 8;
-    ctx.strokeRect(2, 2, canvas.width - 4, canvas.height - 4);
+    ctx.strokeRect(2, 2, ARENA_WIDTH - 4, ARENA_HEIGHT - 4);
 
     // 5. Corner tactical bracket accents
     const cLen = 22;
-    ctx.strokeStyle = '#38bdf8';
+    ctx.strokeStyle = map === 'NEON_OUTPOST' ? '#f43f5e' : (map === 'ORBITAL_STATION' ? '#f59e0b' : '#38bdf8');
     ctx.lineWidth = 3;
     ctx.beginPath();
     // Top-left
     ctx.moveTo(2, 2 + cLen); ctx.lineTo(2, 2); ctx.lineTo(2 + cLen, 2);
     // Top-right
-    ctx.moveTo(canvas.width - 2 - cLen, 2); ctx.lineTo(canvas.width - 2, 2); ctx.lineTo(canvas.width - 2, 2 + cLen);
+    ctx.moveTo(ARENA_WIDTH - 2 - cLen, 2); ctx.lineTo(ARENA_WIDTH - 2, 2); ctx.lineTo(ARENA_WIDTH - 2, 2 + cLen);
     // Bottom-left
-    ctx.moveTo(2, canvas.height - 2 - cLen); ctx.lineTo(2, canvas.height - 2); ctx.lineTo(2 + cLen, canvas.height - 2);
+    ctx.moveTo(2, ARENA_HEIGHT - 2 - cLen); ctx.lineTo(2, ARENA_HEIGHT - 2); ctx.lineTo(2 + cLen, ARENA_HEIGHT - 2);
     // Bottom-right
-    ctx.moveTo(canvas.width - 2 - cLen, canvas.height - 2); ctx.lineTo(canvas.width - 2, canvas.height - 2); ctx.lineTo(canvas.width - 2, canvas.height - 2 - cLen);
+    ctx.moveTo(ARENA_WIDTH - 2 - cLen, ARENA_HEIGHT - 2); ctx.lineTo(ARENA_WIDTH - 2, ARENA_HEIGHT - 2); ctx.lineTo(ARENA_WIDTH - 2, ARENA_HEIGHT - 2 - cLen);
     ctx.stroke();
     ctx.restore();
 }
@@ -1882,7 +1912,7 @@ function renderSafeZone() {
     ctx.save();
     // 1. Draw glowing outer storm zone with radial shadow
     ctx.beginPath();
-    ctx.rect(0, 0, canvas.width, canvas.height);
+    ctx.rect(0, 0, ARENA_WIDTH, ARENA_HEIGHT);
     ctx.arc(centerX, centerY, radius, 0, Math.PI * 2, true);
     ctx.fillStyle = isSuddenDeath ? 'rgba(239, 68, 68, 0.22)' : 'rgba(244, 63, 94, 0.13)';
     ctx.fill();
@@ -2766,11 +2796,96 @@ function renderFloatingTexts(dt) {
 // Remote Multiplayer Entities Map
 const remotePlayers = new Map();
 
+// Dynamic Arena Objective: Overcharge Beacon Event
+function renderOverchargeBeacon() {
+    if (!activeRoom || !activeRoom.beaconActive) return;
+
+    const bx = 400.0;
+    const by = 300.0;
+    const brad = 65.0;
+    const now = performance.now();
+
+    ctx.save();
+    ctx.translate(bx, by);
+
+    // Pulsing capture radius aura
+    const pulse = Math.sin(now * 0.005) * 3;
+    const auraGrad = ctx.createRadialGradient(0, 0, 10, 0, 0, brad + pulse);
+    auraGrad.addColorStop(0, 'rgba(245, 158, 11, 0.35)');
+    auraGrad.addColorStop(0.7, 'rgba(245, 158, 11, 0.12)');
+    auraGrad.addColorStop(1, 'rgba(245, 158, 11, 0)');
+    ctx.fillStyle = auraGrad;
+    ctx.beginPath();
+    ctx.arc(0, 0, brad + pulse, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Outer rotating tech ring
+    ctx.save();
+    ctx.rotate(now * 0.0015);
+    ctx.strokeStyle = '#f59e0b';
+    ctx.lineWidth = 2;
+    ctx.setLineDash([14, 8]);
+    ctx.beginPath();
+    ctx.arc(0, 0, brad, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.restore();
+
+    // Inner reverse-rotating ring
+    ctx.save();
+    ctx.rotate(-now * 0.002);
+    ctx.strokeStyle = '#38bdf8';
+    ctx.lineWidth = 1.5;
+    ctx.setLineDash([8, 6]);
+    ctx.beginPath();
+    ctx.arc(0, 0, brad * 0.65, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.restore();
+
+    // Core holographic beacon pillar
+    ctx.beginPath();
+    ctx.arc(0, 0, 12, 0, Math.PI * 2);
+    ctx.fillStyle = '#fbbf24';
+    ctx.shadowColor = '#f59e0b';
+    ctx.shadowBlur = 16;
+    ctx.fill();
+
+    ctx.beginPath();
+    ctx.arc(0, 0, 6, 0, Math.PI * 2);
+    ctx.fillStyle = '#ffffff';
+    ctx.fill();
+
+    // Capture state label
+    ctx.shadowBlur = 0;
+    ctx.font = '800 11px Outfit, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.strokeStyle = '#050811';
+    ctx.lineWidth = 3;
+    const capText = activeRoom.beaconCapturedBy ? `CAPTURED: ${activeRoom.beaconCapturedBy.toUpperCase()}` : 'OVERCHARGE BEACON (+2 PTS / +6 SHIELD/S)';
+    ctx.strokeText(capText, 0, -brad - 14);
+    ctx.fillStyle = activeRoom.beaconCapturedBy ? '#34d399' : '#fbbf24';
+    ctx.fillText(capText, 0, -brad - 14);
+
+    ctx.restore();
+}
+
+function updateBeaconHud(active, capturedBy) {
+    const beaconEl = document.getElementById('hudBeaconTracker');
+    const beaconText = document.getElementById('hudBeaconText');
+    if (!beaconEl || !beaconText) return;
+    if (active) {
+        beaconEl.style.display = 'flex';
+        beaconText.textContent = capturedBy ? `BEACON SECURED BY ${capturedBy.toUpperCase()} (+2 PTS / +6 SHIELD/S)` : 'BEACON OVERCHARGE ACTIVE • CAPTURE AT CENTER';
+    } else {
+        beaconEl.style.display = 'none';
+    }
+}
+
 function renderProjectiles() {
     projectiles.forEach((p) => {
         const r = p.radius || 5;
 
-        // Glowing plasma laser streak motion trail
+        // Glowing plasma laser streak motion trail with cosmetic tinting
         if (p.trail && p.trail.length > 1) {
             ctx.save();
             ctx.beginPath();
@@ -2779,7 +2894,17 @@ function renderProjectiles() {
                 ctx.lineTo(p.trail[t].x, p.trail[t].y);
             }
             ctx.lineTo(p.x, p.y);
-            ctx.strokeStyle = p.speed >= 700 ? 'rgba(34, 211, 238, 0.45)' : (r >= 7 ? 'rgba(245, 158, 11, 0.45)' : (p.speed >= 580 ? 'rgba(192, 132, 252, 0.45)' : 'rgba(16, 185, 129, 0.45)'));
+            let trailStroke = p.speed >= 700 ? 'rgba(34, 211, 238, 0.45)' : (r >= 7 ? 'rgba(245, 158, 11, 0.45)' : (p.speed >= 580 ? 'rgba(192, 132, 252, 0.45)' : 'rgba(16, 185, 129, 0.45)'));
+            if (p.equippedTrail === 'GOLDEN_VALOR') {
+                trailStroke = 'rgba(245, 158, 11, 0.75)';
+            } else if (p.equippedTrail === 'CRIMSON_NEON') {
+                trailStroke = 'rgba(244, 63, 94, 0.75)';
+            } else if (p.equippedTrail === 'EMERALD_SURGE') {
+                trailStroke = 'rgba(16, 185, 129, 0.75)';
+            } else if (p.equippedTrail === 'CYAN_PULSE') {
+                trailStroke = 'rgba(0, 242, 254, 0.75)';
+            }
+            ctx.strokeStyle = trailStroke;
             ctx.lineWidth = Math.max(1.8, r * 0.75);
             ctx.stroke();
             ctx.restore();
@@ -3252,11 +3377,12 @@ function renderPlayer() {
         ctx.shadowBlur = 0;
     }
 
-    // 7. Name & score tag with class badge
+    // 7. Name & score tag with class badge and equipped title
     ctx.fillStyle = classInfo.accentColor;
     ctx.font = '600 11px Outfit, sans-serif';
     ctx.textAlign = 'center';
-    ctx.fillText(`${player.name} [${currentClass}] (${myScore})`, 0, -pRadius - 4);
+    const titleStr = player.equippedTitle ? ` [${player.equippedTitle}]` : '';
+    ctx.fillText(`${player.name}${titleStr} [${currentClass}] (${myScore})`, 0, -pRadius - 4);
 
     ctx.restore();
 }
@@ -3266,6 +3392,13 @@ let lastTime = performance.now();
 let frameCount = 0;
 let lastFpsUpdate = performance.now();
 
+// Reset delta-time clock when returning to tab to prevent physics spikes
+document.addEventListener('visibilitychange', () => {
+    if (!document.hidden) {
+        lastTime = performance.now();
+    }
+});
+
 function gameLoop(currentTime) {
     // Calculate delta time in seconds, clamped to 0.1s to prevent collision tunneling
     let dt = (currentTime - lastTime) / 1000;
@@ -3274,6 +3407,9 @@ function gameLoop(currentTime) {
 
     // Physics update step
     updatePhysics(dt);
+
+    ctx.save();
+    ctx.scale(dpr, dpr);
 
     // Apply Screen Shake if active (Phase 17)
     let hasShake = false;
@@ -3298,10 +3434,11 @@ function gameLoop(currentTime) {
         }
     });
 
-    // Visual render step: arena surface -> safe zone -> hazards -> obstacles -> coins -> power-ups -> projectiles -> remote players -> local player -> sparks -> shockwaves -> floating text -> hitmarkers
+    // Visual render step: arena surface -> safe zone -> hazards -> beacon -> obstacles -> coins -> power-ups -> projectiles -> remote players -> local player -> sparks -> shockwaves -> floating text -> hitmarkers
     renderArena();
     renderSafeZone();
     renderHazards();
+    renderOverchargeBeacon();
     renderObstacles();
     renderCoins();
     renderPowerUps();
@@ -3320,6 +3457,7 @@ function gameLoop(currentTime) {
     if (hasShake) {
         ctx.restore();
     }
+    ctx.restore(); // restore dpr high-res matrix
 
     // Render cinematic procedural menu operator canvases if visible
     renderHeroCanvases(currentTime);
@@ -3741,6 +3879,11 @@ async function checkMyCurrentRoom() {
 
 // --- WebSocket Real-Time Networking ---
 let gameWs = null;
+let reconnectAttempts = 0;
+let reconnectTimer = null;
+const MAX_RECONNECT_ATTEMPTS = 10;
+const INITIAL_RECONNECT_DELAY_MS = 1000;
+const MAX_RECONNECT_DELAY_MS = 15000;
 
 function connectGameWebSocket(roomId) {
     if (gameWs) {
@@ -3761,6 +3904,14 @@ function connectGameWebSocket(roomId) {
         gameWs.currentRoomId = roomId;
 
         gameWs.onopen = () => {
+            reconnectAttempts = 0;
+            if (reconnectTimer) {
+                clearTimeout(reconnectTimer);
+                reconnectTimer = null;
+            }
+            const reconnectBanner = document.getElementById('networkReconnectingBanner');
+            if (reconnectBanner) reconnectBanner.style.display = 'none';
+
             if (hudState) hudState.textContent = 'WS: Connected (' + roomId + ')';
             gameWs.send(JSON.stringify({ type: 'JOIN', token, roomId }));
             startPingMonitor();
@@ -3779,14 +3930,34 @@ function connectGameWebSocket(roomId) {
             stopPingMonitor();
             if (hudState) hudState.textContent = 'WS: Disconnected';
             remotePlayers.clear();
-            // Resilient auto-reconnect if client remains in active room and socket closed unexpectedly
+
+            // Resilient bounded exponential reconnection if in active room
             if (activeRoom && activeRoom.roomId === roomId && !event.wasClean) {
-                if (hudState) hudState.textContent = 'WS: Reconnecting...';
-                setTimeout(() => {
-                    if (activeRoom && activeRoom.roomId === roomId) {
-                        connectGameWebSocket(roomId);
+                reconnectAttempts++;
+                if (reconnectAttempts <= MAX_RECONNECT_ATTEMPTS) {
+                    const backoffDelay = Math.min(
+                        INITIAL_RECONNECT_DELAY_MS * Math.pow(1.8, reconnectAttempts - 1),
+                        MAX_RECONNECT_DELAY_MS
+                    );
+                    const reconnectBanner = document.getElementById('networkReconnectingBanner');
+                    const bannerText = document.getElementById('reconnectingBannerText');
+                    if (reconnectBanner && bannerText) {
+                        reconnectBanner.style.display = 'flex';
+                        bannerText.textContent = `RECONNECTING (ATTEMPT ${reconnectAttempts}/${MAX_RECONNECT_ATTEMPTS}) IN ${(backoffDelay / 1000).toFixed(1)}S...`;
                     }
-                }, 2000);
+                    if (hudState) hudState.textContent = `WS: Reconnecting (${reconnectAttempts}/${MAX_RECONNECT_ATTEMPTS})...`;
+
+                    if (reconnectTimer) clearTimeout(reconnectTimer);
+                    reconnectTimer = setTimeout(() => {
+                        if (activeRoom && activeRoom.roomId === roomId) {
+                            connectGameWebSocket(roomId);
+                        }
+                    }, backoffDelay);
+                } else {
+                    const bannerText = document.getElementById('reconnectingBannerText');
+                    if (bannerText) bannerText.textContent = 'CONNECTION LOST. PLEASE RETURN TO LOBBY.';
+                    showTacticalToast('Session Disconnected', 'Could not restore arena session after 10 attempts.', '⚠️');
+                }
             }
         };
 
@@ -3800,6 +3971,14 @@ function connectGameWebSocket(roomId) {
 
 function disconnectGameWebSocket() {
     stopPingMonitor();
+    reconnectAttempts = 0;
+    if (reconnectTimer) {
+        clearTimeout(reconnectTimer);
+        reconnectTimer = null;
+    }
+    const reconnectBanner = document.getElementById('networkReconnectingBanner');
+    if (reconnectBanner) reconnectBanner.style.display = 'none';
+
     if (gameWs) {
         try {
             gameWs.close();
@@ -3931,6 +4110,14 @@ function handleWebSocketMessage(msg) {
                 arenaHazards.clear();
                 msg.hazards.forEach(h => arenaHazards.set(h.id, h));
             }
+            if (msg.mapId && activeRoom) {
+                activeRoom.mapId = msg.mapId;
+            }
+            if (msg.beaconActive !== undefined && activeRoom) {
+                activeRoom.beaconActive = !!msg.beaconActive;
+                activeRoom.beaconCapturedBy = msg.beaconCapturedBy || null;
+                updateBeaconHud(activeRoom.beaconActive, activeRoom.beaconCapturedBy);
+            }
             if (msg.projectiles && Array.isArray(msg.projectiles)) {
                 msg.projectiles.forEach(p => {
                     projectiles.set(p.id, {
@@ -3943,6 +4130,7 @@ function handleWebSocketMessage(msg) {
                         heading: p.heading,
                         speed: p.speed,
                         radius: 5,
+                        equippedTrail: (p.shooterUsername === player.name || p.shooter === player.name) ? (player.equippedTrail || 'CYAN_PULSE') : (p.equippedTrail || 'CYAN_PULSE'),
                         clientCreatedAt: performance.now()
                     });
                 });
@@ -4190,6 +4378,7 @@ function handleWebSocketMessage(msg) {
                 speed: msg.speed,
                 damage: msg.damage,
                 radius: msg.radius || 5,
+                equippedTrail: (msg.shooter === player.name) ? (player.equippedTrail || 'CYAN_PULSE') : (msg.equippedTrail || 'CYAN_PULSE'),
                 clientCreatedAt: performance.now()
             });
             break;
@@ -4215,6 +4404,10 @@ function handleWebSocketMessage(msg) {
             if (msg.shieldDamage > 0) {
                 soundEngine.playShieldDeflect();
                 addFloatingText(`-${msg.shieldDamage} 🛡️`, targetX, targetY - 28, '#06b6d4', false);
+                if (msg.currentShield === 0) {
+                    addShockwave(targetX, targetY, '#06b6d4', 36);
+                    addCombatSparks(targetX, targetY, '#38bdf8', 16);
+                }
             }
             if (msg.healthDamage > 0) {
                 const isCrit = msg.healthDamage >= 30;
@@ -4250,6 +4443,18 @@ function handleWebSocketMessage(msg) {
                     triggerHitmarker(isCrit);
                     soundEngine.playHitmarker(isCrit);
                 }
+            }
+            break;
+        }
+        case 'BEACON_UPDATE': {
+            if (activeRoom) {
+                activeRoom.beaconActive = !!msg.active;
+                activeRoom.beaconCapturedBy = msg.capturedBy || null;
+            }
+            updateBeaconHud(msg.active, msg.capturedBy);
+            if (msg.active) {
+                soundEngine.playPowerUp();
+                showTacticalToast('Beacon Active', 'Overcharge beacon online! Secure center coordinate.', '⚡');
             }
             break;
         }
@@ -4707,10 +4912,46 @@ async function fetchAndShowMatchHistory(openModalFlag = false) {
         const profileRes = await fetch('/api/auth/me', { headers: getAuthHeaders() });
         if (profileRes.ok) {
             const profile = await profileRes.json();
+            currentUserProfile = profile;
             profileStatUsername.textContent = profile.username;
             profileStatGames.textContent = profile.totalGames;
             profileStatTotalScore.textContent = profile.totalScore;
             profileStatHighScore.textContent = profile.highestScore;
+
+            // Progression level & XP
+            const statLevel = document.getElementById('profileStatLevel');
+            const statXpFill = document.getElementById('profileStatXpFill');
+            const statXpText = document.getElementById('profileStatXpText');
+            const statKd = document.getElementById('profileStatKd');
+            const statWins = document.getElementById('profileStatWins');
+            const statTitle = document.getElementById('profileStatTitle');
+            const userLevelBadge = document.getElementById('userLevelBadge');
+            const userTitleBadge = document.getElementById('userTitleBadge');
+
+            const lvl = profile.level || 1;
+            const xp = profile.xp || 0;
+            const xpInLevel = xp % 1000;
+            const xpPct = Math.min(100, Math.round((xpInLevel / 1000) * 100));
+            const kills = profile.kills || 0;
+            const deaths = profile.deaths || 0;
+            const kdRatio = (kills / Math.max(1, deaths)).toFixed(2);
+
+            if (statLevel) statLevel.textContent = `LVL ${lvl}`;
+            if (statXpFill) statXpFill.style.width = `${xpPct}%`;
+            if (statXpText) statXpText.textContent = `${xpInLevel} / 1000 XP (Total: ${xp} XP)`;
+            if (statKd) statKd.textContent = `${kills} / ${deaths} (${kdRatio})`;
+            if (statWins) statWins.textContent = `${profile.wins || 0} Victories`;
+            if (statTitle) statTitle.textContent = profile.equippedTitle || 'RECRUIT';
+
+            if (userLevelBadge) userLevelBadge.textContent = `LVL ${lvl}`;
+            if (userTitleBadge) userTitleBadge.textContent = profile.equippedTitle || 'RECRUIT';
+
+            player.equippedTitle = profile.equippedTitle || 'RECRUIT';
+            player.equippedTrail = profile.equippedTrail || 'CYAN_PULSE';
+
+            populateCosmeticsLocker(profile);
+            populateClassMastery(profile.weaponMastery);
+            populateDailyChallenges(profile.dailyChallenges);
         }
     } catch {}
 
@@ -4758,6 +4999,135 @@ async function fetchAndShowMatchHistory(openModalFlag = false) {
     } catch (e) {
         matchHistoryList.innerHTML = '<div class="empty-history-msg">Failed to load match history.</div>';
     }
+}
+
+function populateCosmeticsLocker(profile) {
+    const titleSelect = document.getElementById('selectCosmeticTitle');
+    const trailSelect = document.getElementById('selectCosmeticTrail');
+    const unlockedTitles = profile.unlockedTitles || ['RECRUIT'];
+    const unlockedTrails = profile.unlockedTrails || ['CYAN_PULSE'];
+
+    const allTitles = [
+        { id: 'RECRUIT', name: 'Recruit (Starter)' },
+        { id: 'CYBER_STRIKER', name: 'Cyber Striker (Level 2)' },
+        { id: 'ARENA_VETERAN', name: 'Arena Veteran (Level 5)' },
+        { id: 'APEX_PREDATOR', name: 'Apex Predator (Level 8)' },
+        { id: 'CYBER_IMMORTAL', name: 'Cyber Immortal (Level 12)' }
+    ];
+
+    if (titleSelect) {
+        titleSelect.innerHTML = allTitles.map(t => {
+            const isUnlocked = unlockedTitles.includes(t.id);
+            const isEquipped = (profile.equippedTitle || 'RECRUIT') === t.id;
+            return `<option value="${t.id}" ${isEquipped ? 'selected' : ''} ${!isUnlocked ? 'disabled' : ''}>${t.name}${isEquipped ? ' [EQUIPPED]' : (isUnlocked ? '' : ' 🔒')}</option>`;
+        }).join('');
+    }
+
+    const allTrails = [
+        { id: 'CYAN_PULSE', name: 'Cyan Pulse (Standard)', color: '#00f2fe' },
+        { id: 'EMERALD_SURGE', name: 'Emerald Surge (Level 3)', color: '#10b981' },
+        { id: 'CRIMSON_NEON', name: 'Crimson Neon (Level 5)', color: '#f43f5e' },
+        { id: 'GOLDEN_VALOR', name: 'Golden Valor (Level 8)', color: '#f59e0b' }
+    ];
+
+    if (trailSelect) {
+        trailSelect.innerHTML = allTrails.map(t => {
+            const isUnlocked = unlockedTrails.includes(t.id);
+            const isEquipped = (profile.equippedTrail || 'CYAN_PULSE') === t.id;
+            return `<option value="${t.id}" ${isEquipped ? 'selected' : ''} ${!isUnlocked ? 'disabled' : ''}>${t.name}${isEquipped ? ' [EQUIPPED]' : (isUnlocked ? '' : ' 🔒')}</option>`;
+        }).join('');
+        trailSelect.onchange = () => {
+            updateTrailPreview(trailSelect.value);
+        };
+    }
+
+    updateTrailPreview(profile.equippedTrail || 'CYAN_PULSE');
+}
+
+function updateTrailPreview(trailId) {
+    const swatch = document.getElementById('trailPreviewSwatch');
+    const label = document.getElementById('trailPreviewLabel');
+    if (!swatch || !label) return;
+    const colors = {
+        'CYAN_PULSE': { color: '#00f2fe', label: 'Cyan Pulse Stream' },
+        'EMERALD_SURGE': { color: '#10b981', label: 'Emerald Surge Stream' },
+        'CRIMSON_NEON': { color: '#f43f5e', label: 'Crimson Neon Stream' },
+        'GOLDEN_VALOR': { color: '#f59e0b', label: 'Golden Valor Stream' }
+    };
+    const c = colors[trailId] || colors['CYAN_PULSE'];
+    const core = swatch.querySelector('.trail-swatch-core');
+    if (core) {
+        core.style.background = c.color;
+        core.style.boxShadow = `0 0 12px ${c.color}`;
+    }
+    label.textContent = c.label;
+}
+
+async function equipSelectedCosmetics() {
+    const titleSelect = document.getElementById('selectCosmeticTitle');
+    const trailSelect = document.getElementById('selectCosmeticTrail');
+    const title = titleSelect ? titleSelect.value : 'RECRUIT';
+    const trail = trailSelect ? trailSelect.value : 'CYAN_PULSE';
+
+    try {
+        const res = await fetch('/api/auth/equip-cosmetics', {
+            method: 'POST',
+            headers: getAuthHeaders(),
+            body: JSON.stringify({ title, trail })
+        });
+        if (res.ok) {
+            const updated = await res.json();
+            player.equippedTitle = updated.equippedTitle;
+            player.equippedTrail = updated.equippedTrail;
+            const statTitle = document.getElementById('profileStatTitle');
+            const userTitleBadge = document.getElementById('userTitleBadge');
+            if (statTitle) statTitle.textContent = updated.equippedTitle;
+            if (userTitleBadge) userTitleBadge.textContent = updated.equippedTitle;
+            updateTrailPreview(updated.equippedTrail);
+            showTacticalToast('Loadout Saved', `Equipped ${updated.equippedTitle} & ${updated.equippedTrail}`, '🎨');
+            if (soundEngine) soundEngine.playEmote();
+        } else {
+            const err = await res.json();
+            alert(err.error || 'Failed to equip cosmetic');
+        }
+    } catch (e) {
+        alert('Network error equipping cosmetic: ' + e.message);
+    }
+}
+
+function populateClassMastery(mastery) {
+    if (!mastery) return;
+    const classes = ['ASSAULT', 'SNIPER', 'JUGGERNAUT', 'SCOUT'];
+    classes.forEach(c => {
+        const tierEl = document.getElementById(`mastery${c.charAt(0) + c.slice(1).toLowerCase()}Tier`);
+        const fillEl = document.getElementById(`mastery${c.charAt(0) + c.slice(1).toLowerCase()}Fill`);
+        const xpEl = document.getElementById(`mastery${c.charAt(0) + c.slice(1).toLowerCase()}Xp`);
+
+        const mData = mastery[c] || { xp: 0, level: 1 };
+        const tier = mData.level || 1;
+        const xp = mData.xp || 0;
+        const xpInTier = xp % 500;
+        const pct = Math.min(100, Math.round((xpInTier / 500) * 100));
+
+        if (tierEl) tierEl.textContent = `Tier ${tier}`;
+        if (fillEl) fillEl.style.width = `${pct}%`;
+        if (xpEl) xpEl.textContent = `${xpInTier} / 500 XP (Total: ${xp})`;
+    });
+}
+
+function populateDailyChallenges(challenges) {
+    const list = document.getElementById('dailyChallengesList');
+    if (!list) return;
+    if (!challenges || challenges.length === 0) {
+        list.innerHTML = '<div class="empty-state-card">No daily directives active. Check back at 00:00 UTC.</div>';
+        return;
+    }
+    list.innerHTML = challenges.map(ch => `
+        <div class="daily-item ${ch.completed ? 'completed' : ''}">
+            <span class="daily-item-title">${ch.completed ? '✅ ' : '⚡ '}${escapeHtml(ch.title)}</span>
+            <span class="daily-item-reward">+${ch.xpReward} XP</span>
+        </div>
+    `).join('');
 }
 
 function closeMatchHistoryModal() {
@@ -5112,12 +5482,14 @@ function stopRoomPolling() {
     }
 }
 
-async function createRoom(name, maxPlayers, gameMode) {
+async function createRoom(name, maxPlayers, gameMode, botDifficulty = 'VETERAN', mapId = 'CYBER_CORE') {
     try {
         const payload = {
             name,
             maxPlayers: parseInt(maxPlayers, 10),
-            gameMode: gameMode || (parseInt(maxPlayers, 10) === 2 ? 'PVP_1V1' : 'PVP_FFA')
+            gameMode: gameMode || (parseInt(maxPlayers, 10) === 2 ? 'PVP_1V1' : 'PVP_FFA'),
+            botDifficulty: botDifficulty || 'VETERAN',
+            mapId: mapId || 'CYBER_CORE'
         };
         const response = await fetch('/api/rooms', {
             method: 'POST',
@@ -5642,7 +6014,11 @@ function setupRoomEventListeners() {
         const name = roomNameInput.value.trim();
         const maxPlayers = maxPlayersSelect.value;
         const gameMode = roomGameModeSelect ? roomGameModeSelect.value : (parseInt(maxPlayers, 10) === 2 ? 'PVP_1V1' : 'PVP_FFA');
-        createRoom(name, maxPlayers, gameMode);
+        const mapSelect = document.getElementById('roomMapSelect');
+        const botDiffSelect = document.getElementById('roomBotDiffSelect');
+        const mapId = mapSelect ? mapSelect.value : 'CYBER_CORE';
+        const botDiff = botDiffSelect ? botDiffSelect.value : 'VETERAN';
+        createRoom(name, maxPlayers, gameMode, botDiff, mapId);
     });
 
     createRoomModal.addEventListener('click', (e) => {
@@ -6049,12 +6425,18 @@ function closeIntelModal() {
 }
 
 function setupCareerTabsEventListeners() {
+    const tabCosmeticsBtn = document.getElementById('tabCosmeticsBtn');
+    const cosmeticsSection = document.getElementById('cosmeticsSection');
+    const saveCosmeticsBtn = document.getElementById('saveCosmeticsBtn');
+
     if (tabMatchLogsBtn) {
         tabMatchLogsBtn.addEventListener('click', () => {
             tabMatchLogsBtn.classList.add('active');
             if (tabAchievementsBtn) tabAchievementsBtn.classList.remove('active');
+            if (tabCosmeticsBtn) tabCosmeticsBtn.classList.remove('active');
             if (matchRecordsSection) matchRecordsSection.style.display = 'block';
             if (achievementsSection) achievementsSection.style.display = 'none';
+            if (cosmeticsSection) cosmeticsSection.style.display = 'none';
         });
     }
 
@@ -6062,9 +6444,28 @@ function setupCareerTabsEventListeners() {
         tabAchievementsBtn.addEventListener('click', () => {
             tabAchievementsBtn.classList.add('active');
             if (tabMatchLogsBtn) tabMatchLogsBtn.classList.remove('active');
+            if (tabCosmeticsBtn) tabCosmeticsBtn.classList.remove('active');
             if (matchRecordsSection) matchRecordsSection.style.display = 'none';
             if (achievementsSection) achievementsSection.style.display = 'block';
+            if (cosmeticsSection) cosmeticsSection.style.display = 'none';
             renderAchievementsGrid();
+        });
+    }
+
+    if (tabCosmeticsBtn) {
+        tabCosmeticsBtn.addEventListener('click', () => {
+            tabCosmeticsBtn.classList.add('active');
+            if (tabMatchLogsBtn) tabMatchLogsBtn.classList.remove('active');
+            if (tabAchievementsBtn) tabAchievementsBtn.classList.remove('active');
+            if (matchRecordsSection) matchRecordsSection.style.display = 'none';
+            if (achievementsSection) achievementsSection.style.display = 'none';
+            if (cosmeticsSection) cosmeticsSection.style.display = 'block';
+        });
+    }
+
+    if (saveCosmeticsBtn) {
+        saveCosmeticsBtn.addEventListener('click', () => {
+            equipSelectedCosmetics();
         });
     }
 }

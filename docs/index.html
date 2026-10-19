@@ -95,8 +95,14 @@
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
                     </div>
                     <div class="profile-info">
-                        <span class="profile-callsign" id="usernameDisplay">Pilot</span>
-                        <span class="profile-stat" id="highScoreBadge">BEST: 0</span>
+                        <div class="profile-name-row">
+                            <span class="profile-callsign" id="usernameDisplay">Pilot</span>
+                            <span class="profile-level-badge" id="userLevelBadge">LVL 1</span>
+                        </div>
+                        <div class="profile-meta-row">
+                            <span class="profile-title-tag" id="userTitleBadge">RECRUIT</span>
+                            <span class="profile-stat" id="highScoreBadge">BEST: 0</span>
+                        </div>
                     </div>
                     <button class="btn-logout-icon" id="logoutBtn" type="button" title="Disconnect Session">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
@@ -420,6 +426,7 @@
                         <div class="career-tab-toggles">
                             <button class="career-toggle active" id="tabMatchLogsBtn" type="button">Battle Records</button>
                             <button class="career-toggle" id="tabAchievementsBtn" type="button">Milestones (<span id="unlockedAchievementsCount">0/6</span>)</button>
+                            <button class="career-toggle" id="tabCosmeticsBtn" type="button">Locker & Mastery</button>
                         </div>
                     </div>
 
@@ -428,18 +435,25 @@
                         <div class="career-stat-card">
                             <span class="stat-card-label">CALLSIGN</span>
                             <span class="stat-card-value" id="profileStatUsername">Guest</span>
+                            <span class="stat-card-sub" id="profileStatTitle">RECRUIT</span>
+                        </div>
+                        <div class="career-stat-card highlight-card">
+                            <span class="stat-card-label">PILOT LEVEL & XP</span>
+                            <span class="stat-card-value text-accent" id="profileStatLevel">LVL 1</span>
+                            <div class="profile-xp-bar-wrap">
+                                <div class="profile-xp-fill" id="profileStatXpFill" style="width: 0%;"></div>
+                            </div>
+                            <span class="stat-card-sub" id="profileStatXpText">0 / 1000 XP</span>
                         </div>
                         <div class="career-stat-card">
-                            <span class="stat-card-label">TOTAL MATCHES</span>
-                            <span class="stat-card-value" id="profileStatGames">0</span>
-                        </div>
-                        <div class="career-stat-card">
-                            <span class="stat-card-label">CAREER POINTS</span>
-                            <span class="stat-card-value" id="profileStatTotalScore">0</span>
+                            <span class="stat-card-label">COMBAT K/D & WINS</span>
+                            <span class="stat-card-value" id="profileStatKd">0 / 0 (0.00)</span>
+                            <span class="stat-card-sub" id="profileStatWins">0 Victories</span>
                         </div>
                         <div class="career-stat-card">
                             <span class="stat-card-label">PERSONAL BEST</span>
                             <span class="stat-card-value" id="profileStatHighScore">0</span>
+                            <span class="stat-card-sub" id="profileStatTotalScore">0 Total Pts</span>
                         </div>
                     </div>
 
@@ -454,6 +468,101 @@
                     <div class="career-content-area" id="achievementsSection" style="display: none;">
                         <div class="achievements-grid" id="achievementsGrid">
                             <!-- Populated dynamically via renderAchievementsGrid -->
+                        </div>
+                    </div>
+
+                    <!-- Section C: Cosmetics Locker & Weapon Mastery -->
+                    <div class="career-content-area" id="cosmeticsSection" style="display: none;">
+                        <div class="locker-layout-grid">
+                            <!-- Left: Cosmetic Locker Equipment -->
+                            <div class="locker-card">
+                                <div class="locker-card-header">
+                                    <span class="tactical-badge">CUSTOMIZATION</span>
+                                    <h3>COSMETIC LOCKER</h3>
+                                </div>
+                                <div class="form-group">
+                                    <label for="selectCosmeticTitle">Callsign Title</label>
+                                    <select id="selectCosmeticTitle" class="form-select">
+                                        <option value="RECRUIT">Recruit (Unlocked)</option>
+                                    </select>
+                                    <span class="field-hint">Unlocked by leveling up your combat account</span>
+                                </div>
+                                <div class="form-group">
+                                    <label for="selectCosmeticTrail">Ballistic Projectile Trail</label>
+                                    <select id="selectCosmeticTrail" class="form-select">
+                                        <option value="CYAN_PULSE">Cyan Pulse (Standard Tactical)</option>
+                                        <option value="EMERALD_SURGE">Emerald Surge (Level 3 Required)</option>
+                                        <option value="CRIMSON_NEON">Crimson Neon (Level 5 Required)</option>
+                                        <option value="GOLDEN_VALOR">Golden Valor (Level 8 Required)</option>
+                                    </select>
+                                    <div class="trail-preview-swatch" id="trailPreviewSwatch">
+                                        <span class="trail-swatch-core"></span>
+                                        <span class="trail-swatch-label" id="trailPreviewLabel">Cyan Pulse Stream</span>
+                                    </div>
+                                </div>
+                                <button type="button" class="btn-submit" id="saveCosmeticsBtn">EQUIP LOADOUT</button>
+                            </div>
+
+                            <!-- Right: Weapon & Operator Class Mastery -->
+                            <div class="locker-card">
+                                <div class="locker-card-header">
+                                    <span class="tactical-badge">OPERATOR PROFICIENCY</span>
+                                    <h3>CLASS WEAPON MASTERY</h3>
+                                </div>
+                                <div class="mastery-grid" id="classMasteryGrid">
+                                    <div class="mastery-cell" data-class="ASSAULT">
+                                        <div class="mastery-cell-top">
+                                            <span class="mastery-class-name">ASSAULT (Blaster)</span>
+                                            <span class="mastery-tier-badge" id="masteryAssaultTier">Tier 1</span>
+                                        </div>
+                                        <div class="mastery-bar-wrap">
+                                            <div class="mastery-bar-fill" id="masteryAssaultFill" style="width: 0%;"></div>
+                                        </div>
+                                        <span class="mastery-xp-lbl" id="masteryAssaultXp">0 / 500 XP</span>
+                                    </div>
+                                    <div class="mastery-cell" data-class="SNIPER">
+                                        <div class="mastery-cell-top">
+                                            <span class="mastery-class-name">SNIPER (Railgun)</span>
+                                            <span class="mastery-tier-badge" id="masterySniperTier">Tier 1</span>
+                                        </div>
+                                        <div class="mastery-bar-wrap">
+                                            <div class="mastery-bar-fill" id="masterySniperFill" style="width: 0%;"></div>
+                                        </div>
+                                        <span class="mastery-xp-lbl" id="masterySniperXp">0 / 500 XP</span>
+                                    </div>
+                                    <div class="mastery-cell" data-class="JUGGERNAUT">
+                                        <div class="mastery-cell-top">
+                                            <span class="mastery-class-name">JUGGERNAUT (Cannon)</span>
+                                            <span class="mastery-tier-badge" id="masteryJuggernautTier">Tier 1</span>
+                                        </div>
+                                        <div class="mastery-bar-wrap">
+                                            <div class="mastery-bar-fill" id="masteryJuggernautFill" style="width: 0%;"></div>
+                                        </div>
+                                        <span class="mastery-xp-lbl" id="masteryJuggernautXp">0 / 500 XP</span>
+                                    </div>
+                                    <div class="mastery-cell" data-class="SCOUT">
+                                        <div class="mastery-cell-top">
+                                            <span class="mastery-class-name">SCOUT (Scattergun)</span>
+                                            <span class="mastery-tier-badge" id="masteryScoutTier">Tier 1</span>
+                                        </div>
+                                        <div class="mastery-bar-wrap">
+                                            <div class="mastery-bar-fill" id="masteryScoutFill" style="width: 0%;"></div>
+                                        </div>
+                                        <span class="mastery-xp-lbl" id="masteryScoutXp">0 / 500 XP</span>
+                                    </div>
+                                </div>
+
+                                <!-- Daily Challenges Strip -->
+                                <div class="daily-challenges-wrap">
+                                    <div class="daily-header">
+                                        <span class="daily-title">TACTICAL DIRECTIVES (DAILY CHALLENGES)</span>
+                                        <span class="daily-reset-tag">ROTATES 00:00 UTC</span>
+                                    </div>
+                                    <div class="daily-challenges-list" id="dailyChallengesList">
+                                        <!-- Rendered dynamically -->
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -637,6 +746,11 @@
                                 <div class="score-bar-fill" id="hudScoreFill" style="width: 0%;"></div>
                             </div>
                         </div>
+                        <!-- Overcharge Beacon Dynamic Arena Event -->
+                        <div class="hud-beacon-tracker" id="hudBeaconTracker" style="display: none;">
+                            <span class="beacon-pulse-icon">⚡</span>
+                            <span class="beacon-text" id="hudBeaconText">BEACON ACTIVE • CAPTURE AT CENTER</span>
+                        </div>
                     </div>
 
                     <!-- Top Right: Kill Feed & Quick Leave -->
@@ -651,6 +765,12 @@
 
                 <!-- COMBAT CANVAS VIEWPORT -->
                 <div class="combat-canvas-viewport">
+                    <!-- Bounded Exponential Reconnection Alert Banner -->
+                    <div class="network-reconnecting-banner" id="networkReconnectingBanner" style="display: none;">
+                        <span class="reconnect-pulse-dot"></span>
+                        <span id="reconnectingBannerText">CONNECTING TO SECURE ARENA SERVER...</span>
+                    </div>
+
                     <div class="canvas-container" id="canvasContainer">
                         <canvas id="gameCanvas" width="800" height="600"></canvas>
 
@@ -849,6 +969,22 @@
                             <option value="PVP_FFA" selected>Free-For-All Deathmatch (Target 100 Pts)</option>
                             <option value="PVP_1V1">1v1 PvP Duel (First to 3 Kills)</option>
                             <option value="PVP_CHAOS">8-Player Mayhem FFA (High Octane)</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="roomMapSelect">Combat Arena Map</label>
+                        <select id="roomMapSelect" class="form-select">
+                            <option value="CYBER_CORE" selected>Cyber Core (Central Bunker & Plasma Spires)</option>
+                            <option value="NEON_OUTPOST">Neon Outpost (Dual Horizontal Forts & Jump Slingshots)</option>
+                            <option value="ORBITAL_STATION">Orbital Station (Vertical Reactor & Plasma Corridors)</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="roomBotDiffSelect">Autonomous Bot Protocol</label>
+                        <select id="roomBotDiffSelect" class="form-select">
+                            <option value="RECRUIT">Recruit (Tactical Training - Mild Aim)</option>
+                            <option value="VETERAN" selected>Veteran (Balanced - Evasive & Flanking)</option>
+                            <option value="ELITE">Elite (Apex Protocol - Cover Seeking & Predictive)</option>
                         </select>
                     </div>
                     <div class="form-group">

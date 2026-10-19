@@ -185,6 +185,14 @@ public class GamePlayer {
         return shield;
     }
 
+    public void setShield(int shield) {
+        this.shield = Math.max(0, Math.min(this.maxShield, shield));
+    }
+
+    public void addShield(int amount) {
+        setShield(this.shield + amount);
+    }
+
     public boolean hasShield() {
         return shield > 0;
     }

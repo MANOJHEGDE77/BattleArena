@@ -4082,3 +4082,349 @@ input:checked + .slider::before { transform: translateX(20px); background-color:
         padding: 0 14px;
     }
 }
+
+/* ==============================================================================
+ * CYBER BATTLE ARENA 2.0: PROGRESSION, LOCKER, BEACON & NETWORKING ENHANCEMENTS
+ * ============================================================================== */
+
+/* Profile Topbar Badges */
+.profile-name-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.profile-level-badge {
+    font-family: var(--font-mono);
+    font-size: 0.62rem;
+    font-weight: 800;
+    padding: 1px 6px;
+    border-radius: 3px;
+    background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+    color: #06080f;
+    letter-spacing: 0.5px;
+    box-shadow: 0 0 10px rgba(245, 158, 11, 0.4);
+}
+
+.profile-meta-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 1px;
+}
+
+.profile-title-tag {
+    font-family: var(--font-display);
+    font-size: 0.65rem;
+    font-weight: 700;
+    color: var(--cyan-primary);
+    letter-spacing: 0.8px;
+    text-transform: uppercase;
+}
+
+/* Career XP & Progression Strip */
+.stat-card-sub {
+    font-size: 0.72rem;
+    font-family: var(--font-mono);
+    color: var(--text-muted);
+    margin-top: 4px;
+}
+
+.profile-xp-bar-wrap {
+    width: 100%;
+    height: 6px;
+    background: rgba(15, 23, 42, 0.9);
+    border: 1px solid rgba(0, 242, 254, 0.25);
+    border-radius: 3px;
+    margin: 6px 0 2px 0;
+    overflow: hidden;
+}
+
+.profile-xp-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #00f2fe 0%, #38bdf8 50%, #818cf8 100%);
+    box-shadow: 0 0 8px rgba(0, 242, 254, 0.7);
+    transition: width 0.4s ease-out;
+}
+
+/* Cosmetic Locker & Class Mastery Layout */
+.locker-layout-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+}
+
+@media (max-width: 900px) {
+    .locker-layout-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+.locker-card {
+    background: rgba(11, 16, 29, 0.85);
+    border: 1px solid rgba(0, 242, 254, 0.2);
+    border-radius: 8px;
+    padding: 24px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.45);
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.locker-card-header {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    padding-bottom: 14px;
+}
+
+.locker-card-header h3 {
+    font-family: var(--font-display);
+    font-size: 1.15rem;
+    color: #ffffff;
+    letter-spacing: 1px;
+}
+
+.field-hint {
+    font-size: 0.72rem;
+    color: var(--text-muted);
+    font-family: var(--font-mono);
+    margin-top: 4px;
+    display: block;
+}
+
+/* Ballistic Trail Preview Swatch */
+.trail-preview-swatch {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 14px;
+    background: rgba(4, 7, 14, 0.8);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 4px;
+    margin-top: 8px;
+}
+
+.trail-swatch-core {
+    width: 28px;
+    height: 8px;
+    border-radius: 4px;
+    background: #00f2fe;
+    box-shadow: 0 0 12px #00f2fe;
+}
+
+.trail-swatch-label {
+    font-family: var(--font-mono);
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: #ffffff;
+}
+
+/* Class Weapon Mastery Grid */
+.mastery-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+}
+
+.mastery-cell {
+    background: rgba(6, 10, 20, 0.7);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 6px;
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.mastery-cell-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.mastery-class-name {
+    font-family: var(--font-display);
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: #e2e8f0;
+}
+
+.mastery-tier-badge {
+    font-family: var(--font-mono);
+    font-size: 0.65rem;
+    font-weight: 800;
+    padding: 1px 6px;
+    border-radius: 3px;
+    background: rgba(99, 102, 241, 0.25);
+    color: #a5b4fc;
+    border: 1px solid rgba(99, 102, 241, 0.4);
+}
+
+.mastery-bar-wrap {
+    width: 100%;
+    height: 5px;
+    background: rgba(15, 23, 42, 0.9);
+    border-radius: 3px;
+    overflow: hidden;
+}
+
+.mastery-bar-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #10b981 0%, #34d399 100%);
+    box-shadow: 0 0 6px rgba(16, 185, 129, 0.7);
+    transition: width 0.3s ease;
+}
+
+.mastery-xp-lbl {
+    font-family: var(--font-mono);
+    font-size: 0.68rem;
+    color: var(--text-muted);
+}
+
+/* Daily Challenges */
+.daily-challenges-wrap {
+    margin-top: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    padding-top: 14px;
+}
+
+.daily-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.daily-title {
+    font-family: var(--font-display);
+    font-size: 0.75rem;
+    font-weight: 800;
+    letter-spacing: 0.8px;
+    color: #f59e0b;
+}
+
+.daily-reset-tag {
+    font-family: var(--font-mono);
+    font-size: 0.62rem;
+    color: var(--text-muted);
+}
+
+.daily-challenges-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.daily-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 12px;
+    background: rgba(6, 10, 20, 0.7);
+    border-left: 3px solid #00f2fe;
+    border-radius: 0 4px 4px 0;
+}
+
+.daily-item.completed {
+    border-left-color: #10b981;
+    opacity: 0.85;
+}
+
+.daily-item-title {
+    font-family: var(--font-body);
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: #e2e8f0;
+}
+
+.daily-item-reward {
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: #f59e0b;
+}
+
+/* Overcharge Beacon HUD Tracker */
+.hud-beacon-tracker {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 4px 14px;
+    background: linear-gradient(135deg, rgba(245, 158, 11, 0.22) 0%, rgba(217, 119, 6, 0.12) 100%);
+    border: 1px solid rgba(245, 158, 11, 0.5);
+    border-radius: 14px;
+    box-shadow: 0 0 16px rgba(245, 158, 11, 0.35);
+    margin-top: 6px;
+    animation: beaconPulse 1.8s infinite ease-in-out;
+}
+
+.beacon-pulse-icon {
+    font-size: 0.85rem;
+    color: #fbbf24;
+    filter: drop-shadow(0 0 6px #f59e0b);
+}
+
+.beacon-text {
+    font-family: var(--font-mono);
+    font-size: 0.68rem;
+    font-weight: 800;
+    letter-spacing: 0.8px;
+    color: #fef08a;
+    text-transform: uppercase;
+}
+
+@keyframes beaconPulse {
+    0%, 100% {
+        box-shadow: 0 0 12px rgba(245, 158, 11, 0.3);
+        transform: scale(1);
+    }
+    50% {
+        box-shadow: 0 0 24px rgba(245, 158, 11, 0.6);
+        transform: scale(1.02);
+    }
+}
+
+/* Bounded Exponential Reconnection Alert Banner */
+.network-reconnecting-banner {
+    position: absolute;
+    top: 14px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 20px;
+    background: rgba(15, 10, 20, 0.94);
+    border: 1px solid #f43f5e;
+    border-radius: 20px;
+    box-shadow: 0 4px 24px rgba(244, 63, 94, 0.5);
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    font-weight: 800;
+    letter-spacing: 1px;
+    color: #ffffff;
+    animation: reconnectPulse 1.2s infinite;
+}
+
+.reconnect-pulse-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #f43f5e;
+    box-shadow: 0 0 8px #f43f5e;
+}
+
+@keyframes reconnectPulse {
+    0%, 100% {
+        opacity: 0.95;
+    }
+    50% {
+        opacity: 0.65;
+    }
+}
+

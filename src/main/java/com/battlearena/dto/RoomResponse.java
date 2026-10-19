@@ -1,5 +1,7 @@
 package com.battlearena.dto;
 
+import com.battlearena.model.ArenaHazard;
+import com.battlearena.model.Obstacle;
 import java.util.List;
 
 /**
@@ -17,22 +19,30 @@ public class RoomResponse {
     private boolean canStart;
     private String gameMode = "PVP_FFA";
     private String botDifficulty = "VETERAN";
+    private String mapId = "CYBER_CORE";
+    private List<Obstacle> obstacles;
+    private List<ArenaHazard> hazards;
 
     public RoomResponse() {
     }
 
     public RoomResponse(String roomId, String name, String hostUsername, int maxPlayers, int currentPlayers,
                         String status, List<PlayerRoomDTO> players, boolean canStart) {
-        this(roomId, name, hostUsername, maxPlayers, currentPlayers, status, players, canStart, "PVP_FFA", "VETERAN");
+        this(roomId, name, hostUsername, maxPlayers, currentPlayers, status, players, canStart, "PVP_FFA", "VETERAN", "CYBER_CORE");
     }
 
     public RoomResponse(String roomId, String name, String hostUsername, int maxPlayers, int currentPlayers,
                         String status, List<PlayerRoomDTO> players, boolean canStart, String gameMode) {
-        this(roomId, name, hostUsername, maxPlayers, currentPlayers, status, players, canStart, gameMode, "VETERAN");
+        this(roomId, name, hostUsername, maxPlayers, currentPlayers, status, players, canStart, gameMode, "VETERAN", "CYBER_CORE");
     }
 
     public RoomResponse(String roomId, String name, String hostUsername, int maxPlayers, int currentPlayers,
                         String status, List<PlayerRoomDTO> players, boolean canStart, String gameMode, String botDifficulty) {
+        this(roomId, name, hostUsername, maxPlayers, currentPlayers, status, players, canStart, gameMode, botDifficulty, "CYBER_CORE");
+    }
+
+    public RoomResponse(String roomId, String name, String hostUsername, int maxPlayers, int currentPlayers,
+                        String status, List<PlayerRoomDTO> players, boolean canStart, String gameMode, String botDifficulty, String mapId) {
         this.roomId = roomId;
         this.name = name;
         this.hostUsername = hostUsername;
@@ -41,8 +51,9 @@ public class RoomResponse {
         this.status = status;
         this.players = players;
         this.canStart = canStart;
-        this.gameMode = (gameMode != null && !gameMode.isEmpty()) ? gameMode : (maxPlayers == 2 ? "PVP_1V1" : "PVP_FFA");
-        this.botDifficulty = (botDifficulty != null && !botDifficulty.isEmpty()) ? botDifficulty : "VETERAN";
+        this.gameMode = gameMode;
+        this.botDifficulty = botDifficulty;
+        this.mapId = (mapId != null && !mapId.trim().isEmpty()) ? mapId.trim().toUpperCase() : "CYBER_CORE";
     }
 
     public String getRoomId() {
@@ -123,5 +134,29 @@ public class RoomResponse {
 
     public void setBotDifficulty(String botDifficulty) {
         this.botDifficulty = botDifficulty;
+    }
+
+    public String getMapId() {
+        return mapId != null ? mapId : "CYBER_CORE";
+    }
+
+    public void setMapId(String mapId) {
+        this.mapId = mapId;
+    }
+
+    public List<Obstacle> getObstacles() {
+        return obstacles;
+    }
+
+    public void setObstacles(List<Obstacle> obstacles) {
+        this.obstacles = obstacles;
+    }
+
+    public List<ArenaHazard> getHazards() {
+        return hazards;
+    }
+
+    public void setHazards(List<ArenaHazard> hazards) {
+        this.hazards = hazards;
     }
 }

@@ -63,4 +63,20 @@ public class AuthController {
         UserProfileResponse profile = userService.getUserProfile(authentication.getName());
         return ResponseEntity.ok(profile);
     }
+
+    /**
+     * Protected endpoint to equip cosmetics (title, trail).
+     * POST /api/auth/equip-cosmetics
+     */
+    @PostMapping("/equip-cosmetics")
+    public ResponseEntity<UserProfileResponse> equipCosmetics(@RequestBody Map<String, String> body,
+                                                              Authentication authentication) {
+        if (authentication == null || authentication.getName() == null) {
+            throw new org.springframework.security.authentication.BadCredentialsException("Unauthorized");
+        }
+        String title = body != null ? body.get("title") : null;
+        String trail = body != null ? body.get("trail") : null;
+        UserProfileResponse updated = userService.equipCosmetics(authentication.getName(), title, trail);
+        return ResponseEntity.ok(updated);
+    }
 }

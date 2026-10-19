@@ -1,5 +1,6 @@
 package com.battlearena.websocket;
 
+import com.battlearena.model.ArenaHazard;
 import com.battlearena.model.ChatMessage;
 import com.battlearena.model.Coin;
 import com.battlearena.model.GamePlayer;
@@ -132,6 +133,10 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
     @Override
     protected void handleTextMessage(WebSocketSession session, TextMessage message) throws Exception {
         String payload = message.getPayload();
+        if (payload == null || payload.length() > 4096) {
+            return; // Anti-flood payload size limit
+        }
+
         JsonNode root = mapper.readTree(payload);
 
         if (!root.has("type")) {
@@ -158,7 +163,11 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
                 if (username != null && roomId != null && root.has("x") && root.has("y")) {
                     double x = root.get("x").asDouble();
                     double y = root.get("y").asDouble();
+                    if (!Double.isFinite(x) || !Double.isFinite(y) || x < -50 || x > 850 || y < -50 || y > 650) {
+                        break; // Reject invalid / out-of-bounds coordinates
+                    }
                     double heading = root.has("heading") ? root.get("heading").asDouble() : 0.0;
+                    if (!Double.isFinite(heading)) heading = 0.0;
 
                     Room room = roomService.getActiveRoom(roomId);
                     if (room != null && !room.isSpectator(username)) {
@@ -212,6 +221,7 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
                 String roomId = sessionToRoom.get(session.getId());
                 if (username != null && roomId != null) {
                     double heading = root.has("heading") ? root.get("heading").asDouble() : 0.0;
+                    String trail = root.has("equippedTrail") ? root.get("equippedTrail").asText() : "CYAN_PULSE";
                     Room room = roomService.getActiveRoom(roomId);
                     if (room != null && room.getStatus() == RoomStatus.PLAYING && !room.isSpectator(username)) {
                         List<Projectile> projs = room.fireProjectiles(username, heading);
@@ -220,6 +230,7 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
                             payloadMap.put("type", "PROJECTILE_SPAWNED");
                             payloadMap.put("id", proj.getId());
                             payloadMap.put("shooter", proj.getShooterUsername());
+                            payloadMap.put("equippedTrail", trail);
                             payloadMap.put("x", proj.getStartX());
                             payloadMap.put("y", proj.getStartY());
                             payloadMap.put("vx", proj.getVx());
@@ -374,6 +385,18 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
             return;
         }
 
+        // Cleanup existing stale session for this user if present
+        for (Map.Entry<String, String> entry : sessionToUser.entrySet()) {
+            if (entry.getValue().equals(username) && !entry.getKey().equals(session.getId())) {
+                WebSocketSession oldSession = sessions.remove(entry.getKey());
+                if (oldSession != null && oldSession.isOpen()) {
+                    try {
+                        oldSession.close(CloseStatus.NORMAL.withReason("Connected from another session"));
+                    } catch (Exception ignored) {}
+                }
+            }
+        }
+
         sessionToUser.put(session.getId(), username);
         sessionToRoom.put(session.getId(), roomId);
 
@@ -393,6 +416,7 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
             Map<String, Object> snapshot = new LinkedHashMap<>();
             snapshot.put("type", "GAME_STATE_SNAPSHOT");
             snapshot.put("roomId", roomId);
+            snapshot.put("mapId", activeRoom.getMapId());
             snapshot.put("coins", activeRoom.getCoins());
             snapshot.put("powerUps", activeRoom.getPowerUps());
             snapshot.put("players", activeRoom.getGamePlayers());
@@ -405,6 +429,11 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
             snapshot.put("timeRemaining", activeRoom.getTimeRemainingSeconds());
             snapshot.put("safeZoneRadius", activeRoom.getCurrentSafeZoneRadius());
             snapshot.put("suddenDeath", activeRoom.isSuddenDeathActive());
+            snapshot.put("beaconActive", activeRoom.isBeaconActive());
+            snapshot.put("beaconX", activeRoom.getBeaconX());
+            snapshot.put("beaconY", activeRoom.getBeaconY());
+            snapshot.put("beaconRadius", activeRoom.getBeaconRadius());
+            snapshot.put("beaconCapturedBy", activeRoom.getBeaconCapturedBy());
             snapshot.put("chatHistory", activeRoom.getChatHistory());
             snapshot.put("isSpectator", activeRoom.isSpectator(username));
             sendDirect(session, snapshot);
@@ -631,11 +660,13 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
         broadcastToRoom(roomId, gameOverPayload);
         broadcastSystemAnnouncement(room, roomId, "🏆 VICTORY: " + room.getWinnerUsername() + " won the arena match!");
 
-        // Persist lifetime match scores to MySQL (human players only)
+        // Persist lifetime match scores & progression to MySQL (human players only)
         for (GamePlayer gp : room.getGamePlayers()) {
             if (!gp.isBot()) {
                 try {
-                    userService.recordMatchResult(gp.getUsername(), gp.getScore());
+                    boolean won = gp.getUsername().equals(room.getWinnerUsername());
+                    String wClass = gp.getWarriorClass() != null ? gp.getWarriorClass().name() : "ASSAULT";
+                    userService.recordMatchResult(gp.getUsername(), gp.getScore(), gp.getKills(), gp.getDeaths(), won, wClass);
                 } catch (Exception e) {
                     // Ignore persistence logging
                 }
@@ -740,6 +771,7 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
             payload.put("type", "GAME_START");
             payload.put("roomId", roomId);
             if (room != null) {
+                payload.put("mapId", room.getMapId());
                 payload.put("coins", room.getCoins());
                 payload.put("powerUps", room.getPowerUps());
                 payload.put("players", room.getGamePlayers());
@@ -751,6 +783,10 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
                 payload.put("timeRemaining", room.getTimeRemainingSeconds());
                 payload.put("safeZoneRadius", room.getCurrentSafeZoneRadius());
                 payload.put("suddenDeath", room.isSuddenDeathActive());
+                payload.put("beaconActive", room.isBeaconActive());
+                payload.put("beaconX", room.getBeaconX());
+                payload.put("beaconY", room.getBeaconY());
+                payload.put("beaconRadius", room.getBeaconRadius());
             }
             payload.put("isSpectator", isSpectator);
 
@@ -883,6 +919,48 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
                     // 6. Respawn explosive barrels if timer elapsed
                     room.tickBarrelRespawns();
 
+                    // 6b. Tick Overcharge Beacon Dynamic Arena Event
+                    boolean wasBeaconActive = room.isBeaconActive();
+                    boolean nowBeaconActive = room.checkBeaconActiveState(timeRemaining);
+                    String capturingUser = null;
+
+                    if (nowBeaconActive) {
+                        double bx = room.getBeaconX();
+                        double by = room.getBeaconY();
+                        double br = room.getBeaconRadius();
+
+                        for (GamePlayer gp : room.getGamePlayers()) {
+                            if (gp.isAlive()) {
+                                double d2 = Math.hypot(gp.getX() - bx, gp.getY() - by);
+                                if (d2 <= br) {
+                                    capturingUser = gp.getUsername();
+                                    // Award capture bonus points and overshield
+                                    gp.addScore(2);
+                                    if (gp.getShield() < gp.getMaxShield()) {
+                                        gp.addShield(6);
+                                    }
+                                    if (gp.getScore() >= room.getTargetWinningScore()) {
+                                        onMatchFinished(room, roomId);
+                                        break;
+                                    }
+                                    break;
+                                }
+                            }
+                        }
+                        room.setBeaconCapturedBy(capturingUser);
+                    }
+
+                    if (wasBeaconActive != nowBeaconActive || capturingUser != null) {
+                        broadcastToRoom(roomId, Map.of(
+                                "type", "BEACON_UPDATE",
+                                "active", nowBeaconActive,
+                                "x", room.getBeaconX(),
+                                "y", room.getBeaconY(),
+                                "radius", room.getBeaconRadius(),
+                                "capturedBy", capturingUser != null ? capturingUser : ""
+                        ));
+                    }
+
                     // 7. Tick autonomous Cyber AI Combat Bots
                     tickBots(room, roomId);
                 }
@@ -908,18 +986,43 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
                 .toList();
 
         Random rnd = new Random();
+        String difficulty = room.getBotDifficulty();
+        boolean isElite = "ELITE".equalsIgnoreCase(difficulty) || "NIGHTMARE".equalsIgnoreCase(difficulty);
+        boolean isRecruit = "RECRUIT".equalsIgnoreCase(difficulty);
+
+        double speedMult = isRecruit ? 0.35 : (isElite ? 0.62 : 0.48);
+        double aimVariance = isRecruit ? 0.28 : (isElite ? 0.05 : 0.12);
+        double dodgeChance = isRecruit ? 0.15 : (isElite ? 0.85 : 0.50);
+        double powerupSearchRadius = isRecruit ? 130.0 : (isElite ? 340.0 : 220.0);
+        int coverHpThreshold = isRecruit ? 25 : (isElite ? 60 : 45);
 
         for (GamePlayer bot : bots) {
             List<GamePlayer> candidates = !humanOpponents.isEmpty() ? humanOpponents :
                     allPlayers.stream().filter(p -> p.isAlive() && !p.getUsername().equals(bot.getUsername())).toList();
 
+            // 1. Sensible Target Selection (prioritize low HP, close range, or exposed targets)
             GamePlayer target = null;
+            double bestPriorityScore = -Double.MAX_VALUE;
             double minDist = Double.MAX_VALUE;
+
             for (GamePlayer cand : candidates) {
                 double d = Math.hypot(cand.getX() - bot.getX(), cand.getY() - bot.getY());
-                if (d < minDist) {
-                    minDist = d;
+                double priorityScore = (cand.getHealth() < 40 ? 40.0 : 0.0) - (d * 0.1);
+                // Check if target is out of cover
+                boolean clearLos = true;
+                for (Obstacle obs : room.getObstacles()) {
+                    if (obs.intersectsSegment(bot.getX(), bot.getY(), cand.getX(), cand.getY())) {
+                        clearLos = false;
+                        break;
+                    }
+                }
+                if (clearLos) {
+                    priorityScore += 30.0;
+                }
+                if (priorityScore > bestPriorityScore) {
+                    bestPriorityScore = priorityScore;
                     target = cand;
+                    minDist = d;
                 }
             }
 
@@ -932,39 +1035,138 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
                 double dy = target.getY() - bot.getY();
                 heading = Math.atan2(dy, dx);
 
-                // Tactical Navigation tailored by Bot Difficulty (RECRUIT | VETERAN | NIGHTMARE)
-                String difficulty = room.getBotDifficulty();
-                double speedMult = "RECRUIT".equalsIgnoreCase(difficulty) ? 0.32 :
-                                   "NIGHTMARE".equalsIgnoreCase(difficulty) ? 0.65 : 0.45;
-                double maxEngagementRange = "RECRUIT".equalsIgnoreCase(difficulty) ? 320.0 :
-                                            "NIGHTMARE".equalsIgnoreCase(difficulty) ? 480.0 : 420.0;
-                double aimVariance = "RECRUIT".equalsIgnoreCase(difficulty) ? 0.30 :
-                                     "NIGHTMARE".equalsIgnoreCase(difficulty) ? 0.04 : 0.15;
-
                 double moveSpeed = bot.getSpeed() * speedMult;
                 double stepX = 0;
                 double stepY = 0;
 
+                // 2. Weapon-Specific Engagement Spacing
+                double idealMinDist = 200.0;
+                double idealMaxDist = 300.0;
+                WarriorClass wClass = bot.getWarriorClass() != null ? bot.getWarriorClass() : WarriorClass.ASSAULT;
+                switch (wClass) {
+                    case SNIPER -> {
+                        idealMinDist = 340.0;
+                        idealMaxDist = 480.0;
+                    }
+                    case JUGGERNAUT -> {
+                        idealMinDist = 140.0;
+                        idealMaxDist = 230.0;
+                    }
+                    case SCOUT -> {
+                        idealMinDist = 130.0;
+                        idealMaxDist = 220.0;
+                    }
+                    default -> {
+                        idealMinDist = 200.0;
+                        idealMaxDist = 320.0;
+                    }
+                }
+
+                // 3. Cover-Seeking Behavior when health is critical
+                boolean seekingCover = (bot.getHealth() <= coverHpThreshold || (bot.getShield() == 0 && bot.getHealth() < 70));
+                Obstacle coverObstacle = null;
+                if (seekingCover) {
+                    double closestObsDist = Double.MAX_VALUE;
+                    for (Obstacle obs : room.getObstacles()) {
+                        double ox = obs.getX() + obs.getWidth() / 2.0;
+                        double oy = obs.getY() + obs.getHeight() / 2.0;
+                        double od = Math.hypot(ox - bot.getX(), oy - bot.getY());
+                        if (od < closestObsDist) {
+                            closestObsDist = od;
+                            coverObstacle = obs;
+                        }
+                    }
+                }
+
+                // 4. Power-Up Scavenging when damaged
+                PowerUp targetPowerUp = null;
+                if (bot.getHealth() < bot.getMaxHealth() || bot.getShield() < bot.getMaxShield()) {
+                    double closestPuDist = powerupSearchRadius;
+                    for (PowerUp pu : room.getPowerUps()) {
+                        double pud = Math.hypot(pu.getX() - bot.getX(), pu.getY() - bot.getY());
+                        if (pud < closestPuDist) {
+                            closestPuDist = pud;
+                            targetPowerUp = pu;
+                        }
+                    }
+                }
+
+                // 5. Incoming Projectile Dodge Impulse
+                double dodgeImpulseX = 0;
+                double dodgeImpulseY = 0;
+                if (rnd.nextDouble() < dodgeChance) {
+                    for (Projectile proj : room.getProjectiles()) {
+                        if (!proj.getShooterUsername().equals(bot.getUsername())) {
+                            double pdx = proj.getCurrentX(System.currentTimeMillis()) - bot.getX();
+                            double pdy = proj.getCurrentY(System.currentTimeMillis()) - bot.getY();
+                            double pdist = Math.hypot(pdx, pdy);
+                            if (pdist < 150.0) {
+                                // Projectile is close: evade perpendicular to bullet trajectory
+                                double evadeAngle = proj.getHeading() + (rnd.nextBoolean() ? Math.PI / 2.0 : -Math.PI / 2.0);
+                                dodgeImpulseX = Math.cos(evadeAngle) * (moveSpeed * 0.9);
+                                dodgeImpulseY = Math.sin(evadeAngle) * (moveSpeed * 0.9);
+                                break;
+                            }
+                        }
+                    }
+                }
+
+                // 6. Navigation Priority Hierarchy
                 double distFromCenter = Math.hypot(bot.getX() - 400.0, bot.getY() - 300.0);
                 double currentRadius = room.getCurrentSafeZoneRadius();
 
-                if (distFromCenter > currentRadius * 0.8) {
+                if (distFromCenter > currentRadius * 0.82) {
+                    // Highest priority: Return to safe zone storm perimeter
                     double centerAngle = Math.atan2(300.0 - bot.getY(), 400.0 - bot.getX());
                     stepX = Math.cos(centerAngle) * moveSpeed;
                     stepY = Math.sin(centerAngle) * moveSpeed;
                     heading = centerAngle;
-                } else if (minDist > 250.0) {
+                } else if (coverObstacle != null) {
+                    // Seek tactical cover: move to side of obstacle opposite to opponent
+                    double ox = coverObstacle.getX() + coverObstacle.getWidth() / 2.0;
+                    double oy = coverObstacle.getY() + coverObstacle.getHeight() / 2.0;
+                    double safeX = ox + Math.signum(ox - target.getX()) * (coverObstacle.getWidth() / 2.0 + 25.0);
+                    double safeY = oy + Math.signum(oy - target.getY()) * (coverObstacle.getHeight() / 2.0 + 25.0);
+                    double toCoverAngle = Math.atan2(safeY - bot.getY(), safeX - bot.getX());
+                    stepX = Math.cos(toCoverAngle) * moveSpeed;
+                    stepY = Math.sin(toCoverAngle) * moveSpeed;
+                } else if (targetPowerUp != null) {
+                    // Scavenge nearby power-up
+                    double toPuAngle = Math.atan2(targetPowerUp.getY() - bot.getY(), targetPowerUp.getX() - bot.getX());
+                    stepX = Math.cos(toPuAngle) * moveSpeed;
+                    stepY = Math.sin(toPuAngle) * moveSpeed;
+                } else if (minDist > idealMaxDist) {
+                    // Approach to ideal weapon range
                     stepX = Math.cos(heading) * moveSpeed;
                     stepY = Math.sin(heading) * moveSpeed;
-                } else if (minDist < 120.0) {
-                    stepX = -Math.cos(heading) * (moveSpeed * 0.6);
-                    stepY = -Math.sin(heading) * (moveSpeed * 0.6);
+                } else if (minDist < idealMinDist) {
+                    // Backpedal to maintain tactical spacing
+                    stepX = -Math.cos(heading) * (moveSpeed * 0.7);
+                    stepY = -Math.sin(heading) * (moveSpeed * 0.7);
                 } else {
-                    double strafeAngle = heading + (rnd.nextBoolean() ? Math.PI / 2 : -Math.PI / 2);
-                    stepX = Math.cos(strafeAngle) * (moveSpeed * 0.7);
-                    stepY = Math.sin(strafeAngle) * (moveSpeed * 0.7);
+                    // Dynamic strafing run around the target
+                    double strafeAngle = heading + (rnd.nextBoolean() ? Math.PI / 2.0 : -Math.PI / 2.0);
+                    stepX = Math.cos(strafeAngle) * (moveSpeed * 0.75);
+                    stepY = Math.sin(strafeAngle) * (moveSpeed * 0.75);
                 }
 
+                // Add evasion impulse
+                stepX += dodgeImpulseX;
+                stepY += dodgeImpulseY;
+
+                // 7. Environmental Hazard Repulsion (Lava pools & Explosive Barrels)
+                for (ArenaHazard h : room.getHazards()) {
+                    if (h.isActive() && h.getType() == ArenaHazard.HazardType.LAVA_POOL) {
+                        double lhDist = Math.hypot(bot.getX() - h.getX(), bot.getY() - h.getY());
+                        if (lhDist < 58.0) {
+                            double pushAngle = Math.atan2(bot.getY() - h.getY(), bot.getX() - h.getX());
+                            stepX += Math.cos(pushAngle) * 20.0;
+                            stepY += Math.sin(pushAngle) * 20.0;
+                        }
+                    }
+                }
+
+                // 8. Obstacle Collision Resolution & Sliding
                 double candX = Math.max(30.0, Math.min(770.0, bot.getX() + stepX));
                 double candY = Math.max(30.0, Math.min(570.0, bot.getY() + stepY));
 
@@ -991,24 +1193,38 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
                 checkCoinCollisions(room, roomId, bot.getUsername());
                 checkPowerUpCollisions(room, roomId, bot.getUsername());
 
+                // 9. Controlled Aim & Weapon Firing with Line-of-Sight Check
+                double maxEngagementRange = isRecruit ? 320.0 : (isElite ? 480.0 : 420.0);
                 if (minDist <= maxEngagementRange) {
-                    double aimHeading = heading + (rnd.nextDouble() - 0.5) * aimVariance;
-                    List<Projectile> projs = room.fireProjectiles(bot.getUsername(), aimHeading);
-                    for (Projectile proj : projs) {
-                        Map<String, Object> payloadMap = new LinkedHashMap<>();
-                        payloadMap.put("type", "PROJECTILE_SPAWNED");
-                        payloadMap.put("id", proj.getId());
-                        payloadMap.put("shooter", proj.getShooterUsername());
-                        payloadMap.put("x", proj.getStartX());
-                        payloadMap.put("y", proj.getStartY());
-                        payloadMap.put("vx", proj.getVx());
-                        payloadMap.put("vy", proj.getVy());
-                        payloadMap.put("heading", proj.getHeading());
-                        payloadMap.put("speed", proj.getSpeed());
-                        payloadMap.put("damage", proj.getDamage());
-                        payloadMap.put("radius", proj.getRadius());
-                        payloadMap.put("createdAt", proj.getCreatedAt());
-                        broadcastToRoom(roomId, payloadMap);
+                    // Check direct line of sight; do not fire if blocked by obstacle
+                    boolean hasLineOfSight = true;
+                    for (Obstacle obs : room.getObstacles()) {
+                        if (obs.intersectsSegment(bot.getX(), bot.getY(), target.getX(), target.getY())) {
+                            hasLineOfSight = false;
+                            break;
+                        }
+                    }
+
+                    if (hasLineOfSight) {
+                        // Apply controlled aim variance and lead offset
+                        double aimHeading = heading + (rnd.nextDouble() - 0.5) * aimVariance;
+                        List<Projectile> projs = room.fireProjectiles(bot.getUsername(), aimHeading);
+                        for (Projectile proj : projs) {
+                            Map<String, Object> payloadMap = new LinkedHashMap<>();
+                            payloadMap.put("type", "PROJECTILE_SPAWNED");
+                            payloadMap.put("id", proj.getId());
+                            payloadMap.put("shooter", proj.getShooterUsername());
+                            payloadMap.put("x", proj.getStartX());
+                            payloadMap.put("y", proj.getStartY());
+                            payloadMap.put("vx", proj.getVx());
+                            payloadMap.put("vy", proj.getVy());
+                            payloadMap.put("heading", proj.getHeading());
+                            payloadMap.put("speed", proj.getSpeed());
+                            payloadMap.put("damage", proj.getDamage());
+                            payloadMap.put("radius", proj.getRadius());
+                            payloadMap.put("createdAt", proj.getCreatedAt());
+                            broadcastToRoom(roomId, payloadMap);
+                        }
                     }
                 }
             }

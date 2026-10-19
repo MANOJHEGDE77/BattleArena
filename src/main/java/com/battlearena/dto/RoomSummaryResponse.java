@@ -12,15 +12,25 @@ public class RoomSummaryResponse {
     private int maxPlayers;
     private String status;
     private String gameMode = "PVP_FFA";
+    private String mapId = "CYBER_CORE";
+    private String botDifficulty = "VETERAN";
 
     public RoomSummaryResponse() {
     }
 
     public RoomSummaryResponse(String roomId, String name, String hostUsername, int currentPlayers, int maxPlayers, String status) {
-        this(roomId, name, hostUsername, currentPlayers, maxPlayers, status, "PVP_FFA");
+        this(roomId, name, hostUsername, currentPlayers, maxPlayers, status, "PVP_FFA", "CYBER_CORE", "VETERAN");
     }
 
     public RoomSummaryResponse(String roomId, String name, String hostUsername, int currentPlayers, int maxPlayers, String status, String gameMode) {
+        this(roomId, name, hostUsername, currentPlayers, maxPlayers, status, gameMode, "CYBER_CORE", "VETERAN");
+    }
+
+    public RoomSummaryResponse(String roomId, String name, String hostUsername, int currentPlayers, int maxPlayers, String status, String gameMode, String mapId) {
+        this(roomId, name, hostUsername, currentPlayers, maxPlayers, status, gameMode, mapId, "VETERAN");
+    }
+
+    public RoomSummaryResponse(String roomId, String name, String hostUsername, int currentPlayers, int maxPlayers, String status, String gameMode, String mapId, String botDifficulty) {
         this.roomId = roomId;
         this.name = name;
         this.hostUsername = hostUsername;
@@ -28,6 +38,8 @@ public class RoomSummaryResponse {
         this.maxPlayers = maxPlayers;
         this.status = status;
         this.gameMode = (gameMode != null && !gameMode.isEmpty()) ? gameMode : (maxPlayers == 2 ? "PVP_1V1" : "PVP_FFA");
+        this.mapId = (mapId != null && !mapId.isEmpty()) ? mapId : "CYBER_CORE";
+        this.botDifficulty = (botDifficulty != null && !botDifficulty.isEmpty()) ? botDifficulty : "VETERAN";
     }
 
     public String getRoomId() {
@@ -84,5 +96,21 @@ public class RoomSummaryResponse {
 
     public void setGameMode(String gameMode) {
         this.gameMode = gameMode;
+    }
+
+    public String getMapId() {
+        return mapId != null ? mapId : "CYBER_CORE";
+    }
+
+    public void setMapId(String mapId) {
+        this.mapId = mapId;
+    }
+
+    public String getBotDifficulty() {
+        return botDifficulty != null ? botDifficulty : "VETERAN";
+    }
+
+    public void setBotDifficulty(String botDifficulty) {
+        this.botDifficulty = botDifficulty;
     }
 }
