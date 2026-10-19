@@ -60,6 +60,11 @@
                     <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
                     <span>CUSTOM ARENAS</span>
                 </button>
+                <button class="nav-tab nav-tab-emulator" data-view="emulator" id="navTabEmulator" type="button" title="Launch instant PvP bot battle emulation">
+                    <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+                    <span>PVP EMULATOR</span>
+                    <span class="badge-pulsing-tag">60 FPS</span>
+                </button>
             </nav>
 
             <!-- Right Telemetry & Actions -->
@@ -157,20 +162,32 @@
 
                         <!-- THE PRIMARY PLAY LAUNCH ACTION -->
                         <div class="hero-launch-section">
-                            <button class="btn-primary-launch" id="giantPlayNowBtn" type="button">
-                                <div class="btn-launch-glow"></div>
-                                <div class="btn-launch-content">
-                                    <div class="btn-launch-icon">
-                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                            <div class="hero-launch-btn-row">
+                                <button class="btn-primary-launch" id="giantPlayNowBtn" type="button">
+                                    <div class="btn-launch-glow"></div>
+                                    <div class="btn-launch-content">
+                                        <div class="btn-launch-icon">
+                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                                        </div>
+                                        <div class="btn-launch-text">
+                                            <span class="launch-label" id="giantPlayLabel">DEPLOY MATCH</span>
+                                            <span class="launch-desc" id="giantPlaySub">Quick Match FFA • 4 Pilots</span>
+                                        </div>
+                                        <div class="btn-launch-arrow">➔</div>
                                     </div>
-                                    <div class="btn-launch-text">
-                                        <span class="launch-label" id="giantPlayLabel">DEPLOY MATCH</span>
-                                        <span class="launch-desc" id="giantPlaySub">Quick Match FFA • 4 Pilots</span>
+                                </button>
+                                <button class="btn-emulator-launch" id="heroOpenEmulatorBtn" type="button" title="Launch zero-latency tactical PvP simulation">
+                                    <div class="emulator-btn-glow"></div>
+                                    <div class="emulator-btn-content">
+                                        <span class="emulator-btn-icon">⚔️</span>
+                                        <div class="emulator-btn-text">
+                                            <span class="emulator-title">PVP EMULATOR</span>
+                                            <span class="emulator-sub">Instant Bots • Offline Mode</span>
+                                        </div>
                                     </div>
-                                    <div class="btn-launch-arrow">➔</div>
-                                </div>
-                            </button>
-                            <div class="launch-sub-status" id="matchmakingStatusText">Ready for tactical deployment. Select a mode or jump into instant combat.</div>
+                                </button>
+                            </div>
+                            <div class="launch-sub-status" id="matchmakingStatusText">Ready for tactical deployment. Select a mode, join online arena, or launch PvP Emulator.</div>
                             <button class="btn-cancel-search" id="cancelMatchmakingBtn" type="button" style="display: none;">✕ CANCEL DEPLOYMENT</button>
                         </div>
                     </div>
@@ -862,6 +879,31 @@
                             <div class="spectator-badge">OBSERVER DRONE</div>
                             <div class="spectator-target" id="spectatorTargetText">Free Cam (WASD Pan, [1-8] Track, [Space] Center)</div>
                         </div>
+
+                        <!-- Tactical Hero Ability Activation Bar -->
+                        <div class="hud-ability-bar" id="hudAbilityBar">
+                            <div class="ability-card" id="classAbilityCard" title="Trigger Signature Class Ability [SPACE] or [R-CLICK]">
+                                <div class="ability-cooldown-fill" id="abilityCooldownFill"></div>
+                                <div class="ability-icon" id="abilityIcon">⚡</div>
+                                <div class="ability-meta">
+                                    <span class="ability-key">[SPACE] / [R-CLICK]</span>
+                                    <span class="ability-name" id="abilityName">TACTICAL OVERCHARGE</span>
+                                </div>
+                                <span class="ability-status-tag" id="abilityStatusTag">READY</span>
+                            </div>
+                        </div>
+
+                        <!-- In-Game PvP Emulator Badge & Instant Controls -->
+                        <div class="hud-emulator-indicator" id="hudEmulatorIndicator" style="display: none;">
+                            <div class="emulator-indicator-badge">
+                                <span class="indicator-pulse-dot"></span>
+                                <span id="emulatorModeText">PVP EMULATOR: ACTIVE</span>
+                            </div>
+                            <div class="emulator-quick-actions">
+                                <button type="button" class="btn-emulator-quick" id="emulatorQuickRestartBtn" title="Instant Rematch">🔄 RESTART</button>
+                                <button type="button" class="btn-emulator-quick" id="emulatorQuickConfigBtn" title="Change Map & Bots">⚙️ CONFIG</button>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
@@ -1036,6 +1078,108 @@
     </div>
 
     <!-- ========================================================================= -->
+    <!-- PVP COMBAT EMULATOR MODAL (Offline & Standalone Simulation Engine) -->
+    <!-- ========================================================================= -->
+    <div class="modal-overlay" id="pvpEmulatorModal" style="display: none;">
+        <div class="modal-card modal-emulator-card">
+            <div class="modal-header">
+                <div class="modal-header-text">
+                    <div class="modal-tag-badge">TACTICAL SIMULATOR ENGINE</div>
+                    <h3 class="emulator-title">PVP COMBAT EMULATOR</h3>
+                    <p class="modal-subtitle">Zero-latency offline simulation arena with autonomous combat AI agents, dynamic abilities, and tactical ballistics.</p>
+                </div>
+                <button class="modal-close-btn" id="closeEmulatorModalBtn" type="button">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="pvpEmulatorForm">
+                    <div class="emulator-grid-two-col">
+                        <!-- Left Column: Combat Profile & Map -->
+                        <div class="emulator-col">
+                            <div class="form-group">
+                                <label>SIMULATION ARENA MAP</label>
+                                <div class="emulator-map-grid" id="emulatorMapGrid">
+                                    <div class="emulator-map-card active" data-map="CYBER_CORE">
+                                        <div class="map-card-badge">STANDARD</div>
+                                        <div class="map-card-title">CYBER CORE</div>
+                                        <div class="map-card-desc">1600x1200 | 4 Tactical Control Beacons, High cover density</div>
+                                    </div>
+                                    <div class="emulator-map-card" data-map="NEON_OUTPOST">
+                                        <div class="map-card-badge">CQB</div>
+                                        <div class="map-card-title">NEON OUTPOST</div>
+                                        <div class="map-card-desc">1200x900 | High-speed close quarters, 2 Power Stations</div>
+                                    </div>
+                                    <div class="emulator-map-card" data-map="ORBITAL_STATION">
+                                        <div class="map-card-badge">WIDE</div>
+                                        <div class="map-card-title">ORBITAL STATION</div>
+                                        <div class="map-card-desc">1800x1400 | Geothermal vents, jump conduits, long railgun sightlines</div>
+                                    </div>
+                                </div>
+                                <input type="hidden" id="emulatorSelectedMap" value="CYBER_CORE">
+                            </div>
+
+                            <div class="form-group">
+                                <label for="emulatorHeroClass">PILOT WARRIOR CLASS</label>
+                                <select id="emulatorHeroClass" class="form-select">
+                                    <option value="ASSAULT" selected>ASSAULT (Pulse Blaster + Overcharge Stim)</option>
+                                    <option value="JUGGERNAUT">JUGGERNAUT (Plasma Cannon + Kinetic Shockwave)</option>
+                                    <option value="SCOUT">SCOUT (Twin Needles + Phase Blink Dash)</option>
+                                    <option value="SNIPER">SNIPER (Hyper Railgun + Piercing Rail Beam)</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- Right Column: Rules & AI Difficulty -->
+                        <div class="emulator-col">
+                            <div class="form-group">
+                                <label for="emulatorModeSelect">SIMULATION PROTOCOL</label>
+                                <select id="emulatorModeSelect" class="form-select">
+                                    <option value="FFA_SOLO" selected>FFA SOLO (Free For All: Combatant vs Bots)</option>
+                                    <option value="DUEL_1V1">DUEL 1V1 (High-Stakes Single Combat vs Apex Nemesis)</option>
+                                    <option value="BOT_SPECTATE">BOT SPECTATOR (Observe Autonomous Bot Squad Wars)</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="emulatorDifficultySelect">COMBAT AI PROTOCOL</label>
+                                <select id="emulatorDifficultySelect" class="form-select">
+                                    <option value="RECRUIT">RECRUIT (Standard tracking, lower evasion)</option>
+                                    <option value="VETERAN" selected>VETERAN (Cover tactical spacing, lead aiming)</option>
+                                    <option value="ELITE">ELITE (Strafing, ability cycling, beacon control)</option>
+                                    <option value="APEX">APEX (Hyper-predictive, phase blinking, ruthless precision)</option>
+                                </select>
+                            </div>
+
+                            <div class="emulator-row-inline">
+                                <div class="form-group flex-1">
+                                    <label for="emulatorBotCount">COMBATANT BOTS (<span id="botCountValDisplay">3</span>)</label>
+                                    <input type="range" id="emulatorBotCount" min="1" max="7" value="3" class="settings-slider">
+                                </div>
+                                <div class="form-group flex-1">
+                                    <label for="emulatorTargetScore">TARGET KILLS</label>
+                                    <select id="emulatorTargetScore" class="form-select">
+                                        <option value="5">5 Eliminations (Quick)</option>
+                                        <option value="10" selected>10 Eliminations (Standard)</option>
+                                        <option value="15">15 Eliminations (Extended)</option>
+                                        <option value="25">25 Eliminations (Endurance)</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="emulator-launch-actions">
+                        <button type="submit" class="btn-submit btn-emulator-launch" id="startEmulatorSubmitBtn">
+                            <span class="btn-icon">⚡</span>
+                            <span>INITIALIZE PVP EMULATOR ARENA</span>
+                        </button>
+                        <button type="button" class="btn-secondary-action" id="quickApexDuelBtn">
+                            <span>🔥 INSTANT 1V1 APEX DUEL</span>
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
     <!-- TACTICAL IN-COMBAT PAUSE MODAL [ESC] -->
     <!-- ========================================================================= -->
     <div class="modal-overlay" id="pauseMenuModal" style="display: none;">
