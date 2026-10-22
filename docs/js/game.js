@@ -731,6 +731,7 @@ class SoundEngine {
         this.droneOsc1 = null;
         this.droneOsc2 = null;
         this.droneGain = null;
+        this.lastHeartbeatTime = 0;
     }
 
     init() {
@@ -985,6 +986,81 @@ class SoundEngine {
             osc2.start(now);
             osc1.stop(now + 0.33);
             osc2.stop(now + 0.33);
+        } catch {}
+    }
+
+    playDryFire() {
+        if (this.muted) return;
+        this.init();
+        if (!this.ctx) return;
+        try {
+            const now = this.ctx.currentTime;
+            const osc = this.ctx.createOscillator();
+            const gain = this.ctx.createGain();
+            osc.type = 'square';
+            osc.frequency.setValueAtTime(420, now);
+            osc.frequency.setValueAtTime(260, now + 0.025);
+            gain.gain.setValueAtTime(this.getEffectiveVolume() * 0.35, now);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.06);
+            osc.connect(gain);
+            gain.connect(this.ctx.destination);
+            osc.start(now);
+            osc.stop(now + 0.07);
+        } catch {}
+    }
+
+    playHeartbeat() {
+        if (this.muted) return;
+        this.init();
+        if (!this.ctx) return;
+        try {
+            const now = this.ctx.currentTime;
+            [0, 0.12].forEach((offset, idx) => {
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                const t = now + offset;
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(idx === 0 ? 68 : 52, t);
+                osc.frequency.exponentialRampToValueAtTime(28, t + 0.14);
+                gain.gain.setValueAtTime(this.getEffectiveVolume() * 0.75, t);
+                gain.gain.exponentialRampToValueAtTime(0.001, t + 0.14);
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start(t);
+                osc.stop(t + 0.15);
+            });
+        } catch {}
+    }
+
+    updateHeartbeat(active) {
+        if (!active || this.muted) return;
+        const now = performance.now();
+        if (now - this.lastHeartbeatTime >= 950) {
+            this.lastHeartbeatTime = now;
+            this.playHeartbeat();
+        }
+    }
+
+    playKillstreak(count) {
+        if (this.muted) return;
+        this.init();
+        if (!this.ctx) return;
+        try {
+            const now = this.ctx.currentTime;
+            const freqs = count >= 3 ? [440, 554.37, 659.25, 880] : [392, 523.25, 659.25];
+            freqs.forEach((freq, i) => {
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                const t = now + i * 0.07;
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(freq, t);
+                gain.gain.setValueAtTime(this.getEffectiveVolume() * 0.7, t);
+                gain.gain.exponentialRampToValueAtTime(0.001, t + 0.3);
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start(t);
+                osc.stop(t + 0.32);
+            });
         } catch {}
     }
 
@@ -1857,8 +1933,17 @@ window.addEventListener('pointerup', () => {
     isPointerDown = false;
 });
 
+canvas.addEventListener('pointerenter', () => {
+    if (!isSpectator && player.alive && !isGameOver) {
+        canvas.classList.add('tactical-active');
+    }
+});
+
 canvas.addEventListener('pointerleave', () => {
     isPointerDown = false;
+    canvas.classList.remove('tactical-active');
+    lastAimX = null;
+    lastAimY = null;
 });
 
 canvas.addEventListener('contextmenu', (e) => {
@@ -1881,7 +1966,13 @@ function fireBlaster(targetHeading) {
     }
 
     const now = performance.now();
-    if (now - player.lastAttackTime < cooldown) return;
+    if (now - player.lastAttackTime < cooldown) {
+        if (!player._lastDryFire || now - player._lastDryFire > 180) {
+            player._lastDryFire = now;
+            soundEngine.playDryFire();
+        }
+        return;
+    }
     player.lastAttackTime = now;
 
     soundEngine.playLaser(player.spreadShotUntil > Date.now(), currentClass);
@@ -2575,11 +2666,228 @@ function renderHitmarkers() {
     ctx.restore();
 }
 
+// --- High-Precision In-Canvas Tactical Crosshair Reticle & Targeting Sights ---
+let reticleAngle = 0;
+
+function renderTacticalReticle() {
+    if (isGameOver || !player.alive || isSpectator) return;
+    if (lastAimX === null || lastAimY === null) return;
+    if (lastAimX < 0 || lastAimX > ARENA_WIDTH || lastAimY < 0 || lastAimY > ARENA_HEIGHT) return;
+
+    const now = performance.now();
+    const currentClass = player.warriorClass || mySelectedClass || 'ASSAULT';
+    const classInfo = WARRIOR_CLASSES[currentClass] || WARRIOR_CLASSES.ASSAULT;
+
+    let cooldown = classInfo.cooldownMs;
+    if (player.stimUntil && player.stimUntil > Date.now()) {
+        cooldown *= 0.5;
+    }
+    const elapsed = now - player.lastAttackTime;
+    const cdProgress = Math.min(1.0, elapsed / cooldown);
+    const isReady = cdProgress >= 1.0;
+
+    // Detect if aiming over any active enemy (remote player or emulator bot)
+    let lockedTarget = null;
+    let minTargetDist = 34;
+
+    remotePlayers.forEach((rp, uname) => {
+        if (rp.alive !== false) {
+            const dist = Math.hypot(rp.x - lastAimX, rp.y - lastAimY);
+            if (dist < minTargetDist) {
+                minTargetDist = dist;
+                lockedTarget = { x: rp.x, y: rp.y, name: uname, hp: rp.health, maxHp: rp.maxHealth || 100, class: rp.warriorClass || 'ASSAULT' };
+            }
+        }
+    });
+
+    if (pvpEmulator && pvpEmulator.isActive && pvpEmulator.bots) {
+        pvpEmulator.bots.forEach(b => {
+            if (b.alive) {
+                const dist = Math.hypot(b.x - lastAimX, b.y - lastAimY);
+                if (dist < minTargetDist) {
+                    minTargetDist = dist;
+                    lockedTarget = { x: b.x, y: b.y, name: b.name, hp: b.hp, maxHp: b.maxHp || 100, class: b.warriorClass || 'ASSAULT' };
+                }
+            }
+        });
+    }
+
+    const reticleColor = lockedTarget ? '#f43f5e' : (classInfo.accentColor || '#00f2fe');
+    const glowColor = lockedTarget ? 'rgba(244, 63, 94, 0.6)' : 'rgba(0, 242, 254, 0.5)';
+
+    ctx.save();
+
+    // 1. Directional Tactical Laser Aiming Sight (Raycasted to obstacles)
+    const pRadius = player.radius || 16;
+    const startX = player.x + Math.cos(player.heading) * (pRadius + 6);
+    const startY = player.y + Math.sin(player.heading) * (pRadius + 6);
+
+    let laserEndX = lastAimX;
+    let laserEndY = lastAimY;
+    let hitCover = false;
+
+    if (obstacles && obstacles.length > 0) {
+        const dx = lastAimX - startX;
+        const dy = lastAimY - startY;
+        const maxDist = Math.hypot(dx, dy);
+        const steps = Math.min(60, Math.ceil(maxDist / 8));
+        for (let s = 1; s <= steps; s++) {
+            const t = s / steps;
+            const sx = startX + dx * t;
+            const sy = startY + dy * t;
+            for (const obs of obstacles) {
+                if (sx >= obs.x && sx <= obs.x + obs.width && sy >= obs.y && sy <= obs.y + obs.height) {
+                    laserEndX = sx;
+                    laserEndY = sy;
+                    hitCover = true;
+                    break;
+                }
+            }
+            if (hitCover) break;
+        }
+    }
+
+    // Draw laser beam
+    ctx.strokeStyle = lockedTarget ? 'rgba(244, 63, 94, 0.45)' : (classInfo.accentColor ? `${classInfo.accentColor}55` : 'rgba(0, 242, 254, 0.35)');
+    ctx.lineWidth = 1;
+    ctx.setLineDash([4, 6]);
+    ctx.beginPath();
+    ctx.moveTo(startX, startY);
+    ctx.lineTo(laserEndX, laserEndY);
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    // Laser termination dot
+    ctx.beginPath();
+    ctx.arc(laserEndX, laserEndY, hitCover ? 3 : 2, 0, Math.PI * 2);
+    ctx.fillStyle = hitCover ? '#fbbf24' : reticleColor;
+    ctx.shadowColor = hitCover ? '#fbbf24' : reticleColor;
+    ctx.shadowBlur = hitCover ? 8 : 4;
+    ctx.fill();
+
+    // 2. Draw Crosshair at (lastAimX, lastAimY)
+    ctx.translate(lastAimX, lastAimY);
+
+    if (lockedTarget) {
+        // --- TARGET LOCKED BRACKET RETICLE ---
+        const bSize = 16;
+        const bLen = 6;
+        ctx.strokeStyle = '#f43f5e';
+        ctx.lineWidth = 2;
+        ctx.shadowColor = '#f43f5e';
+        ctx.shadowBlur = 10;
+
+        ctx.beginPath();
+        ctx.moveTo(-bSize, -bSize + bLen); ctx.lineTo(-bSize, -bSize); ctx.lineTo(-bSize + bLen, -bSize);
+        ctx.moveTo(bSize - bLen, -bSize); ctx.lineTo(bSize, -bSize); ctx.lineTo(bSize, -bSize + bLen);
+        ctx.moveTo(-bSize, bSize - bLen); ctx.lineTo(-bSize, bSize); ctx.lineTo(-bSize + bLen, bSize);
+        ctx.moveTo(bSize - bLen, bSize); ctx.lineTo(bSize, bSize); ctx.lineTo(bSize, bSize - bLen);
+        ctx.stroke();
+
+        ctx.beginPath();
+        ctx.arc(0, 0, 2.5, 0, Math.PI * 2);
+        ctx.fillStyle = '#ffffff';
+        ctx.fill();
+
+        // Target telemetry readout card below reticle
+        const hpRatio = Math.max(0, Math.min(1, (lockedTarget.hp || 0) / lockedTarget.maxHp));
+        ctx.shadowBlur = 0;
+        ctx.font = '700 9px JetBrains Mono, monospace';
+        ctx.textAlign = 'center';
+        ctx.fillStyle = 'rgba(6, 8, 15, 0.85)';
+        ctx.fillRect(-45, bSize + 4, 90, 16);
+        ctx.strokeStyle = 'rgba(244, 63, 94, 0.7)';
+        ctx.lineWidth = 1;
+        ctx.strokeRect(-45, bSize + 4, 90, 16);
+
+        ctx.fillStyle = hpRatio > 0.5 ? '#10b981' : (hpRatio > 0.25 ? '#f59e0b' : '#ef4444');
+        ctx.fillRect(-43, bSize + 17, 86 * hpRatio, 2);
+
+        ctx.fillStyle = '#ffffff';
+        ctx.fillText(`${lockedTarget.name} [${Math.round(lockedTarget.hp || 0)}HP]`, 0, bSize + 14);
+    } else {
+        // --- TACTICAL PRECISION SIGHT RETICLE ---
+        const rSize = 12;
+        ctx.strokeStyle = reticleColor;
+        ctx.lineWidth = 1.5;
+        ctx.shadowColor = glowColor;
+        ctx.shadowBlur = isReady ? 8 : 2;
+
+        ctx.beginPath();
+        ctx.arc(0, 0, rSize, -Math.PI / 2, -Math.PI / 2 + (Math.PI * 2 * cdProgress));
+        ctx.stroke();
+
+        if (isReady) {
+            reticleAngle += 0.015;
+            ctx.save();
+            ctx.rotate(reticleAngle);
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.45)';
+            ctx.lineWidth = 1;
+            [-rSize, rSize].forEach(pos => {
+                ctx.beginPath();
+                ctx.moveTo(pos, -2); ctx.lineTo(pos, 2);
+                ctx.moveTo(-2, pos); ctx.lineTo(2, pos);
+                ctx.stroke();
+            });
+            ctx.restore();
+        }
+
+        const pipDist = 5;
+        const pipLen = 4;
+        ctx.beginPath();
+        ctx.moveTo(0, -pipDist); ctx.lineTo(0, -pipDist - pipLen);
+        ctx.moveTo(0, pipDist); ctx.lineTo(0, pipDist + pipLen);
+        ctx.moveTo(-pipDist, 0); ctx.lineTo(-pipDist - pipLen, 0);
+        ctx.moveTo(pipDist, 0); ctx.lineTo(pipDist + pipLen, 0);
+        ctx.stroke();
+
+        ctx.beginPath();
+        ctx.arc(0, 0, 1.5, 0, Math.PI * 2);
+        ctx.fillStyle = isReady ? '#ffffff' : 'rgba(255, 255, 255, 0.5)';
+        ctx.fill();
+
+        const distMeters = Math.round(Math.hypot(lastAimX - player.x, lastAimY - player.y) * 0.4);
+        ctx.font = '600 8px JetBrains Mono, monospace';
+        ctx.textAlign = 'left';
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.65)';
+        ctx.shadowBlur = 0;
+        ctx.fillText(`${distMeters}m`, rSize + 4, 3);
+    }
+
+    ctx.restore();
+}
+
 let killBannerTimeout = null;
+let playerKillstreak = 0;
+let lastKillTime = 0;
+
 function showKillBanner(victimName, points = 25) {
     const banner = document.getElementById('combatKillBanner');
     const victimEl = document.getElementById('killBannerVictim');
+    const titleEl = banner ? banner.querySelector('.kill-banner-title') : null;
     if (!banner || !victimEl) return;
+
+    const now = performance.now();
+    if (now - lastKillTime < 6000) {
+        playerKillstreak++;
+    } else {
+        playerKillstreak = 1;
+    }
+    lastKillTime = now;
+
+    let titleText = 'OPPONENT ELIMINATED';
+    if (playerKillstreak === 2) {
+        titleText = '⚡ DOUBLE KILL!';
+        soundEngine.playKillstreak(2);
+    } else if (playerKillstreak === 3) {
+        titleText = '🔥 TRIPLE KILL!';
+        soundEngine.playKillstreak(3);
+    } else if (playerKillstreak >= 4) {
+        titleText = '💀 UNSTOPPABLE SPREE!';
+        soundEngine.playKillstreak(4);
+    }
+
+    if (titleEl) titleEl.textContent = titleText;
     victimEl.textContent = `+${points} PTS • ${victimName.toUpperCase()} ELIMINATED`;
     banner.classList.add('active');
     if (killBannerTimeout) clearTimeout(killBannerTimeout);
@@ -2949,20 +3257,27 @@ function renderHazards() {
 }
 
 // Render Tactical Cover Obstacles (Pure Vector 2D, Zero External Assets)
+// Render Tactical Cover Obstacles (Pure Vector 2D, Zero External Assets)
 function renderObstacles() {
     if (!obstacles || obstacles.length === 0) return;
+
+    const time = performance.now() * 0.002;
 
     obstacles.forEach(obs => {
         ctx.save();
 
-        // 1. Cyber Drop Shadow & Ambient Glow
-        ctx.shadowColor = obs.type === 'BUNKER' ? 'rgba(99, 102, 241, 0.45)' : 'rgba(14, 165, 233, 0.4)';
-        ctx.shadowBlur = 10;
+        const isBunker = obs.type === 'BUNKER';
+        const primaryColor = isBunker ? '#818cf8' : '#00f2fe';
+        const glowColor = isBunker ? 'rgba(129, 140, 248, 0.6)' : 'rgba(0, 242, 254, 0.55)';
+
+        // 1. Deep Cyber Drop Shadow & Ambient Neon Radiance
+        ctx.shadowColor = glowColor;
+        ctx.shadowBlur = 14;
         ctx.shadowOffsetX = 0;
         ctx.shadowOffsetY = 0;
 
-        // 2. Base Hull Fill with rounded corners
-        ctx.fillStyle = '#0f172a';
+        // 2. Base Armored Hull Fill with rounded corners
+        ctx.fillStyle = '#070b15';
         ctx.beginPath();
         if (ctx.roundRect) {
             ctx.roundRect(obs.x, obs.y, obs.width, obs.height, 6);
@@ -2971,31 +3286,33 @@ function renderObstacles() {
         }
         ctx.fill();
 
-        // 3. Subtle Inner Gradient Surface
+        // 3. Multi-Stop Carbon Armor Gradient Surface
         ctx.shadowBlur = 0;
         const grad = ctx.createLinearGradient(obs.x, obs.y, obs.x + obs.width, obs.y + obs.height);
-        if (obs.type === 'BUNKER') {
-            grad.addColorStop(0, 'rgba(99, 102, 241, 0.22)');
+        if (isBunker) {
+            grad.addColorStop(0, 'rgba(49, 46, 129, 0.55)');
+            grad.addColorStop(0.5, 'rgba(15, 23, 42, 0.95)');
             grad.addColorStop(1, 'rgba(30, 27, 75, 0.9)');
         } else {
-            grad.addColorStop(0, 'rgba(14, 165, 233, 0.18)');
-            grad.addColorStop(1, 'rgba(15, 23, 42, 0.9)');
+            grad.addColorStop(0, 'rgba(14, 116, 144, 0.45)');
+            grad.addColorStop(0.5, 'rgba(15, 23, 42, 0.95)');
+            grad.addColorStop(1, 'rgba(8, 47, 73, 0.85)');
         }
         ctx.fillStyle = grad;
         ctx.fill();
 
-        // 4. Tech Border Outline
-        ctx.strokeStyle = obs.type === 'BUNKER' ? '#6366f1' : '#38bdf8';
-        ctx.lineWidth = 1.5;
+        // 4. Luminous High-Contrast Cyber Bevel Perimeter
+        ctx.strokeStyle = primaryColor;
+        ctx.lineWidth = 2.2;
         ctx.stroke();
 
         // 5. Tactical Inner Hazard Hatch / Tech Stripes
         ctx.save();
         ctx.clip(); // clip to obstacle bounding box
 
-        ctx.strokeStyle = obs.type === 'BUNKER' ? 'rgba(99, 102, 241, 0.15)' : 'rgba(56, 189, 248, 0.12)';
-        ctx.lineWidth = 2;
-        const step = 14;
+        ctx.strokeStyle = isBunker ? 'rgba(129, 140, 248, 0.18)' : 'rgba(0, 242, 254, 0.16)';
+        ctx.lineWidth = 2.5;
+        const step = 16;
         for (let i = -obs.height; i < obs.width + obs.height; i += step) {
             ctx.beginPath();
             ctx.moveTo(obs.x + i, obs.y);
@@ -3003,22 +3320,58 @@ function renderObstacles() {
             ctx.stroke();
         }
 
+        // Active Animated Cyber Power Conduit across center
+        const conduitPulse = (Math.sin(time * 3 + obs.x * 0.05) + 1) * 0.5;
+        const conduitY = obs.y + obs.height / 2;
+        ctx.beginPath();
+        ctx.moveTo(obs.x + 4, conduitY);
+        ctx.lineTo(obs.x + obs.width - 4, conduitY);
+        ctx.strokeStyle = isBunker ? `rgba(165, 180, 252, ${0.25 + conduitPulse * 0.4})` : `rgba(56, 189, 248, ${0.25 + conduitPulse * 0.4})`;
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+
+        // Overhead Spotlight Rim Light
+        ctx.beginPath();
+        ctx.moveTo(obs.x + 2, obs.y + 1);
+        ctx.lineTo(obs.x + obs.width - 2, obs.y + 1);
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.45)';
+        ctx.lineWidth = 1;
+        ctx.stroke();
+
         ctx.restore(); // restore clip
 
-        // 6. Corner Tech Brackets & Core Marker
-        ctx.fillStyle = obs.type === 'BUNKER' ? '#818cf8' : '#38bdf8';
-        ctx.fillRect(obs.x + 3, obs.y + 3, 3, 3);
-        ctx.fillRect(obs.x + obs.width - 6, obs.y + obs.height - 6, 3, 3);
+        // 6. High-Visibility 4-Corner Reinforced Armor L-Brackets
+        const bracketLen = Math.min(10, Math.min(obs.width, obs.height) * 0.3);
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(obs.x, obs.y + bracketLen); ctx.lineTo(obs.x, obs.y); ctx.lineTo(obs.x + bracketLen, obs.y);
+        ctx.moveTo(obs.x + obs.width - bracketLen, obs.y); ctx.lineTo(obs.x + obs.width, obs.y); ctx.lineTo(obs.x + obs.width, obs.y + bracketLen);
+        ctx.moveTo(obs.x, obs.y + obs.height - bracketLen); ctx.lineTo(obs.x, obs.y + obs.height); ctx.lineTo(obs.x + bracketLen, obs.y + obs.height);
+        ctx.moveTo(obs.x + obs.width - bracketLen, obs.y + obs.height); ctx.lineTo(obs.x + obs.width, obs.y + obs.height); ctx.lineTo(obs.x + obs.width, obs.y + obs.height - bracketLen);
+        ctx.stroke();
 
-        if (obs.type === 'BUNKER') {
-            // Central core fortress emblem
+        if (isBunker) {
+            // Central Fortress Deflector Emblem
+            const bMidX = obs.x + obs.width / 2;
+            const bMidY = obs.y + obs.height / 2;
             ctx.beginPath();
-            ctx.arc(obs.x + obs.width / 2, obs.y + obs.height / 2, 7, 0, Math.PI * 2);
-            ctx.fillStyle = 'rgba(99, 102, 241, 0.4)';
+            ctx.arc(bMidX, bMidY, 9, 0, Math.PI * 2);
+            ctx.fillStyle = 'rgba(99, 102, 241, 0.45)';
             ctx.fill();
-            ctx.strokeStyle = '#a5b4fc';
-            ctx.lineWidth = 1;
+            ctx.strokeStyle = '#c7d2fe';
+            ctx.lineWidth = 1.5;
             ctx.stroke();
+
+            // Diamond shield rune
+            ctx.beginPath();
+            ctx.moveTo(bMidX, bMidY - 5);
+            ctx.lineTo(bMidX + 4, bMidY);
+            ctx.lineTo(bMidX, bMidY + 5);
+            ctx.lineTo(bMidX - 4, bMidY);
+            ctx.closePath();
+            ctx.fillStyle = '#ffffff';
+            ctx.fill();
         }
 
         ctx.restore();
@@ -3260,6 +3613,8 @@ function updateBeaconHud(active, capturedBy) {
 }
 
 function renderProjectiles() {
+    const now = performance.now();
+
     projectiles.forEach((p) => {
         const r = p.radius || 5;
 
@@ -3272,18 +3627,18 @@ function renderProjectiles() {
                 ctx.lineTo(p.trail[t].x, p.trail[t].y);
             }
             ctx.lineTo(p.x, p.y);
-            let trailStroke = p.speed >= 700 ? 'rgba(34, 211, 238, 0.45)' : (r >= 7 ? 'rgba(245, 158, 11, 0.45)' : (p.speed >= 580 ? 'rgba(192, 132, 252, 0.45)' : 'rgba(16, 185, 129, 0.45)'));
+            let trailStroke = p.speed >= 700 ? 'rgba(0, 242, 254, 0.55)' : (r >= 7 ? 'rgba(245, 158, 11, 0.55)' : (p.speed >= 580 ? 'rgba(192, 132, 252, 0.55)' : 'rgba(16, 185, 129, 0.55)'));
             if (p.equippedTrail === 'GOLDEN_VALOR') {
-                trailStroke = 'rgba(245, 158, 11, 0.75)';
+                trailStroke = 'rgba(245, 158, 11, 0.85)';
             } else if (p.equippedTrail === 'CRIMSON_NEON') {
-                trailStroke = 'rgba(244, 63, 94, 0.75)';
+                trailStroke = 'rgba(244, 63, 94, 0.85)';
             } else if (p.equippedTrail === 'EMERALD_SURGE') {
-                trailStroke = 'rgba(16, 185, 129, 0.75)';
+                trailStroke = 'rgba(16, 185, 129, 0.85)';
             } else if (p.equippedTrail === 'CYAN_PULSE') {
-                trailStroke = 'rgba(0, 242, 254, 0.75)';
+                trailStroke = 'rgba(0, 242, 254, 0.85)';
             }
             ctx.strokeStyle = trailStroke;
-            ctx.lineWidth = Math.max(1.8, r * 0.75);
+            ctx.lineWidth = Math.max(2, r * 0.85);
             ctx.stroke();
             ctx.restore();
         }
@@ -3293,97 +3648,144 @@ function renderProjectiles() {
         ctx.rotate(p.heading);
 
         if (r >= 7) {
-            // JUGGERNAUT Plasma Cannon Orb (Heavy fiery projectile)
-            const pulse = Math.sin(performance.now() * 0.02) * 1.5;
+            // --- JUGGERNAUT HEAVY PLASMA CANNON ORB ---
+            const pulse = Math.sin(now * 0.02) * 2;
+            // Fiery outer thermal aura
             ctx.beginPath();
-            ctx.arc(0, 0, r + 4 + pulse, 0, Math.PI * 2);
-            ctx.fillStyle = 'rgba(245, 158, 11, 0.25)';
+            ctx.arc(0, 0, r + 6 + pulse, 0, Math.PI * 2);
+            ctx.fillStyle = 'rgba(245, 158, 11, 0.28)';
             ctx.fill();
 
+            // Swirling solar corona
+            ctx.save();
+            ctx.rotate(now * 0.008);
+            for (let i = 0; i < 4; i++) {
+                const angle = (i * Math.PI) / 2;
+                ctx.beginPath();
+                ctx.arc(Math.cos(angle) * (r + 1), Math.sin(angle) * (r + 1), 2.5, 0, Math.PI * 2);
+                ctx.fillStyle = '#fbbf24';
+                ctx.fill();
+            }
+            ctx.restore();
+
+            // Heavy plasma orb body
             ctx.beginPath();
             ctx.arc(0, 0, r, 0, Math.PI * 2);
             ctx.fillStyle = '#f59e0b';
             ctx.shadowColor = '#fbbf24';
-            ctx.shadowBlur = 12;
+            ctx.shadowBlur = 16;
             ctx.fill();
 
+            // White-hot fusion core
             ctx.beginPath();
             ctx.arc(0, 0, r * 0.55, 0, Math.PI * 2);
-            ctx.fillStyle = '#fef08a';
+            ctx.fillStyle = '#ffffff';
             ctx.fill();
 
+            // Aerodynamic comet tail
             ctx.beginPath();
-            ctx.moveTo(r * 0.4, 0);
-            ctx.lineTo(-r * 2.2, -r * 0.6);
-            ctx.lineTo(-r * 2.2, r * 0.6);
+            ctx.moveTo(r * 0.5, 0);
+            ctx.lineTo(-r * 2.5, -r * 0.7);
+            ctx.lineTo(-r * 1.5, 0);
+            ctx.lineTo(-r * 2.5, r * 0.7);
             ctx.closePath();
-            ctx.fillStyle = 'rgba(245, 158, 11, 0.5)';
+            ctx.fillStyle = 'rgba(245, 158, 11, 0.6)';
             ctx.fill();
+
         } else if (p.speed >= 700 || p.damage >= 40) {
-            // SNIPER Hyper Railgun Slug (Supersonic high-velocity beam)
+            // --- SNIPER HYPER RAILGUN SLUG (Supersonic Azure Shock) ---
+            // Supersonic Mach cone shockwave ring
             ctx.beginPath();
-            ctx.arc(0, 0, 4, 0, Math.PI * 2);
-            ctx.fillStyle = '#06b6d4';
-            ctx.shadowColor = '#22d3ee';
-            ctx.shadowBlur = 14;
-            ctx.fill();
-
-            ctx.beginPath();
-            ctx.moveTo(6, 0);
-            ctx.lineTo(-24, -2);
-            ctx.lineTo(-24, 2);
+            ctx.moveTo(8, 0);
+            ctx.lineTo(-18, -8);
+            ctx.lineTo(-12, 0);
+            ctx.lineTo(-18, 8);
             ctx.closePath();
-            ctx.fillStyle = 'rgba(34, 211, 238, 0.8)';
+            ctx.fillStyle = 'rgba(0, 242, 254, 0.35)';
+            ctx.fill();
+
+            // High-intensity piercing rail slug
+            ctx.beginPath();
+            ctx.arc(0, 0, 4.5, 0, Math.PI * 2);
+            ctx.fillStyle = '#00f2fe';
+            ctx.shadowColor = '#00f2fe';
+            ctx.shadowBlur = 16;
             ctx.fill();
 
             ctx.beginPath();
-            ctx.moveTo(4, 0);
-            ctx.lineTo(-14, -1);
-            ctx.lineTo(-14, 1);
+            ctx.moveTo(8, 0);
+            ctx.lineTo(-28, -2.5);
+            ctx.lineTo(-28, 2.5);
+            ctx.closePath();
+            ctx.fillStyle = 'rgba(34, 211, 238, 0.9)';
+            ctx.fill();
+
+            // Tungsten penetrator white core
+            ctx.beginPath();
+            ctx.moveTo(7, 0);
+            ctx.lineTo(-16, -1);
+            ctx.lineTo(-16, 1);
             ctx.closePath();
             ctx.fillStyle = '#ffffff';
             ctx.fill();
+
         } else if (p.speed >= 580 || r <= 4) {
-            // SCOUT Twin Needles Dart (Rapid needle dart)
-            ctx.beginPath();
-            ctx.arc(0, 0, 3.5, 0, Math.PI * 2);
-            ctx.fillStyle = '#a855f7';
-            ctx.shadowColor = '#c084fc';
-            ctx.shadowBlur = 9;
-            ctx.fill();
+            // --- SCOUT TWIN HYPERSONIC NEEDLE DARTS ---
+            [-3.5, 3.5].forEach(yOffset => {
+                ctx.beginPath();
+                ctx.arc(2, yOffset, 2.5, 0, Math.PI * 2);
+                ctx.fillStyle = '#c084fc';
+                ctx.shadowColor = '#a855f7';
+                ctx.shadowBlur = 10;
+                ctx.fill();
 
-            ctx.beginPath();
-            ctx.moveTo(3, 0);
-            ctx.lineTo(-14, -2);
-            ctx.lineTo(-14, 2);
-            ctx.closePath();
-            ctx.fillStyle = 'rgba(192, 132, 252, 0.6)';
-            ctx.fill();
+                ctx.beginPath();
+                ctx.moveTo(4, yOffset);
+                ctx.lineTo(-15, yOffset - 1.5);
+                ctx.lineTo(-15, yOffset + 1.5);
+                ctx.closePath();
+                ctx.fillStyle = 'rgba(192, 132, 252, 0.75)';
+                ctx.fill();
 
+                ctx.beginPath();
+                ctx.arc(2, yOffset, 1.2, 0, Math.PI * 2);
+                ctx.fillStyle = '#ffffff';
+                ctx.fill();
+            });
+
+            // Electric discharge arc between twin needles
             ctx.beginPath();
-            ctx.arc(0, 0, 1.8, 0, Math.PI * 2);
-            ctx.fillStyle = '#f3e8ff';
-            ctx.fill();
+            ctx.moveTo(0, -3.5);
+            ctx.lineTo(-4, 0);
+            ctx.lineTo(0, 3.5);
+            ctx.strokeStyle = '#e9d5ff';
+            ctx.lineWidth = 1;
+            ctx.stroke();
+
         } else {
-            // ASSAULT Pulse Blaster (Balanced pulse bolt)
+            // --- ASSAULT PULSE BLASTER (Balanced Emerald Energy Dart) ---
+            // Plasma wing fins
+            ctx.beginPath();
+            ctx.moveTo(6, 0);
+            ctx.lineTo(-12, -4.5);
+            ctx.lineTo(-8, 0);
+            ctx.lineTo(-12, 4.5);
+            ctx.closePath();
+            ctx.fillStyle = 'rgba(16, 185, 129, 0.45)';
+            ctx.fill();
+
+            // Emerald energy core
             ctx.beginPath();
             ctx.arc(0, 0, 5, 0, Math.PI * 2);
             ctx.fillStyle = '#10b981';
             ctx.shadowColor = '#34d399';
-            ctx.shadowBlur = 10;
+            ctx.shadowBlur = 12;
             ctx.fill();
 
+            // Ionized white center
             ctx.beginPath();
-            ctx.arc(0, 0, 2.5, 0, Math.PI * 2);
-            ctx.fillStyle = '#ecfdf5';
-            ctx.fill();
-
-            ctx.beginPath();
-            ctx.moveTo(2, 0);
-            ctx.lineTo(-15, -2.5);
-            ctx.lineTo(-15, 2.5);
-            ctx.closePath();
-            ctx.fillStyle = 'rgba(16, 185, 129, 0.45)';
+            ctx.arc(1, 0, 2.5, 0, Math.PI * 2);
+            ctx.fillStyle = '#ffffff';
             ctx.fill();
         }
 
@@ -3704,24 +4106,26 @@ function renderPlayer() {
     ctx.fillStyle = '#ffffff';
     ctx.fill();
 
-    // 5b. Directional Tactical Laser Aiming Beam
-    ctx.save();
-    ctx.strokeStyle = classInfo.accentColor || 'rgba(56, 189, 248, 0.45)';
-    ctx.lineWidth = 1;
-    ctx.setLineDash([3, 5]);
-    ctx.beginPath();
-    ctx.moveTo(pointerX, pointerY);
-    const laserLength = 75;
-    const laserEndX = Math.cos(player.heading) * (pointerDist + laserLength);
-    const laserEndY = Math.sin(player.heading) * (pointerDist + laserLength);
-    ctx.lineTo(laserEndX, laserEndY);
-    ctx.stroke();
+    // 5b. Directional Tactical Laser Aiming Beam (fallback when cursor off canvas)
+    if (lastAimX === null || lastAimY === null) {
+        ctx.save();
+        ctx.strokeStyle = classInfo.accentColor || 'rgba(56, 189, 248, 0.45)';
+        ctx.lineWidth = 1;
+        ctx.setLineDash([3, 5]);
+        ctx.beginPath();
+        ctx.moveTo(pointerX, pointerY);
+        const laserLength = 75;
+        const laserEndX = Math.cos(player.heading) * (pointerDist + laserLength);
+        const laserEndY = Math.sin(player.heading) * (pointerDist + laserLength);
+        ctx.lineTo(laserEndX, laserEndY);
+        ctx.stroke();
 
-    ctx.beginPath();
-    ctx.arc(laserEndX, laserEndY, 2, 0, Math.PI * 2);
-    ctx.fillStyle = classInfo.accentColor || '#38bdf8';
-    ctx.fill();
-    ctx.restore();
+        ctx.beginPath();
+        ctx.arc(laserEndX, laserEndY, 2, 0, Math.PI * 2);
+        ctx.fillStyle = classInfo.accentColor || '#38bdf8';
+        ctx.fill();
+        ctx.restore();
+    }
 
     // 6. Floating Health Bar & Shield Bar
     const barWidth = 36;
@@ -4321,6 +4725,7 @@ class PvPEmulatorEngine {
                 hudKd.textContent = `${player.kills} K / ${player.deaths} D`;
                 soundEngine.playKillcam();
                 addFloatingText('+10 ELIMINATED!', bot.x, bot.y - 32, '#10b981', true);
+                showKillBanner(bot.name, 10);
             } else {
                 const killerBot = this.bots.find(b => b.name === attackerName);
                 if (killerBot) {
@@ -4363,7 +4768,7 @@ class PvPEmulatorEngine {
             player.health -= actualDmg;
         }
 
-        hudHp.textContent = `${Math.max(0, player.health)} / ${player.maxHealth} HP`;
+        updateHudHealth();
         addFloatingText(`-${damage}`, player.x, player.y - 20, '#ef4444', false);
         soundEngine.playHit();
 
@@ -4371,7 +4776,9 @@ class PvPEmulatorEngine {
             player.alive = false;
             player.health = 0;
             player.deaths++;
-            hudKd.textContent = `${player.kills} K / ${player.deaths} D`;
+            playerKillstreak = 0;
+            soundEngine.updateHeartbeat(false);
+            updateHudHealth();
 
             const killerBot = this.bots.find(b => b.name === attackerName);
             if (killerBot) {
@@ -4404,7 +4811,7 @@ class PvPEmulatorEngine {
                         player.shield = player.maxShield;
                         player.x = 140;
                         player.y = 300;
-                        hudHp.textContent = `${player.health} / ${player.maxHealth} HP`;
+                        updateHudHealth();
                         addShockwave(player.x, player.y, 70, '#00f2fe');
                     }
                 }, 1000);
@@ -4777,6 +5184,7 @@ function gameLoop(currentTime) {
     renderEmotes(dt);
     renderFloatingTexts(dt);
     renderHitmarkers();
+    renderTacticalReticle();
     renderTacticalRadar();
 
     if (hasShake) {
@@ -5974,6 +6382,7 @@ function addKillFeedMessage(killer, victim) {
 
 const hudMaxHp = document.getElementById('hudMaxHp');
 const hudHpFill = document.getElementById('hudHpFill');
+const hudHpGhost = document.getElementById('hudHpGhost');
 const hudShieldFill = document.getElementById('hudShieldFill');
 const hudShield = document.getElementById('hudShield');
 const hudScoreFill = document.getElementById('hudScoreFill');
@@ -5988,6 +6397,9 @@ function updateHudHealth() {
     const hpPct = Math.round(hpRatio * 100);
     if (hudHpFill) {
         hudHpFill.style.width = `${hpPct}%`;
+        if (hudHpGhost) {
+            hudHpGhost.style.width = `${hpPct}%`;
+        }
         if (hpRatio <= 0.25) {
             hudHpFill.classList.add('critical');
         } else {
@@ -6006,12 +6418,15 @@ function updateHudHealth() {
     if (hpRatio <= 0.28 && player.alive) {
         hudHp.className = 'low-hp';
         document.getElementById('combatDamageVignette')?.classList.add('danger-pulse');
+        soundEngine.updateHeartbeat(true);
     } else if (hpRatio <= 0.5) {
         hudHp.className = 'mid-hp';
         document.getElementById('combatDamageVignette')?.classList.remove('danger-pulse');
+        soundEngine.updateHeartbeat(false);
     } else {
         hudHp.className = '';
         document.getElementById('combatDamageVignette')?.classList.remove('danger-pulse');
+        soundEngine.updateHeartbeat(false);
     }
     hudKd.textContent = `${player.kills} / ${player.deaths}`;
 
