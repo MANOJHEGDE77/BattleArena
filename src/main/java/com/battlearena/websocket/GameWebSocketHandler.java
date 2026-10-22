@@ -60,6 +60,7 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
     private final ConcurrentMap<String, Set<WebSocketSession>> roomSessions = new ConcurrentHashMap<>();
     private final ConcurrentMap<String, Long> lastEmoteTimes = new ConcurrentHashMap<>();
     private final ScheduledExecutorService respawnScheduler = Executors.newSingleThreadScheduledExecutor();
+    private long tickCounter = 0;
 
     public GameWebSocketHandler(JwtUtil jwtUtil, RoomService roomService, UserService userService,
                                 com.battlearena.service.MatchService matchService, ObjectMapper mapper) {
@@ -68,7 +69,7 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
         this.userService = userService;
         this.matchService = matchService;
         this.mapper = mapper;
-        this.respawnScheduler.scheduleAtFixedRate(this::tickActiveRooms, 1, 1, TimeUnit.SECONDS);
+        this.respawnScheduler.scheduleAtFixedRate(this::tickActiveRooms, 200, 200, TimeUnit.MILLISECONDS);
     }
 
     @Override
@@ -846,123 +847,128 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
     }
 
     private void tickActiveRooms() {
+        tickCounter++;
+        boolean isSecondTick = (tickCounter % 5 == 0);
+
         for (String roomId : roomSessions.keySet()) {
             try {
                 Room room = roomService.getActiveRoom(roomId);
                 if (room != null && room.getStatus() == RoomStatus.PLAYING) {
-                    // 1. Check timer expiration
-                    if (room.checkMatchTimerExpired()) {
-                        onMatchFinished(room, roomId);
-                        continue;
-                    }
-
-                    // 2. Broadcast ZONE_TICK with current radius and time remaining
-                    long timeRemaining = room.getTimeRemainingSeconds();
-                    double radius = room.getCurrentSafeZoneRadius();
-                    boolean suddenDeath = room.isSuddenDeathActive();
-
-                    broadcastToRoom(roomId, Map.of(
-                            "type", "ZONE_TICK",
-                            "timeRemaining", timeRemaining,
-                            "safeZoneRadius", Math.round(radius * 10.0) / 10.0,
-                            "suddenDeath", suddenDeath
-                    ));
-
-                    // 3. Process zone storm tick damage for combatants outside perimeter
-                    List<Room.ZoneDamageEvent> dmgEvents = room.tickZoneDamage();
-                    for (Room.ZoneDamageEvent evt : dmgEvents) {
-                        broadcastToRoom(roomId, Map.of(
-                                "type", "ZONE_DAMAGE",
-                                "username", evt.username(),
-                                "damage", evt.damage(),
-                                "currentHealth", evt.currentHealth(),
-                                "currentShield", evt.currentShield(),
-                                "isEliminated", evt.eliminated()
-                        ));
-
-                        if (evt.eliminated()) {
-                            eliminatePlayerByHazard(room, roomId, evt.username(), "THE_STORM");
+                    if (isSecondTick) {
+                        // 1. Check timer expiration
+                        if (room.checkMatchTimerExpired()) {
+                            onMatchFinished(room, roomId);
+                            continue;
                         }
-                    }
 
-                    // 4. Process Jump Pads (Kinetic Boost)
-                    List<Room.JumpPadEvent> padEvents = room.tickJumpPads();
-                    for (Room.JumpPadEvent evt : padEvents) {
+                        // 2. Broadcast ZONE_TICK with current radius and time remaining
+                        long timeRemaining = room.getTimeRemainingSeconds();
+                        double radius = room.getCurrentSafeZoneRadius();
+                        boolean suddenDeath = room.isSuddenDeathActive();
+
                         broadcastToRoom(roomId, Map.of(
-                                "type", "JUMP_PAD_LAUNCHED",
-                                "hazardId", evt.hazardId(),
-                                "username", evt.username(),
-                                "launchX", evt.launchX(),
-                                "launchY", evt.launchY(),
-                                "boostAngle", evt.boostAngle(),
-                                "boostPower", evt.boostPower()
+                                "type", "ZONE_TICK",
+                                "timeRemaining", timeRemaining,
+                                "safeZoneRadius", Math.round(radius * 10.0) / 10.0,
+                                "suddenDeath", suddenDeath
                         ));
-                    }
 
-                    // 5. Process Thermal Plasma Lava Pools
-                    List<Room.HazardDamageEvent> lavaEvents = room.tickLavaPools();
-                    for (Room.HazardDamageEvent evt : lavaEvents) {
-                        broadcastToRoom(roomId, Map.of(
-                                "type", "HAZARD_DAMAGE",
-                                "hazardId", evt.hazardId(),
-                                "username", evt.username(),
-                                "damage", evt.damage(),
-                                "currentHealth", evt.currentHealth(),
-                                "currentShield", evt.currentShield(),
-                                "isEliminated", evt.eliminated()
-                        ));
-                        if (evt.eliminated()) {
-                            eliminatePlayerByHazard(room, roomId, evt.username(), "PLASMA_FIELD");
-                        }
-                    }
+                        // 3. Process zone storm tick damage for combatants outside perimeter
+                        List<Room.ZoneDamageEvent> dmgEvents = room.tickZoneDamage();
+                        for (Room.ZoneDamageEvent evt : dmgEvents) {
+                            broadcastToRoom(roomId, Map.of(
+                                    "type", "ZONE_DAMAGE",
+                                    "username", evt.username(),
+                                    "damage", evt.damage(),
+                                    "currentHealth", evt.currentHealth(),
+                                    "currentShield", evt.currentShield(),
+                                    "eliminated", evt.eliminated()
+                            ));
 
-                    // 6. Respawn explosive barrels if timer elapsed
-                    room.tickBarrelRespawns();
-
-                    // 6b. Tick Overcharge Beacon Dynamic Arena Event
-                    boolean wasBeaconActive = room.isBeaconActive();
-                    boolean nowBeaconActive = room.checkBeaconActiveState(timeRemaining);
-                    String capturingUser = null;
-
-                    if (nowBeaconActive) {
-                        double bx = room.getBeaconX();
-                        double by = room.getBeaconY();
-                        double br = room.getBeaconRadius();
-
-                        for (GamePlayer gp : room.getGamePlayers()) {
-                            if (gp.isAlive()) {
-                                double d2 = Math.hypot(gp.getX() - bx, gp.getY() - by);
-                                if (d2 <= br) {
-                                    capturingUser = gp.getUsername();
-                                    // Award capture bonus points and overshield
-                                    gp.addScore(2);
-                                    if (gp.getShield() < gp.getMaxShield()) {
-                                        gp.addShield(6);
-                                    }
-                                    if (gp.getScore() >= room.getTargetWinningScore()) {
-                                        onMatchFinished(room, roomId);
-                                        break;
-                                    }
-                                    break;
-                                }
+                            if (evt.eliminated()) {
+                                eliminatePlayerByHazard(room, roomId, evt.username(), "THE_STORM");
                             }
                         }
-                        room.setBeaconCapturedBy(capturingUser);
+
+                        // 4. Process Jump Pads (Kinetic Boost)
+                        List<Room.JumpPadEvent> padEvents = room.tickJumpPads();
+                        for (Room.JumpPadEvent evt : padEvents) {
+                            broadcastToRoom(roomId, Map.of(
+                                    "type", "JUMP_PAD_LAUNCHED",
+                                    "hazardId", evt.hazardId(),
+                                    "username", evt.username(),
+                                    "launchX", evt.launchX(),
+                                    "launchY", evt.launchY(),
+                                    "boostAngle", evt.boostAngle(),
+                                    "boostPower", evt.boostPower()
+                            ));
+                        }
+
+                        // 5. Process Thermal Plasma Lava Pools
+                        List<Room.HazardDamageEvent> lavaEvents = room.tickLavaPools();
+                        for (Room.HazardDamageEvent evt : lavaEvents) {
+                            broadcastToRoom(roomId, Map.of(
+                                    "type", "HAZARD_DAMAGE",
+                                    "hazardId", evt.hazardId(),
+                                    "username", evt.username(),
+                                    "damage", evt.damage(),
+                                    "currentHealth", evt.currentHealth(),
+                                    "currentShield", evt.currentShield(),
+                                    "eliminated", evt.eliminated()
+                            ));
+                            if (evt.eliminated()) {
+                                eliminatePlayerByHazard(room, roomId, evt.username(), "PLASMA_FIELD");
+                            }
+                        }
+
+                        // 6. Respawn explosive barrels if timer elapsed
+                        room.tickBarrelRespawns();
+
+                        // 6b. Tick Overcharge Beacon Dynamic Arena Event
+                        boolean wasBeaconActive = room.isBeaconActive();
+                        boolean nowBeaconActive = room.checkBeaconActiveState(timeRemaining);
+                        String capturingUser = null;
+
+                        if (nowBeaconActive) {
+                            double bx = room.getBeaconX();
+                            double by = room.getBeaconY();
+                            double br = room.getBeaconRadius();
+
+                            for (GamePlayer gp : room.getGamePlayers()) {
+                                if (gp.isAlive()) {
+                                    double d2 = Math.hypot(gp.getX() - bx, gp.getY() - by);
+                                    if (d2 <= br) {
+                                        capturingUser = gp.getUsername();
+                                        // Award capture bonus points and overshield
+                                        gp.addScore(2);
+                                        if (gp.getShield() < gp.getMaxShield()) {
+                                            gp.addShield(6);
+                                        }
+                                        if (gp.getScore() >= room.getTargetWinningScore()) {
+                                            onMatchFinished(room, roomId);
+                                            break;
+                                        }
+                                        break;
+                                    }
+                                }
+                            }
+                            room.setBeaconCapturedBy(capturingUser);
+                        }
+
+                        if (wasBeaconActive != nowBeaconActive || capturingUser != null) {
+                            broadcastToRoom(roomId, Map.of(
+                                    "type", "BEACON_UPDATE",
+                                    "active", nowBeaconActive,
+                                    "x", room.getBeaconX(),
+                                    "y", room.getBeaconY(),
+                                    "radius", room.getBeaconRadius(),
+                                    "capturedBy", capturingUser != null ? capturingUser : ""
+                            ));
+                        }
                     }
 
-                    if (wasBeaconActive != nowBeaconActive || capturingUser != null) {
-                        broadcastToRoom(roomId, Map.of(
-                                "type", "BEACON_UPDATE",
-                                "active", nowBeaconActive,
-                                "x", room.getBeaconX(),
-                                "y", room.getBeaconY(),
-                                "radius", room.getBeaconRadius(),
-                                "capturedBy", capturingUser != null ? capturingUser : ""
-                        ));
-                    }
-
-                    // 7. Tick autonomous Cyber AI Combat Bots
-                    tickBots(room, roomId);
+                    // 7. Tick autonomous Cyber AI Combat Bots (5 Hz smooth update, dt = 0.20s)
+                    tickBots(room, roomId, 0.20);
                 }
             } catch (Exception ignored) {
                 // Ignore transient ticker error
@@ -970,7 +976,7 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
         }
     }
 
-    private void tickBots(Room room, String roomId) {
+    private void tickBots(Room room, String roomId, double dt) {
         if (room == null || room.getStatus() != RoomStatus.PLAYING) return;
 
         Collection<GamePlayer> allPlayers = room.getGamePlayers();
@@ -1035,7 +1041,7 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
                 double dy = target.getY() - bot.getY();
                 heading = Math.atan2(dy, dx);
 
-                double moveSpeed = bot.getSpeed() * speedMult;
+                double moveSpeed = bot.getSpeed() * speedMult * dt;
                 double stepX = 0;
                 double stepY = 0;
 
@@ -1160,8 +1166,8 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
                         double lhDist = Math.hypot(bot.getX() - h.getX(), bot.getY() - h.getY());
                         if (lhDist < 58.0) {
                             double pushAngle = Math.atan2(bot.getY() - h.getY(), bot.getX() - h.getX());
-                            stepX += Math.cos(pushAngle) * 20.0;
-                            stepY += Math.sin(pushAngle) * 20.0;
+                            stepX += Math.cos(pushAngle) * (100.0 * dt);
+                            stepY += Math.sin(pushAngle) * (100.0 * dt);
                         }
                     }
                 }

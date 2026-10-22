@@ -10,13 +10,19 @@ const ctx = canvas.getContext('2d');
 // --- Resolution & High-DPI Display Scaling ---
 const ARENA_WIDTH = 800;
 const ARENA_HEIGHT = 600;
-const dpr = Math.min(window.devicePixelRatio || 1, 2);
-if (canvas) {
-    canvas.width = ARENA_WIDTH * dpr;
-    canvas.height = ARENA_HEIGHT * dpr;
-    canvas.style.width = ARENA_WIDTH + 'px';
-    canvas.style.height = ARENA_HEIGHT + 'px';
+let dpr = Math.min(window.devicePixelRatio || 1, 2);
+
+function updateCanvasScaling() {
+    if (!canvas) return;
+    dpr = Math.min(window.devicePixelRatio || 1, 2);
+    canvas.width = Math.round(ARENA_WIDTH * dpr);
+    canvas.height = Math.round(ARENA_HEIGHT * dpr);
+    canvas.style.maxWidth = '100%';
+    canvas.style.maxHeight = '100%';
+    canvas.style.aspectRatio = '4 / 3';
 }
+updateCanvasScaling();
+window.addEventListener('resize', updateCanvasScaling);
 
 const hudPos = document.getElementById('hudPos');
 const hudFps = document.getElementById('hudFps');
@@ -950,6 +956,38 @@ class SoundEngine {
         } catch {}
     }
 
+    playShieldBreak() {
+        if (this.muted) return;
+        this.init();
+        if (!this.ctx) return;
+        try {
+            const now = this.ctx.currentTime;
+            const osc1 = this.ctx.createOscillator();
+            const osc2 = this.ctx.createOscillator();
+            const gain = this.ctx.createGain();
+
+            osc1.type = 'sawtooth';
+            osc1.frequency.setValueAtTime(1800, now);
+            osc1.frequency.exponentialRampToValueAtTime(120, now + 0.32);
+
+            osc2.type = 'square';
+            osc2.frequency.setValueAtTime(950, now);
+            osc2.frequency.exponentialRampToValueAtTime(60, now + 0.28);
+
+            gain.gain.setValueAtTime(this.getEffectiveVolume() * 0.95, now);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.32);
+
+            osc1.connect(gain);
+            osc2.connect(gain);
+            gain.connect(this.ctx.destination);
+
+            osc1.start(now);
+            osc2.start(now);
+            osc1.stop(now + 0.33);
+            osc2.stop(now + 0.33);
+        } catch {}
+    }
+
     playCoin() {
         if (this.muted) return;
         this.init();
@@ -1504,7 +1542,8 @@ const player = {
 const activeKeys = new Set();
 
 window.addEventListener('keydown', (e) => {
-    if (document.activeElement === chatInput) return;
+    if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.isContentEditable)) return;
+    if (document.activeElement && (document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'TEXTAREA' || document.activeElement.isContentEditable)) return;
     if (e.key === 'Enter') {
         e.preventDefault();
         if (chatInput) chatInput.focus();
@@ -1558,6 +1597,11 @@ window.addEventListener('keydown', (e) => {
 
 window.addEventListener('keyup', (e) => {
     activeKeys.delete(e.key.toLowerCase());
+});
+
+window.addEventListener('blur', () => {
+    activeKeys.clear();
+    isPointerDown = false;
 });
 
 let lastAimX = null;
@@ -4251,7 +4295,8 @@ class PvPEmulatorEngine {
             bot.shield -= absorbed;
             actualDmg -= absorbed;
             if (bot.shield <= 0) {
-                addFloatingText('SHIELD BROKEN!', bot.x, bot.y - 30, '#38bdf8', true);
+                soundEngine.playShieldBreak();
+                addFloatingText('⚡ SHIELD BROKEN!', bot.x, bot.y - 30, '#00f2fe', true);
             }
         }
 
@@ -4309,7 +4354,8 @@ class PvPEmulatorEngine {
             player.shield -= absorbed;
             actualDmg -= absorbed;
             if (player.shield <= 0) {
-                addFloatingText('SHIELD CRACKED!', player.x, player.y - 32, '#38bdf8', true);
+                soundEngine.playShieldBreak();
+                addFloatingText('⚡ SHIELD CRACKED!', player.x, player.y - 32, '#00f2fe', true);
             }
         }
 
@@ -4670,6 +4716,9 @@ let lastFpsUpdate = performance.now();
 document.addEventListener('visibilitychange', () => {
     if (!document.hidden) {
         lastTime = performance.now();
+    } else {
+        activeKeys.clear();
+        isPointerDown = false;
     }
 });
 
@@ -5680,12 +5729,15 @@ function handleWebSocketMessage(msg) {
             addCombatSparks(targetX, targetY, isMe ? '#f43f5e' : '#38bdf8', 12);
 
             if (msg.shieldDamage > 0) {
-                soundEngine.playShieldDeflect();
-                addFloatingText(`-${msg.shieldDamage} 🛡️`, targetX, targetY - 28, '#06b6d4', false);
                 if (msg.currentShield === 0) {
-                    addShockwave(targetX, targetY, '#06b6d4', 36);
+                    soundEngine.playShieldBreak();
+                    addFloatingText('⚡ SHIELD BROKEN!', targetX, targetY - 42, '#00f2fe', true);
+                    addShockwave(targetX, targetY, 36, '#06b6d4');
                     addCombatSparks(targetX, targetY, '#38bdf8', 16);
+                } else {
+                    soundEngine.playShieldDeflect();
                 }
+                addFloatingText(`-${msg.shieldDamage} 🛡️`, targetX, targetY - 28, '#06b6d4', false);
             }
             if (msg.healthDamage > 0) {
                 const isCrit = msg.healthDamage >= 30;
@@ -6828,15 +6880,24 @@ async function joinRoom(roomId, asSpectator = false) {
 }
 
 async function leaveRoom() {
-    if (!activeRoom) return;
+    if (pvpEmulator && pvpEmulator.isActive) {
+        switchToLobbyBrowser();
+        return;
+    }
+    if (!activeRoom) {
+        switchToLobbyBrowser();
+        return;
+    }
     const roomId = activeRoom.roomId;
-    try {
-        await fetch(`/api/rooms/${roomId}/leave`, {
-            method: 'POST',
-            headers: getAuthHeaders()
-        });
-    } catch {
-        // Continue cleanup locally
+    if (roomId && !roomId.startsWith('SIM-')) {
+        try {
+            await fetch(`/api/rooms/${roomId}/leave`, {
+                method: 'POST',
+                headers: getAuthHeaders()
+            });
+        } catch {
+            // Continue cleanup locally
+        }
     }
     switchToLobbyBrowser();
 }
@@ -7356,7 +7417,15 @@ function setupRoomEventListeners() {
     if (navTabCareer) navTabCareer.addEventListener('click', () => switchView('career'));
     if (navTabLeaderboard) navTabLeaderboard.addEventListener('click', () => switchView('leaderboard'));
     if (navTabArenas) navTabArenas.addEventListener('click', () => switchView('arenas'));
-    if (topbarBrandBtn) topbarBrandBtn.addEventListener('click', () => switchView('play'));
+    if (topbarBrandBtn) {
+        topbarBrandBtn.addEventListener('click', () => switchView('play'));
+        topbarBrandBtn.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                switchView('play');
+            }
+        });
+    }
     if (heroChangeOperatorBtn) heroChangeOperatorBtn.addEventListener('click', () => switchView('operators'));
     if (heroCustomBtn) heroCustomBtn.addEventListener('click', () => switchView('arenas'));
 
@@ -7492,6 +7561,11 @@ function setupAuthEventListeners() {
             }
             if (authModal && authModal.style.display === 'flex') { closeModal(); return; }
             if (createRoomModal && createRoomModal.style.display === 'flex') { closeCreateRoomModal(); return; }
+            const pvpEmulatorModal = document.getElementById('pvpEmulatorModal');
+            if (pvpEmulatorModal && pvpEmulatorModal.style.display === 'flex') {
+                pvpEmulatorModal.style.display = 'none';
+                return;
+            }
             if (leaderboardModal && leaderboardModal.style.display === 'flex') { closeLeaderboardModal(); return; }
             if (matchHistoryModal && matchHistoryModal.style.display === 'flex') { closeMatchHistoryModal(); return; }
             if (gameOverModal && gameOverModal.style.display === 'flex') { return; }

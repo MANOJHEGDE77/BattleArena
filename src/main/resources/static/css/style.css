@@ -4059,12 +4059,26 @@ input:checked + .slider::before { transform: translateX(20px); background-color:
     }
 }
 
+@media (max-width: 900px) {
+    .client-topbar {
+        padding: 0 14px;
+    }
+    .topbar-nav {
+        gap: 3px;
+    }
+    .nav-tab {
+        padding: 0 12px;
+        font-size: 0.70rem;
+        letter-spacing: 1px;
+    }
+}
+
 @media (max-width: 768px) {
     .client-topbar {
-        padding: 0 16px;
+        padding: 0 12px;
     }
     .view-panel {
-        padding: 16px;
+        padding: 14px;
     }
     .mode-cards-grid {
         grid-template-columns: 1fr;
@@ -4079,7 +4093,25 @@ input:checked + .slider::before { transform: translateX(20px); background-color:
         grid-template-columns: 1fr;
     }
     .combat-hud-top, .combat-hud-bottom {
-        padding: 0 14px;
+        padding: 0 10px;
+    }
+}
+
+@media (max-width: 600px) {
+    .brand-subtitle {
+        display: none;
+    }
+    .nav-tab span:not(.badge-pulsing-tag) {
+        display: none;
+    }
+    .nav-tab {
+        padding: 0 9px;
+    }
+    .nav-tab .badge-pulsing-tag {
+        display: none;
+    }
+    .topbar-actions .telemetry-ping {
+        display: none;
     }
 }
 
