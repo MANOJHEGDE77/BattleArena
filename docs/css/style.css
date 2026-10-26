@@ -4862,3 +4862,137 @@ input:checked + .slider::before { transform: translateX(20px); background-color:
     color: #ffffff;
 }
 
+/* ========================================================================= */
+/* MOBILE & TOUCH CONTROLS OVERLAY                                           */
+/* ========================================================================= */
+.touch-controls-overlay {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 40;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    padding: 16px 20px;
+    touch-action: none;
+    user-select: none;
+    -webkit-user-select: none;
+}
+
+.touch-joystick-zone {
+    width: 140px;
+    height: 140px;
+    pointer-events: auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    touch-action: none;
+}
+
+.touch-joystick-base {
+    width: 110px;
+    height: 110px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(0, 242, 254, 0.08) 0%, rgba(6, 11, 25, 0.65) 100%);
+    border: 2px solid rgba(0, 242, 254, 0.35);
+    box-shadow: 0 0 16px rgba(0, 242, 254, 0.2), inset 0 0 12px rgba(0, 242, 254, 0.1);
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+}
+
+.touch-joystick-thumb {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: radial-gradient(circle, #00f2fe 0%, #0284c7 100%);
+    box-shadow: 0 0 12px #00f2fe, 0 4px 8px rgba(0,0,0,0.5);
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    transition: transform 0.04s ease-out;
+    pointer-events: none;
+}
+
+.touch-actions-zone {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 12px;
+    pointer-events: auto;
+    touch-action: none;
+}
+
+.touch-action-btn {
+    border: none;
+    border-radius: 50%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    touch-action: none;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+    transition: transform 0.1s ease, filter 0.1s ease;
+}
+
+.touch-action-btn:active {
+    transform: scale(0.92);
+}
+
+.touch-btn-fire {
+    width: 76px;
+    height: 76px;
+    background: radial-gradient(circle, rgba(239, 68, 68, 0.35) 0%, rgba(185, 28, 28, 0.8) 100%);
+    border: 2px solid #ef4444;
+    box-shadow: 0 0 16px rgba(239, 68, 68, 0.4);
+    color: #ffffff;
+}
+
+.touch-btn-fire .touch-btn-icon {
+    font-size: 24px;
+}
+
+.touch-btn-fire .touch-btn-label {
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: 1px;
+    text-shadow: 0 0 4px #ef4444;
+}
+
+.touch-btn-ability {
+    width: 62px;
+    height: 62px;
+    background: radial-gradient(circle, rgba(0, 242, 254, 0.25) 0%, rgba(2, 132, 199, 0.75) 100%);
+    border: 2px solid #00f2fe;
+    box-shadow: 0 0 12px rgba(0, 242, 254, 0.35);
+    color: #ffffff;
+}
+
+.touch-btn-ability .touch-btn-icon {
+    font-size: 20px;
+}
+
+.touch-btn-ability .touch-btn-label {
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+}
+
+.touch-btn-emote {
+    width: 44px;
+    height: 44px;
+    background: rgba(15, 23, 42, 0.75);
+    border: 1px solid rgba(148, 163, 184, 0.4);
+    color: #e2e8f0;
+    font-size: 18px;
+}
+
+

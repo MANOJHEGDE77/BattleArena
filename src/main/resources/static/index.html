@@ -904,6 +904,28 @@
                                 <button type="button" class="btn-emulator-quick" id="emulatorQuickConfigBtn" title="Change Map & Bots">⚙️ CONFIG</button>
                             </div>
                         </div>
+
+                        <!-- Mobile & Touch Screen Tactile Controller Overlay -->
+                        <div class="touch-controls-overlay" id="touchControls" style="display: none;">
+                            <div class="touch-joystick-zone" id="touchJoystickZone">
+                                <div class="touch-joystick-base" id="touchJoystickBase">
+                                    <div class="touch-joystick-thumb" id="touchJoystickThumb"></div>
+                                </div>
+                            </div>
+                            <div class="touch-actions-zone" id="touchActionsZone">
+                                <button type="button" class="touch-action-btn touch-btn-ability" id="touchAbilityBtn" title="Tactical Ability">
+                                    <span class="touch-btn-icon" id="touchAbilityIcon">⚡</span>
+                                    <span class="touch-btn-label" id="touchAbilityLabel">ABILITY</span>
+                                </button>
+                                <button type="button" class="touch-action-btn touch-btn-fire" id="touchFireBtn" title="Fire Weapon">
+                                    <span class="touch-btn-icon">🎯</span>
+                                    <span class="touch-btn-label">FIRE</span>
+                                </button>
+                                <button type="button" class="touch-action-btn touch-btn-emote" id="touchEmoteBtn" title="Tactical Emotes">
+                                    <span class="touch-btn-icon">💬</span>
+                                </button>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
@@ -969,25 +991,6 @@
                 <span>[Esc] Pause</span>
             </div>
         </footer>
-    </div>
-
-    <!-- ========================================================================= -->
-    <!-- IN-GAME TACTICAL PAUSE MENU OVERLAY [ESC] -->
-    <!-- ========================================================================= -->
-    <div class="modal-overlay" id="pauseMenuModal" style="display: none;">
-        <div class="modal-card pause-menu-card">
-            <div class="pause-menu-header">
-                <span class="tactical-badge">OPERATIONAL PAUSE</span>
-                <h3>CYBER COMBAT ARENA</h3>
-            </div>
-            <div class="pause-menu-actions">
-                <button class="btn-menu-option primary" id="pauseResumeBtn" type="button">RESUME COMBAT</button>
-                <button class="btn-menu-option" id="pauseAudioToggleBtn" type="button">TOGGLE SOUND [M]</button>
-                <button class="btn-menu-option" id="pauseSettingsBtn" type="button">SETTINGS & AUDIO</button>
-                <button class="btn-menu-option" id="pauseIntelBtn" type="button">TACTICAL MANUAL [H]</button>
-                <button class="btn-menu-option danger" id="pauseLeaveMatchBtn" type="button">LEAVE MATCH TO MENU</button>
-            </div>
-        </div>
     </div>
 
     <!-- ========================================================================= -->

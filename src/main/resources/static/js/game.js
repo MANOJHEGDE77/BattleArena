@@ -1616,6 +1616,7 @@ const player = {
 
 // --- Input Manager ---
 const activeKeys = new Set();
+let touchMoveVector = { x: 0, y: 0 };
 
 window.addEventListener('keydown', (e) => {
     if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.isContentEditable)) return;
@@ -1905,8 +1906,8 @@ canvas.addEventListener('pointermove', (e) => {
     const rect = canvas.getBoundingClientRect();
     const scaleX = ARENA_WIDTH / rect.width;
     const scaleY = ARENA_HEIGHT / rect.height;
-    lastAimX = (e.clientX - rect.left) * scaleX;
-    lastAimY = (e.clientY - rect.top) * scaleY;
+    lastAimX = Math.max(0, Math.min(ARENA_WIDTH, (e.clientX - rect.left) * scaleX));
+    lastAimY = Math.max(0, Math.min(ARENA_HEIGHT, (e.clientY - rect.top) * scaleY));
     player.heading = Math.atan2(lastAimY - player.y, lastAimX - player.x);
 });
 
@@ -1919,18 +1920,26 @@ canvas.addEventListener('pointerdown', (e) => {
         return;
     }
     isPointerDown = true;
+    try {
+        canvas.setPointerCapture(e.pointerId);
+    } catch (_) {}
     const rect = canvas.getBoundingClientRect();
     const scaleX = ARENA_WIDTH / rect.width;
     const scaleY = ARENA_HEIGHT / rect.height;
-    lastAimX = (e.clientX - rect.left) * scaleX;
-    lastAimY = (e.clientY - rect.top) * scaleY;
+    lastAimX = Math.max(0, Math.min(ARENA_WIDTH, (e.clientX - rect.left) * scaleX));
+    lastAimY = Math.max(0, Math.min(ARENA_HEIGHT, (e.clientY - rect.top) * scaleY));
     const heading = Math.atan2(lastAimY - player.y, lastAimX - player.x);
     player.heading = heading;
-    fireBlaster(heading);
+    fireBlaster(heading, false);
 });
 
-window.addEventListener('pointerup', () => {
+window.addEventListener('pointerup', (e) => {
     isPointerDown = false;
+    try {
+        if (e && e.pointerId && canvas.hasPointerCapture(e.pointerId)) {
+            canvas.releasePointerCapture(e.pointerId);
+        }
+    } catch (_) {}
 });
 
 canvas.addEventListener('pointerenter', () => {
@@ -1940,17 +1949,16 @@ canvas.addEventListener('pointerenter', () => {
 });
 
 canvas.addEventListener('pointerleave', () => {
-    isPointerDown = false;
-    canvas.classList.remove('tactical-active');
-    lastAimX = null;
-    lastAimY = null;
+    if (!isPointerDown) {
+        canvas.classList.remove('tactical-active');
+    }
 });
 
 canvas.addEventListener('contextmenu', (e) => {
     e.preventDefault();
 });
 
-function fireBlaster(targetHeading) {
+function fireBlaster(targetHeading, isContinuous = false) {
     if (isGameOver || !player.alive || isSpectator) return;
     const isEmulating = pvpEmulator && pvpEmulator.isActive;
     if (!isEmulating) {
@@ -1967,7 +1975,8 @@ function fireBlaster(targetHeading) {
 
     const now = performance.now();
     if (now - player.lastAttackTime < cooldown) {
-        if (!player._lastDryFire || now - player._lastDryFire > 180) {
+        // Tactical tactile click on manual trigger only, never during full-auto continuous fire
+        if (!isContinuous && (!player._lastDryFire || now - player._lastDryFire > 180)) {
             player._lastDryFire = now;
             soundEngine.playDryFire();
         }
@@ -1997,9 +2006,11 @@ function fireBlaster(targetHeading) {
     }
 }
 
-// Clear keys if window loses focus to avoid "stuck key" glitch
+// Clear keys and pointer state if window loses focus to avoid "stuck key" glitch
 window.addEventListener('blur', () => {
     activeKeys.clear();
+    isPointerDown = false;
+    touchMoveVector = { x: 0, y: 0 };
 });
 
 // Update projectiles flight and client-side hit trigger
@@ -2147,6 +2158,12 @@ function updatePhysics(dt) {
     if (activeKeys.has('a') || activeKeys.has('arrowleft')) moveX -= 1;
     if (activeKeys.has('d') || activeKeys.has('arrowright')) moveX += 1;
 
+    // Incorporate Touch Virtual Joystick movement vector
+    if (touchMoveVector && (touchMoveVector.x !== 0 || touchMoveVector.y !== 0)) {
+        moveX += touchMoveVector.x;
+        moveY += touchMoveVector.y;
+    }
+
     // Update player heading angle based on mouse aim or movement direction (works moving or stationary)
     if (lastAimX !== null && lastAimY !== null) {
         player.heading = Math.atan2(lastAimY - player.y, lastAimX - player.x);
@@ -2156,7 +2173,7 @@ function updatePhysics(dt) {
 
     // Continuous automatic firing while holding mouse button down
     if (isPointerDown && !isGameOver && player.alive && !isSpectator) {
-        fireBlaster(player.heading);
+        fireBlaster(player.heading, true);
     }
 
     // Normalize diagonal movement vector so diagonal speed == straight speed
@@ -2216,6 +2233,11 @@ function updatePhysics(dt) {
                 }
             });
         }
+    } else {
+        // Stationary: broadcast if player swiveled their aim by more than ~2.3 degrees (0.04 rad)
+        if (Math.abs(player.heading - lastBroadcastHeading) > 0.04) {
+            broadcastPlayerMovement();
+        }
     }
 
     // Update lightweight HUD
@@ -2223,12 +2245,14 @@ function updatePhysics(dt) {
 }
 
 let lastBroadcastTime = 0;
-function broadcastPlayerMovement() {
+let lastBroadcastHeading = 0;
+function broadcastPlayerMovement(force = false) {
     if (!gameWs || gameWs.readyState !== WebSocket.OPEN || isSpectator) return;
     const now = performance.now();
     // Throttle to ~30 updates/sec to minimize bandwidth and CPU
-    if (now - lastBroadcastTime < 33) return;
+    if (!force && now - lastBroadcastTime < 33) return;
     lastBroadcastTime = now;
+    lastBroadcastHeading = player.heading;
 
     gameWs.send(JSON.stringify({
         type: 'MOVE',
@@ -7025,6 +7049,7 @@ function updateGameLayoutState() {
             }
         }
     }
+    updateTouchControlsVisibility();
 }
 
 function switchToLobbyBrowser() {
@@ -8374,6 +8399,133 @@ function setupPvPEmulatorEventListeners() {
     }
 }
 
+// --- Mobile & Touch Screen Tactile Controller Engine ---
+let isTouchDevice = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0) || (window.matchMedia && window.matchMedia('(pointer: coarse)').matches);
+
+function updateTouchControlsVisibility() {
+    const touchOverlay = document.getElementById('touchControls');
+    if (!touchOverlay) return;
+    const inGame = (activeRoom && activeRoom.status === 'PLAYING') || (pvpEmulator && pvpEmulator.isActive);
+    if (isTouchDevice && inGame && player.alive && !isSpectator) {
+        touchOverlay.style.display = 'flex';
+    } else {
+        touchOverlay.style.display = 'none';
+    }
+}
+
+function setupTouchControlsEventListeners() {
+    const touchOverlay = document.getElementById('touchControls');
+    const joystickZone = document.getElementById('touchJoystickZone');
+    const joystickBase = document.getElementById('touchJoystickBase');
+    const joystickThumb = document.getElementById('touchJoystickThumb');
+    const touchFireBtn = document.getElementById('touchFireBtn');
+    const touchAbilityBtn = document.getElementById('touchAbilityBtn');
+    const touchEmoteBtn = document.getElementById('touchEmoteBtn');
+
+    if (!joystickZone || !joystickThumb) return;
+
+    let joystickActive = false;
+    let joystickCenter = { x: 0, y: 0 };
+    const maxRadius = 45;
+
+    function handleJoystickStart(e) {
+        soundEngine.init();
+        joystickActive = true;
+        const rect = joystickBase.getBoundingClientRect();
+        joystickCenter = {
+            x: rect.left + rect.width / 2,
+            y: rect.top + rect.height / 2
+        };
+        handleJoystickMove(e);
+    }
+
+    function handleJoystickMove(e) {
+        if (!joystickActive) return;
+        const clientX = e.clientX !== undefined ? e.clientX : (e.touches && e.touches[0] ? e.touches[0].clientX : joystickCenter.x);
+        const clientY = e.clientY !== undefined ? e.clientY : (e.touches && e.touches[0] ? e.touches[0].clientY : joystickCenter.y);
+        const dx = clientX - joystickCenter.x;
+        const dy = clientY - joystickCenter.y;
+        const dist = Math.hypot(dx, dy);
+
+        if (dist === 0) {
+            touchMoveVector = { x: 0, y: 0 };
+            joystickThumb.style.transform = 'translate(-50%, -50%)';
+            return;
+        }
+
+        const angle = Math.atan2(dy, dx);
+        const clampedDist = Math.min(dist, maxRadius);
+        const thumbX = Math.cos(angle) * clampedDist;
+        const thumbY = Math.sin(angle) * clampedDist;
+
+        joystickThumb.style.transform = `translate(calc(-50% + ${thumbX}px), calc(-50% + ${thumbY}px))`;
+        touchMoveVector = {
+            x: Math.cos(angle) * (clampedDist / maxRadius),
+            y: Math.sin(angle) * (clampedDist / maxRadius)
+        };
+        // Update aim heading in direction of thumb movement if not manual-firing
+        if (!isPointerDown) {
+            player.heading = angle;
+        }
+    }
+
+    function handleJoystickEnd() {
+        joystickActive = false;
+        touchMoveVector = { x: 0, y: 0 };
+        joystickThumb.style.transform = 'translate(-50%, -50%)';
+    }
+
+    joystickZone.addEventListener('pointerdown', (e) => {
+        try { joystickZone.setPointerCapture(e.pointerId); } catch (_) {}
+        handleJoystickStart(e);
+    });
+    joystickZone.addEventListener('pointermove', handleJoystickMove);
+    joystickZone.addEventListener('pointerup', (e) => {
+        try { if (e && e.pointerId && joystickZone.hasPointerCapture(e.pointerId)) joystickZone.releasePointerCapture(e.pointerId); } catch (_) {}
+        handleJoystickEnd();
+    });
+    joystickZone.addEventListener('pointercancel', handleJoystickEnd);
+
+    // Touch Fire Button (supports hold for continuous fire)
+    if (touchFireBtn) {
+        touchFireBtn.addEventListener('pointerdown', (e) => {
+            soundEngine.init();
+            isPointerDown = true;
+            try { touchFireBtn.setPointerCapture(e.pointerId); } catch (_) {}
+            fireBlaster(player.heading, false);
+        });
+        touchFireBtn.addEventListener('pointerup', (e) => {
+            isPointerDown = false;
+            try { if (e && e.pointerId && touchFireBtn.hasPointerCapture(e.pointerId)) touchFireBtn.releasePointerCapture(e.pointerId); } catch (_) {}
+        });
+        touchFireBtn.addEventListener('pointercancel', () => { isPointerDown = false; });
+    }
+
+    // Touch Ability Button
+    if (touchAbilityBtn) {
+        touchAbilityBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            soundEngine.init();
+            triggerClassAbility();
+        });
+    }
+
+    // Touch Emote Button
+    if (touchEmoteBtn) {
+        touchEmoteBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            toggleEmoteWheel();
+        });
+    }
+
+    window.addEventListener('touchstart', () => {
+        if (!isTouchDevice) {
+            isTouchDevice = true;
+            updateTouchControlsVisibility();
+        }
+    }, { once: true, passive: true });
+}
+
 // --- Application Bootstrap ---
 window.addEventListener('DOMContentLoaded', () => {
     setupAuthEventListeners();
@@ -8386,6 +8538,7 @@ window.addEventListener('DOMContentLoaded', () => {
     setupChatEventListeners();
     setupEmoteEventListeners();
     setupPvPEmulatorEventListeners();
+    setupTouchControlsEventListeners();
     checkBackendHealth();
     updateGameLayoutState();
     verifyExistingSession().then(() => {
