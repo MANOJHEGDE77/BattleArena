@@ -1614,6 +1614,9 @@ const player = {
     damageFlashTimer: 0
 };
 
+let playerVx = 0;
+let playerVy = 0;
+
 // --- Input Manager ---
 const activeKeys = new Set();
 let touchMoveVector = { x: 0, y: 0 };
@@ -2177,17 +2180,27 @@ function updatePhysics(dt) {
     }
 
     // Normalize diagonal movement vector so diagonal speed == straight speed
-    if (moveX !== 0 || moveY !== 0) {
-        const length = Math.hypot(moveX, moveY);
+    const length = Math.hypot(moveX, moveY);
+    if (length > 0) {
         moveX /= length;
         moveY /= length;
+    }
 
-        // Apply frame-rate independent displacement with speed boost and stim buff support
-        const nowMs = Date.now();
-        const isSpeedBuffed = (player.speedBoostUntil > nowMs) || (player.stimUntil && player.stimUntil > nowMs);
-        const effectiveSpeed = isSpeedBuffed ? player.speed * 1.4 : player.speed;
-        player.x += moveX * effectiveSpeed * dt;
-        player.y += moveY * effectiveSpeed * dt;
+    // Apply frame-rate independent displacement with smooth velocity dampening
+    const nowMs = Date.now();
+    const isSpeedBuffed = (player.speedBoostUntil > nowMs) || (player.stimUntil && player.stimUntil > nowMs);
+    const effectiveSpeed = isSpeedBuffed ? player.speed * 1.4 : player.speed;
+    const targetVx = moveX * effectiveSpeed;
+    const targetVy = moveY * effectiveSpeed;
+
+    const accel = length > 0 ? 28 : 22;
+    const blend = Math.min(1, accel * dt);
+    playerVx += (targetVx - playerVx) * blend;
+    playerVy += (targetVy - playerVy) * blend;
+
+    if (Math.abs(playerVx) > 0.4 || Math.abs(playerVy) > 0.4) {
+        player.x += playerVx * dt;
+        player.y += playerVy * dt;
 
         if (Math.random() < 0.65) {
             const currentC = player.warriorClass || mySelectedClass || 'ASSAULT';
@@ -2884,6 +2897,7 @@ function renderTacticalReticle() {
 let killBannerTimeout = null;
 let playerKillstreak = 0;
 let lastKillTime = 0;
+let multiKillTimer = null;
 
 function showKillBanner(victimName, points = 25) {
     const banner = document.getElementById('combatKillBanner');
@@ -2900,24 +2914,50 @@ function showKillBanner(victimName, points = 25) {
     lastKillTime = now;
 
     let titleText = 'OPPONENT ELIMINATED';
+    let streakBonus = 0;
     if (playerKillstreak === 2) {
         titleText = '⚡ DOUBLE KILL!';
+        streakBonus = 50;
         soundEngine.playKillstreak(2);
     } else if (playerKillstreak === 3) {
         titleText = '🔥 TRIPLE KILL!';
+        streakBonus = 100;
         soundEngine.playKillstreak(3);
     } else if (playerKillstreak >= 4) {
         titleText = '💀 UNSTOPPABLE SPREE!';
+        streakBonus = 200;
         soundEngine.playKillstreak(4);
     }
 
     if (titleEl) titleEl.textContent = titleText;
-    victimEl.textContent = `+${points} PTS • ${victimName.toUpperCase()} ELIMINATED`;
+    victimEl.textContent = `+${points + streakBonus} PTS • ${victimName.toUpperCase()} ELIMINATED`;
     banner.classList.add('active');
     if (killBannerTimeout) clearTimeout(killBannerTimeout);
     killBannerTimeout = setTimeout(() => {
         banner.classList.remove('active');
     }, 2400);
+
+    // Multi-Kill Combo Floating Graphic Banner
+    if (playerKillstreak >= 2) {
+        const mkBanner = document.getElementById('multiKillBanner');
+        const mkTitle = document.getElementById('multiKillTitle');
+        const mkSub = document.getElementById('multiKillSub');
+        const mkIcon = document.getElementById('multiKillIcon');
+        if (mkBanner && mkTitle && mkSub && mkIcon) {
+            let iconGlyph = playerKillstreak === 2 ? '⚡' : (playerKillstreak === 3 ? '💥' : (playerKillstreak === 4 ? '💀' : '👑'));
+            mkTitle.textContent = titleText.replace(/[⚡🔥💀!]/g, '').trim();
+            mkSub.textContent = `+${points + streakBonus} PTS • STREAK x${playerKillstreak}`;
+            mkIcon.textContent = iconGlyph;
+
+            mkBanner.style.display = 'flex';
+            mkBanner.classList.remove('streak-fade');
+            if (multiKillTimer) clearTimeout(multiKillTimer);
+            multiKillTimer = setTimeout(() => {
+                mkBanner.classList.add('streak-fade');
+                setTimeout(() => { mkBanner.style.display = 'none'; }, 400);
+            }, 2200);
+        }
+    }
 }
 
 let damageVignetteTimeout = null;
@@ -5098,29 +5138,105 @@ class PvPEmulatorEngine {
         isGameOver = true;
         soundEngine.playGameOver();
 
+        const isMeWinner = winner.won || winner.name === player.name;
+        if (isMeWinner) {
+            soundEngine.playKillstreak(4);
+        }
+
+        const participants = [
+            { name: player.name, class: player.warriorClass, kills: player.kills, deaths: player.deaths, score: player.score },
+            ...this.bots.map(b => ({ name: b.name, class: b.warriorClass, kills: b.kills, deaths: b.deaths, score: b.score }))
+        ].sort((a, b) => b.score - a.score);
+
+        // Populate lastMatchSummary for clipboard & social sharing
+        lastMatchSummary = {
+            winner: winner.name,
+            winningScore: winner.score,
+            roomName: this.mockRoom ? this.mockRoom.name : `ARENA // ${this.map}`,
+            roomId: this.mockRoom ? this.mockRoom.roomId : 'ARCADE',
+            finishedAt: Date.now(),
+            players: participants.map(p => ({
+                username: p.name,
+                score: p.score,
+                kills: p.kills,
+                deaths: p.deaths,
+                warriorClass: p.class
+            }))
+        };
+
+        // Update local career XP & progression
+        const earnedXp = Math.max(50, player.kills * 75 + player.score * 5 + (isMeWinner ? 300 : 100));
+        const profile = getLocalArcadeProfile();
+        profile.totalGames = (profile.totalGames || 0) + 1;
+        profile.totalScore = (profile.totalScore || 0) + player.score;
+        profile.kills = (profile.kills || 0) + player.kills;
+        profile.deaths = (profile.deaths || 0) + player.deaths;
+        if (isMeWinner) profile.wins = (profile.wins || 0) + 1;
+        if (player.score > (profile.highestScore || 0)) profile.highestScore = player.score;
+        profile.xp = (profile.xp || 0) + earnedXp;
+
+        const oldLevel = profile.level || 1;
+        const newLevel = Math.floor(profile.xp / 1000) + 1;
+        if (newLevel > oldLevel) {
+            profile.level = newLevel;
+            if (newLevel >= 2 && !profile.unlockedTitles.includes('CYBER_STRIKER')) profile.unlockedTitles.push('CYBER_STRIKER');
+            if (newLevel >= 5 && !profile.unlockedTitles.includes('ARENA_VETERAN')) profile.unlockedTitles.push('ARENA_VETERAN');
+            if (newLevel >= 8 && !profile.unlockedTitles.includes('APEX_PREDATOR')) profile.unlockedTitles.push('APEX_PREDATOR');
+            if (newLevel >= 12 && !profile.unlockedTitles.includes('CYBER_IMMORTAL')) profile.unlockedTitles.push('CYBER_IMMORTAL');
+            showTacticalToast(`⭐ PROMOTED TO LEVEL ${newLevel}!`, 'New combat rank & titles unlocked in Locker!', '👑');
+        }
+
+        if (!profile.matches) profile.matches = [];
+        profile.matches.unshift({
+            roomId: this.mockRoom ? this.mockRoom.roomId : 'ARCADE',
+            roomName: `ARENA // ${this.map}`,
+            winner: winner.name,
+            winnerUsername: winner.name,
+            finishedAt: Date.now(),
+            playerScore: player.score,
+            durationSeconds: Math.round((Date.now() - this.matchStartTime) / 1000),
+            scores: Object.fromEntries(participants.map(p => [p.name, p.score]))
+        });
+        if (profile.matches.length > 25) profile.matches.pop();
+        saveLocalArcadeProfile(profile);
+        updateAuthState(profile);
+
         if (gameOverModal) {
             gameOverModal.style.display = 'flex';
             if (gameOverTitle) {
-                gameOverTitle.textContent = winner.won ? 'VICTORY ACHIEVED' : 'COMBAT COMPLETE';
+                gameOverTitle.textContent = isMeWinner ? '🏆 VICTORY ACHIEVED' : '🏁 COMBAT COMPLETE';
             }
             if (winnerAnnouncement) {
-                winnerAnnouncement.textContent = winner.won
-                    ? `🏆 You dominated the arena with ${winner.kills} eliminations!`
-                    : `☠️ ${winner.name} seized victory with ${winner.kills} eliminations.`;
+                winnerAnnouncement.textContent = isMeWinner
+                    ? `🏆 You dominated the arena with ${player.kills} eliminations! (+${earnedXp} XP)`
+                    : `☠️ ${winner.name} seized victory with ${winner.kills} eliminations. (+${earnedXp} XP)`;
+            }
+
+            if (matchAccoladesRow) {
+                const topFragger = [...participants].sort((a, b) => b.kills - a.kills)[0];
+                matchAccoladesRow.innerHTML = `
+                    <div class="accolade-badge mvp">
+                        <span>👑</span>
+                        <span>Champion: ${escapeHtml(winner.name)}</span>
+                    </div>
+                    <div class="accolade-badge top-frags">
+                        <span>🎯</span>
+                        <span>Top Fragger: ${escapeHtml(topFragger.name)} (${topFragger.kills} Kills)</span>
+                    </div>
+                    <div class="accolade-badge first-blood">
+                        <span>⭐</span>
+                        <span>Combat XP: +${earnedXp} XP</span>
+                    </div>
+                `;
             }
 
             if (matchSummaryScores) {
                 let html = '<div class="scoreboard-table"><div class="scoreboard-row header"><span>PILOT</span><span>CLASS</span><span>K/D</span><span>SCORE</span></div>';
-                const participants = [
-                    { name: player.name, class: player.warriorClass, kills: player.kills, deaths: player.deaths, score: player.score },
-                    ...this.bots.map(b => ({ name: b.name, class: b.warriorClass, kills: b.kills, deaths: b.deaths, score: b.score }))
-                ].sort((a, b) => b.score - a.score);
-
                 participants.forEach((p, idx) => {
                     const isMe = p.name === player.name;
                     html += `<div class="scoreboard-row ${isMe ? 'highlight' : ''}">
-                        <span>#${idx + 1} ${p.name}</span>
-                        <span>${p.class}</span>
+                        <span>#${idx + 1} ${escapeHtml(p.name)}</span>
+                        <span>${escapeHtml(p.class || 'ASSAULT')}</span>
                         <span>${p.kills}K / ${p.deaths}D</span>
                         <span>${p.score} PTS</span>
                     </div>`;
@@ -5233,13 +5349,74 @@ function gameLoop(currentTime) {
     requestAnimationFrame(gameLoop);
 }
 
-// --- Backend Health Check (reused from Phase 1) ---
+// --- Backend Health Check & Vercel / Offline Arcade Architecture ---
+let isServerOnline = false;
+
+function getBackendBaseUrl() {
+    const custom = localStorage.getItem('CYBER_ARENA_BACKEND_URL');
+    if (custom && custom.trim().length > 0) {
+        return custom.trim().replace(/\/+$/, '');
+    }
+    return '';
+}
+
+function getLocalArcadeProfile() {
+    const raw = localStorage.getItem('CYBER_ARENA_LOCAL_PROFILE');
+    if (raw) {
+        try {
+            const p = JSON.parse(raw);
+            if (p && p.username) return p;
+        } catch {}
+    }
+    const randId = Math.floor(1000 + Math.random() * 9000);
+    const newProfile = {
+        username: `Pilot_${randId}`,
+        level: 1,
+        xp: 0,
+        kills: 0,
+        deaths: 0,
+        wins: 0,
+        totalGames: 0,
+        totalScore: 0,
+        highestScore: 0,
+        equippedTitle: 'RECRUIT',
+        equippedTrail: 'CYAN_PULSE',
+        unlockedTitles: ['RECRUIT'],
+        unlockedTrails: ['CYAN_PULSE'],
+        matches: []
+    };
+    saveLocalArcadeProfile(newProfile);
+    return newProfile;
+}
+
+function saveLocalArcadeProfile(profile) {
+    try {
+        localStorage.setItem('CYBER_ARENA_LOCAL_PROFILE', JSON.stringify(profile));
+    } catch {}
+}
+
+function ensureLocalArcadeProfile() {
+    const profile = getLocalArcadeProfile();
+    currentUserProfile = profile;
+    updateAuthState(profile);
+    const userLevelBadge = document.getElementById('userLevelBadge');
+    const userTitleBadge = document.getElementById('userTitleBadge');
+    if (userLevelBadge) userLevelBadge.textContent = `LVL ${profile.level || 1}`;
+    if (userTitleBadge) userTitleBadge.textContent = profile.equippedTitle || 'RECRUIT';
+    if (!localStorage.getItem(JWT_STORAGE_KEY)) {
+        localStorage.setItem(JWT_STORAGE_KEY, 'arcade_session_' + profile.username);
+    }
+    return profile;
+}
+
 async function checkBackendHealth() {
     const t0 = performance.now();
+    const baseUrl = getBackendBaseUrl();
     try {
-        const response = await fetch('/api/health');
+        const response = await fetch(`${baseUrl}/api/health`);
         const rtt = Math.round(performance.now() - t0);
         if (response.ok) {
+            isServerOnline = true;
             statusDot.className = 'status-dot online';
             statusText.textContent = 'ONLINE';
             if (hudPing) {
@@ -5250,15 +5427,14 @@ async function checkBackendHealth() {
             throw new Error(`HTTP ${response.status}`);
         }
     } catch {
-        if (window.location.hostname.includes('github.io')) {
-            statusDot.className = 'status-dot checking';
-            statusText.textContent = 'GH PAGES';
-            if (hudPing) hudPing.textContent = 'DEMO';
-        } else {
-            statusDot.className = 'status-dot offline';
-            statusText.textContent = 'OFFLINE';
-            if (hudPing) hudPing.textContent = '-- ms';
+        isServerOnline = false;
+        statusDot.className = 'status-dot arcade';
+        statusText.textContent = 'ARCADE';
+        if (hudPing) {
+            hudPing.textContent = '0 ms (LOCAL)';
+            hudPing.className = 'telemetry-ping good';
         }
+        ensureLocalArcadeProfile();
     }
 }
 
@@ -5384,8 +5560,23 @@ async function handleAuthSubmit(e) {
 
     const endpoint = currentAuthMode === 'login' ? '/api/auth/login' : '/api/auth/register';
 
+    if (!isServerOnline) {
+        const profile = getLocalArcadeProfile();
+        profile.username = username;
+        saveLocalArcadeProfile(profile);
+        currentUserProfile = profile;
+        localStorage.setItem(JWT_STORAGE_KEY, 'arcade_token_' + username);
+        updateAuthState(profile);
+        closeModal();
+        showTacticalToast(`Authorized Pilot: ${username}`, 'Arcade Profile Synchronized', '🎮');
+        authSubmitBtn.disabled = false;
+        authSubmitBtn.textContent = currentAuthMode === 'login' ? 'Log In' : 'Register Account';
+        return;
+    }
+
     try {
-        const response = await fetch(endpoint, {
+        const baseUrl = getBackendBaseUrl();
+        const response = await fetch(`${baseUrl}${endpoint}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ username, password })
@@ -5401,7 +5592,15 @@ async function handleAuthSubmit(e) {
             showAuthAlert(data.error || 'Authentication failed', true);
         }
     } catch (err) {
-        showAuthAlert('Could not connect to server: ' + err.message, true);
+        // Fallback to local profile when server is offline
+        const profile = getLocalArcadeProfile();
+        profile.username = username;
+        saveLocalArcadeProfile(profile);
+        currentUserProfile = profile;
+        localStorage.setItem(JWT_STORAGE_KEY, 'arcade_token_' + username);
+        updateAuthState(profile);
+        closeModal();
+        showTacticalToast(`Authorized Pilot: ${username}`, 'Arcade Profile Synchronized (Offline)', '🎮');
     } finally {
         authSubmitBtn.disabled = false;
         authSubmitBtn.textContent = currentAuthMode === 'login' ? 'Log In' : 'Register Account';
@@ -5483,12 +5682,19 @@ function closeCreateRoomModal() {
 // Instant Guest Play workflow (0-Friction Immediate Action)
 async function quickGuestPlay() {
     if (isAuthenticated()) return true;
+    if (!isServerOnline) {
+        const p = ensureLocalArcadeProfile();
+        closeModal();
+        showTacticalToast(`⚡ Guest Pilot: ${p.username} Activated!`, 'Ready for combat deployment', '🎮');
+        return true;
+    }
     try {
+        const baseUrl = getBackendBaseUrl();
         const randId = Math.floor(1000 + Math.random() * 9000);
         const guestName = `Pilot_${randId}`;
         const guestPass = `pass_${randId}_guest`;
 
-        const res = await fetch('/api/auth/register', {
+        const res = await fetch(`${baseUrl}/api/auth/register`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ username: guestName, password: guestPass })
@@ -5502,13 +5708,16 @@ async function quickGuestPlay() {
             showTacticalToast(`⚡ Guest Identity: ${guestName} Activated!`, 'Ready for combat deployment', '🎮');
             return true;
         } else {
-            openModal();
-            return false;
+            const p = ensureLocalArcadeProfile();
+            closeModal();
+            showTacticalToast(`⚡ Guest Pilot: ${p.username} Activated!`, 'Ready for combat deployment', '🎮');
+            return true;
         }
     } catch (err) {
-        console.error('Guest play error:', err);
-        openModal();
-        return false;
+        const p = ensureLocalArcadeProfile();
+        closeModal();
+        showTacticalToast(`⚡ Guest Pilot: ${p.username} Activated!`, 'Ready for combat deployment', '🎮');
+        return true;
     }
 }
 
@@ -5606,8 +5815,31 @@ function renderFilteredRooms() {
 }
 
 async function fetchRoomsList() {
+    if (!isServerOnline) {
+        if (roomsContainer) {
+            roomsContainer.innerHTML = `
+                <div class="arcade-custom-launcher-card" style="padding: 24px; background: rgba(14, 19, 34, 0.85); border: 1px solid var(--border-highlight); border-radius: var(--radius-md); text-align: center;">
+                    <div style="font-family: var(--font-display); font-size: 1.2rem; color: var(--cyan-primary); letter-spacing: 2px; margin-bottom: 8px;">ARCADE ARENA SIMULATOR</div>
+                    <p style="color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 20px;">Deploy customized tactical matches instantly against autonomous AI combatants across all 3 maps.</p>
+                    <div style="display: flex; gap: 12px; justify-content: center; flex-wrap: wrap;">
+                        <button type="button" class="btn-primary-action" id="arcadeLaunchFfaBtn" style="padding: 10px 20px;">⚔️ QUICK FFA (CYBER CORE)</button>
+                        <button type="button" class="btn-secondary-action" id="arcadeLaunchDuelBtn" style="padding: 10px 20px;">🔥 1V1 APEX DUEL (NEON OUTPOST)</button>
+                        <button type="button" class="btn-secondary-action" id="arcadeLaunchCustomBtn" style="padding: 10px 20px;">⚙️ CONFIGURE CUSTOM ARENA</button>
+                    </div>
+                </div>
+            `;
+            const ffaBtn = document.getElementById('arcadeLaunchFfaBtn');
+            const duelBtn = document.getElementById('arcadeLaunchDuelBtn');
+            const customBtn = document.getElementById('arcadeLaunchCustomBtn');
+            if (ffaBtn) ffaBtn.addEventListener('click', () => pvpEmulator.start({ mode: 'FFA_SOLO', map: 'CYBER_CORE', botCount: 3, targetScore: 10 }));
+            if (duelBtn) duelBtn.addEventListener('click', () => pvpEmulator.start({ mode: 'DUEL_1V1', map: 'NEON_OUTPOST', difficulty: 'APEX', targetScore: 3 }));
+            if (customBtn) customBtn.addEventListener('click', openPvPEmulatorModal);
+        }
+        return;
+    }
     try {
-        const response = await fetch('/api/rooms', { headers: getAuthHeaders() });
+        const baseUrl = getBackendBaseUrl();
+        const response = await fetch(`${baseUrl}/api/rooms`, { headers: getAuthHeaders() });
         if (!response.ok) return;
 
         cachedRoomsList = await response.json();
@@ -6684,13 +6916,95 @@ async function triggerRematch() {
     }
 }
 
+function renderLocalCareerProfile() {
+    const profile = getLocalArcadeProfile();
+    currentUserProfile = profile;
+    if (profileStatUsername) profileStatUsername.textContent = profile.username;
+    if (profileStatGames) profileStatGames.textContent = profile.totalGames || 0;
+    if (profileStatTotalScore) profileStatTotalScore.textContent = profile.totalScore || 0;
+    if (profileStatHighScore) profileStatHighScore.textContent = profile.highestScore || 0;
+
+    const statLevel = document.getElementById('profileStatLevel');
+    const statXpFill = document.getElementById('profileStatXpFill');
+    const statXpText = document.getElementById('profileStatXpText');
+    const statKd = document.getElementById('profileStatKd');
+    const statWins = document.getElementById('profileStatWins');
+    const statTitle = document.getElementById('profileStatTitle');
+    const userLevelBadge = document.getElementById('userLevelBadge');
+    const userTitleBadge = document.getElementById('userTitleBadge');
+
+    const lvl = profile.level || 1;
+    const xp = profile.xp || 0;
+    const xpInLevel = xp % 1000;
+    const xpPct = Math.min(100, Math.round((xpInLevel / 1000) * 100));
+    const kills = profile.kills || 0;
+    const deaths = profile.deaths || 0;
+    const kdRatio = (kills / Math.max(1, deaths)).toFixed(2);
+
+    if (statLevel) statLevel.textContent = `LVL ${lvl}`;
+    if (statXpFill) statXpFill.style.width = `${xpPct}%`;
+    if (statXpText) statXpText.textContent = `${xpInLevel} / 1000 XP (Total: ${xp} XP)`;
+    if (statKd) statKd.textContent = `${kills} / ${deaths} (${kdRatio})`;
+    if (statWins) statWins.textContent = `${profile.wins || 0} Victories`;
+    if (statTitle) statTitle.textContent = profile.equippedTitle || 'RECRUIT';
+
+    if (userLevelBadge) userLevelBadge.textContent = `LVL ${lvl}`;
+    if (userTitleBadge) userTitleBadge.textContent = profile.equippedTitle || 'RECRUIT';
+
+    populateCosmeticsLocker(profile);
+
+    const matches = profile.matches || [];
+    if (matches.length === 0) {
+        matchHistoryList.innerHTML = '<div class="empty-history-msg">No completed matches yet. Jump into an arena to record your first battle!</div>';
+        return;
+    }
+
+    matchHistoryList.innerHTML = matches.map(m => {
+        const dateStr = new Date(m.finishedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) + ' ' + new Date(m.finishedAt).toLocaleDateString();
+        const isWinner = m.winner === profile.username || m.winnerUsername === profile.username;
+        const outcomeClass = isWinner ? 'victory' : 'defeat';
+        const outcomeText = isWinner ? '🏆 Victory' : 'Defeat';
+
+        const chips = Object.entries(m.scores || {}).map(([uname, score]) => {
+            const isWin = uname === m.winner || uname === m.winnerUsername;
+            return `<span class="match-player-chip ${isWin ? 'is-winner' : ''}">${isWin ? '👑 ' : ''}${escapeHtml(uname)}: ${score}</span>`;
+        }).join('');
+
+        return `
+            <div class="match-card">
+                <div class="match-card-top">
+                    <span class="match-card-title">
+                        <span>${escapeHtml(m.roomName || 'Arcade Arena')}</span>
+                        <span class="room-code-tag">${escapeHtml(m.roomId || 'ARCADE')}</span>
+                    </span>
+                    <span class="match-outcome-badge ${outcomeClass}">${outcomeText}</span>
+                </div>
+                <div class="match-card-details">
+                    <span>Score: <strong class="match-personal-score">${m.playerScore || 0} pts</strong></span>
+                    <span>Duration: ${m.durationSeconds || 0}s</span>
+                    <span class="match-time-tag">${dateStr}</span>
+                </div>
+                <div class="match-roster-breakdown">
+                    ${chips}
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+
 async function fetchAndShowMatchHistory(openModalFlag = false) {
     if (openModalFlag && matchHistoryModal) matchHistoryModal.style.display = 'flex';
     matchHistoryList.innerHTML = '<div class="empty-history-msg">Loading battle records...</div>';
 
+    if (!isServerOnline) {
+        renderLocalCareerProfile();
+        return;
+    }
+
     // Populate user career stats
     try {
-        const profileRes = await fetch('/api/auth/me', { headers: getAuthHeaders() });
+        const baseUrl = getBackendBaseUrl();
+        const profileRes = await fetch(`${baseUrl}/api/auth/me`, { headers: getAuthHeaders() });
         if (profileRes.ok) {
             const profile = await profileRes.json();
             currentUserProfile = profile;
@@ -6733,12 +7047,19 @@ async function fetchAndShowMatchHistory(openModalFlag = false) {
             populateCosmeticsLocker(profile);
             populateClassMastery(profile.weaponMastery);
             populateDailyChallenges(profile.dailyChallenges);
+        } else {
+            renderLocalCareerProfile();
+            return;
         }
-    } catch {}
+    } catch {
+        renderLocalCareerProfile();
+        return;
+    }
 
     // Fetch match logs
     try {
-        const res = await fetch('/api/matches/me', { headers: getAuthHeaders() });
+        const baseUrl = getBackendBaseUrl();
+        const res = await fetch(`${baseUrl}/api/matches/me`, { headers: getAuthHeaders() });
         if (res.ok) {
             const matches = await res.json();
             if (matches.length === 0) {
@@ -6776,9 +7097,11 @@ async function fetchAndShowMatchHistory(openModalFlag = false) {
                     </div>
                 `;
             }).join('');
+        } else {
+            renderLocalCareerProfile();
         }
     } catch (e) {
-        matchHistoryList.innerHTML = '<div class="empty-history-msg">Failed to load match history.</div>';
+        renderLocalCareerProfile();
     }
 }
 
@@ -6915,16 +7238,55 @@ function closeMatchHistoryModal() {
     matchHistoryModal.style.display = 'none';
 }
 
+function renderArcadeLeaderboard() {
+    const profile = getLocalArcadeProfile();
+    const mockData = [
+        { rank: 1, username: 'APEX_PRIME', highestScore: 1850, totalScore: 14200, totalGames: 142 },
+        { rank: 2, username: '[BOT] TITAN', highestScore: 1420, totalScore: 9800, totalGames: 110 },
+        { rank: 3, username: '[BOT] VORTEX', highestScore: 1180, totalScore: 7400, totalGames: 89 },
+        { rank: 4, username: profile.username, highestScore: profile.highestScore || 250, totalScore: profile.totalScore || 250, totalGames: profile.totalGames || 1 },
+        { rank: 5, username: '[BOT] PHANTOM', highestScore: 940, totalScore: 5600, totalGames: 76 },
+        { rank: 6, username: '[BOT] HAWK', highestScore: 780, totalScore: 4100, totalGames: 63 }
+    ].sort((a, b) => b.highestScore - a.highestScore);
+
+    mockData.forEach((d, i) => d.rank = i + 1);
+
+    leaderboardTbody.innerHTML = mockData.map(entry => {
+        let badgeClass = 'rank-other';
+        let rankDisplay = entry.rank;
+        if (entry.rank === 1) { badgeClass = 'rank-1'; rankDisplay = '🥇'; }
+        else if (entry.rank === 2) { badgeClass = 'rank-2'; rankDisplay = '🥈'; }
+        else if (entry.rank === 3) { badgeClass = 'rank-3'; rankDisplay = '🥉'; }
+        const isMe = entry.username === profile.username;
+
+        return `
+            <tr class="${isMe ? 'highlight' : ''}">
+                <td><span class="rank-badge ${badgeClass}">${rankDisplay}</span></td>
+                <td class="warrior-name">${isMe ? '👑 ' : ''}${escapeHtml(entry.username)}</td>
+                <td class="warrior-score-high">${entry.highestScore}</td>
+                <td>${entry.totalScore}</td>
+                <td>${entry.totalGames}</td>
+            </tr>
+        `;
+    }).join('');
+}
+
 async function fetchAndShowLeaderboard(openModalFlag = false) {
     if (openModalFlag && leaderboardModal) leaderboardModal.style.display = 'flex';
     leaderboardTbody.innerHTML = '<tr><td colspan="5" style="text-align: center; color: var(--text-secondary); padding: 24px;">Loading rankings...</td></tr>';
 
+    if (!isServerOnline) {
+        renderArcadeLeaderboard();
+        return;
+    }
+
     try {
-        const res = await fetch('/api/leaderboard');
+        const baseUrl = getBackendBaseUrl();
+        const res = await fetch(`${baseUrl}/api/leaderboard`);
         if (res.ok) {
             const data = await res.json();
             if (data.length === 0) {
-                leaderboardTbody.innerHTML = '<tr><td colspan="5" style="text-align: center; color: var(--text-secondary); padding: 24px;">No rankings available yet. Complete a match to rank up!</td></tr>';
+                renderArcadeLeaderboard();
                 return;
             }
 
@@ -6946,10 +7308,10 @@ async function fetchAndShowLeaderboard(openModalFlag = false) {
                 `;
             }).join('');
         } else {
-            leaderboardTbody.innerHTML = '<tr><td colspan="5" style="text-align: center; color: var(--danger); padding: 24px;">Failed to load leaderboard.</td></tr>';
+            renderArcadeLeaderboard();
         }
     } catch (e) {
-        leaderboardTbody.innerHTML = `<tr><td colspan="5" style="text-align: center; color: var(--danger); padding: 24px;">Network error: ${escapeHtml(e.message)}</td></tr>`;
+        renderArcadeLeaderboard();
     }
 }
 
@@ -7456,6 +7818,17 @@ function setMatchmakingBusy(busy, statusMessage) {
 async function quickPvPDuel() {
     if (isMatchmakingBusy) return;
     setMatchmakingBusy(true, 'Searching for 1v1 PvP Duel sector...');
+    if (!isServerOnline) {
+        setMatchmakingBusy(false);
+        pvpEmulator.start({
+            mode: 'DUEL_1V1',
+            map: currentSelectedMap || 'NEON_OUTPOST',
+            difficulty: 'APEX',
+            targetScore: 3,
+            heroClass: mySelectedClass || 'ASSAULT'
+        });
+        return;
+    }
     if (!isAuthenticated()) {
         const ok = await quickGuestPlay();
         if (!ok) {
@@ -7464,7 +7837,8 @@ async function quickPvPDuel() {
         }
     }
     try {
-        const response = await fetch('/api/rooms', { headers: getAuthHeaders() });
+        const baseUrl = getBackendBaseUrl();
+        const response = await fetch(`${baseUrl}/api/rooms`, { headers: getAuthHeaders() });
         if (response.ok) {
             const rooms = await response.json();
             const joinable = rooms.find(r => (r.gameMode === 'PVP_1V1' || r.maxPlayers === 2) && r.status === 'WAITING' && r.currentPlayers < r.maxPlayers);
@@ -7477,7 +7851,14 @@ async function quickPvPDuel() {
         const randId = Math.floor(1000 + Math.random() * 9000);
         await createRoom(`⚔️ 1v1 Duel #${randId}`, 2, 'PVP_1V1');
     } catch {
-        openCreateRoomModal();
+        // Standalone fallback: launch offline duel immediately
+        pvpEmulator.start({
+            mode: 'DUEL_1V1',
+            map: currentSelectedMap || 'NEON_OUTPOST',
+            difficulty: 'APEX',
+            targetScore: 3,
+            heroClass: mySelectedClass || 'ASSAULT'
+        });
     } finally {
         setMatchmakingBusy(false);
     }
@@ -7486,6 +7867,18 @@ async function quickPvPDuel() {
 async function startPracticeBattle() {
     if (isMatchmakingBusy) return;
     setMatchmakingBusy(true, `Initializing AI Dojo simulation (${currentBotDifficulty})...`);
+    if (!isServerOnline) {
+        setMatchmakingBusy(false);
+        pvpEmulator.start({
+            mode: 'FFA_SOLO',
+            map: currentSelectedMap || 'CYBER_CORE',
+            difficulty: currentBotDifficulty || 'RECRUIT',
+            botCount: 1,
+            targetScore: 5,
+            heroClass: mySelectedClass || 'ASSAULT'
+        });
+        return;
+    }
     if (!isAuthenticated()) {
         const ok = await quickGuestPlay();
         if (!ok) {
@@ -7494,8 +7887,9 @@ async function startPracticeBattle() {
         }
     }
     try {
+        const baseUrl = getBackendBaseUrl();
         const randId = Math.floor(1000 + Math.random() * 9000);
-        const res = await fetch('/api/rooms', {
+        const res = await fetch(`${baseUrl}/api/rooms`, {
             method: 'POST',
             headers: getAuthHeaders(),
             body: JSON.stringify({ 
@@ -7509,12 +7903,12 @@ async function startPracticeBattle() {
             const roomData = await res.json();
             renderActiveRoom(roomData);
             // Auto spawn AI Bot Opponent
-            await fetch(`/api/rooms/${roomData.roomId}/bot`, {
+            await fetch(`${baseUrl}/api/rooms/${roomData.roomId}/bot`, {
                 method: 'POST',
                 headers: getAuthHeaders()
             });
             // Auto launch combat match immediately for seamless training flow
-            const startRes = await fetch(`/api/rooms/${roomData.roomId}/start`, {
+            const startRes = await fetch(`${baseUrl}/api/rooms/${roomData.roomId}/start`, {
                 method: 'POST',
                 headers: getAuthHeaders()
             });
@@ -7523,18 +7917,30 @@ async function startPracticeBattle() {
                 renderActiveRoom(startedRoom);
                 connectGameWebSocket(startedRoom.roomId);
             } else {
-                const updated = await fetch(`/api/rooms/${roomData.roomId}`, { headers: getAuthHeaders() });
+                const updated = await fetch(`${baseUrl}/api/rooms/${roomData.roomId}`, { headers: getAuthHeaders() });
                 if (updated.ok) {
                     renderActiveRoom(await updated.json());
                 }
             }
         } else {
-            const err = await res.json().catch(() => ({}));
-            showTacticalToast('Training Launch Failed', err.error || 'Server error', '⚠️');
+            pvpEmulator.start({
+                mode: 'FFA_SOLO',
+                map: currentSelectedMap || 'CYBER_CORE',
+                difficulty: currentBotDifficulty || 'RECRUIT',
+                botCount: 1,
+                targetScore: 5,
+                heroClass: mySelectedClass || 'ASSAULT'
+            });
         }
     } catch (err) {
-        console.error('Failed to create practice arena:', err);
-        showTacticalToast('Training Launch Failed', err.message, '⚠️');
+        pvpEmulator.start({
+            mode: 'FFA_SOLO',
+            map: currentSelectedMap || 'CYBER_CORE',
+            difficulty: currentBotDifficulty || 'RECRUIT',
+            botCount: 1,
+            targetScore: 5,
+            heroClass: mySelectedClass || 'ASSAULT'
+        });
     } finally {
         setMatchmakingBusy(false);
     }
@@ -7543,6 +7949,18 @@ async function startPracticeBattle() {
 async function quickBattle() {
     if (isMatchmakingBusy) return;
     setMatchmakingBusy(true, 'Searching for Quick Match FFA sector...');
+    if (!isServerOnline) {
+        setMatchmakingBusy(false);
+        pvpEmulator.start({
+            mode: 'FFA_SOLO',
+            map: currentSelectedMap || 'CYBER_CORE',
+            difficulty: currentBotDifficulty || 'VETERAN',
+            botCount: 3,
+            targetScore: 10,
+            heroClass: mySelectedClass || 'ASSAULT'
+        });
+        return;
+    }
     if (!isAuthenticated()) {
         const ok = await quickGuestPlay();
         if (!ok) {
@@ -7551,7 +7969,8 @@ async function quickBattle() {
         }
     }
     try {
-        const response = await fetch('/api/rooms', { headers: getAuthHeaders() });
+        const baseUrl = getBackendBaseUrl();
+        const response = await fetch(`${baseUrl}/api/rooms`, { headers: getAuthHeaders() });
         if (response.ok) {
             const rooms = await response.json();
             const joinable = rooms.find(r => r.status === 'WAITING' && r.currentPlayers < r.maxPlayers);
@@ -7564,7 +7983,14 @@ async function quickBattle() {
         const randId = Math.floor(1000 + Math.random() * 9000);
         await createRoom(`Cyber Arena #${randId}`, 4, 'PVP_FFA');
     } catch {
-        openCreateRoomModal();
+        pvpEmulator.start({
+            mode: 'FFA_SOLO',
+            map: currentSelectedMap || 'CYBER_CORE',
+            difficulty: currentBotDifficulty || 'VETERAN',
+            botCount: 3,
+            targetScore: 10,
+            heroClass: mySelectedClass || 'ASSAULT'
+        });
     } finally {
         setMatchmakingBusy(false);
     }
@@ -8526,6 +8952,102 @@ function setupTouchControlsEventListeners() {
     }, { once: true, passive: true });
 }
 
+// --- Social Media & Display Event Listeners ---
+function toggleFullscreenMode() {
+    const doc = document.documentElement;
+    if (!document.fullscreenElement && !document.webkitFullscreenElement) {
+        if (doc.requestFullscreen) {
+            doc.requestFullscreen().catch(() => {});
+        } else if (doc.webkitRequestFullscreen) {
+            doc.webkitRequestFullscreen();
+        }
+    } else {
+        if (document.exitFullscreen) {
+            document.exitFullscreen().catch(() => {});
+        } else if (document.webkitExitFullscreen) {
+            document.webkitExitFullscreen();
+        }
+    }
+}
+
+function setupSocialAndDisplayEventListeners() {
+    // 1. Fullscreen Toggle
+    const fullscreenToggleBtn = document.getElementById('fullscreenToggleBtn');
+    if (fullscreenToggleBtn) {
+        fullscreenToggleBtn.addEventListener('click', toggleFullscreenMode);
+    }
+
+    // 2. Topbar Share
+    const topbarShareBtn = document.getElementById('topbarShareBtn');
+    if (topbarShareBtn) {
+        topbarShareBtn.addEventListener('click', () => {
+            if (navigator.share) {
+                navigator.share({
+                    title: 'Cyber Battle Arena',
+                    text: 'Join me in Cyber Battle Arena! Fast-paced tactical 2D shooter with 60 FPS in-browser combat:',
+                    url: window.location.href
+                }).catch(() => {});
+            } else {
+                navigator.clipboard.writeText(window.location.href).then(() => {
+                    showTacticalToast('Link Copied!', 'Arena link copied to clipboard. Share with your squad!', '🔗');
+                });
+            }
+        });
+    }
+
+    // 3. Post to X (Twitter) from Game Over
+    const postToTwitterBtn = document.getElementById('postToTwitterBtn');
+    if (postToTwitterBtn) {
+        postToTwitterBtn.addEventListener('click', () => {
+            const kills = player.kills || 0;
+            const score = player.score || 0;
+            const pClass = player.warriorClass || 'ASSAULT';
+            const text = `Just dominated with ${kills} eliminations (${score} pts) playing as ${pClass} in Cyber Battle Arena! ⚡ Think you can beat my score? Play free in your browser:`;
+            const shareUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(window.location.href)}&hashtags=CyberBattleArena,IndieDev,WebGaming`;
+            window.open(shareUrl, '_blank', 'width=620,height=440');
+        });
+    }
+
+    // 4. Share to Reddit from Game Over
+    const shareToRedditBtn = document.getElementById('shareToRedditBtn');
+    if (shareToRedditBtn) {
+        shareToRedditBtn.addEventListener('click', () => {
+            const kills = player.kills || 0;
+            const score = player.score || 0;
+            const title = `[Web Game] Cyber Battle Arena: Fast-Paced 2D Tactical Arena Shooter (Just scored ${score} pts, ${kills} kills)`;
+            const shareUrl = `https://www.reddit.com/submit?url=${encodeURIComponent(window.location.href)}&title=${encodeURIComponent(title)}`;
+            window.open(shareUrl, '_blank', 'width=680,height=560');
+        });
+    }
+
+    // 5. Native Share Sheet
+    const nativeShareBtn = document.getElementById('nativeShareBtn');
+    if (nativeShareBtn) {
+        nativeShareBtn.addEventListener('click', () => {
+            if (navigator.share) {
+                navigator.share({
+                    title: 'Cyber Battle Arena Match Report',
+                    text: `Scored ${player.score || 0} pts (${player.kills || 0} kills) in Cyber Battle Arena! Try it here:`,
+                    url: window.location.href
+                }).catch(() => {});
+            } else {
+                copyBattleReport();
+            }
+        });
+    }
+
+    // 6. Custom Backend URL Setting
+    const customBackendUrlInput = document.getElementById('customBackendUrlInput');
+    if (customBackendUrlInput) {
+        customBackendUrlInput.value = localStorage.getItem('CYBER_ARENA_BACKEND_URL') || '';
+        customBackendUrlInput.addEventListener('change', (e) => {
+            const val = e.target.value.trim();
+            localStorage.setItem('CYBER_ARENA_BACKEND_URL', val);
+            checkBackendHealth();
+        });
+    }
+}
+
 // --- Application Bootstrap ---
 window.addEventListener('DOMContentLoaded', () => {
     setupAuthEventListeners();
@@ -8539,6 +9061,7 @@ window.addEventListener('DOMContentLoaded', () => {
     setupEmoteEventListeners();
     setupPvPEmulatorEventListeners();
     setupTouchControlsEventListeners();
+    setupSocialAndDisplayEventListeners();
     checkBackendHealth();
     updateGameLayoutState();
     verifyExistingSession().then(() => {

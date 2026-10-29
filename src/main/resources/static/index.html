@@ -4,6 +4,26 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CYBER BATTLE ARENA | Tactical Multiplayer Combat</title>
+    <meta name="description" content="Cyber Battle Arena: High-octane real-time 2D arena shooter. Select your warrior class, dominate bots and rivals, and climb the tactical ranks. Zero download, 60 FPS in browser.">
+    <meta name="keywords" content="cyberpunk, browser game, arena shooter, multiplayer, 2d game, html5 canvas, web audio, vercel game, indie dev">
+    <meta name="theme-color" content="#00f2fe">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+
+    <!-- Open Graph / Facebook / Discord / LinkedIn -->
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="CYBER BATTLE ARENA | Tactical 2D Multiplayer Combat">
+    <meta property="og:description" content="High-octane browser arena combat. 4 warrior classes, tactical abilities, autonomous AI bots, and dynamic procedural cyber audio. Play free now!">
+    <meta property="og:image" content="assets/social-preview.png">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+
+    <!-- Twitter / X Card -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="CYBER BATTLE ARENA | Tactical 2D Multiplayer Combat">
+    <meta name="twitter:description" content="High-octane browser arena combat. 4 warrior classes, tactical abilities, smart AI bots, and procedural cyber audio. Play free now!">
+    <meta name="twitter:image" content="assets/social-preview.png">
+
     <link rel="stylesheet" href="css/style.css">
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cpolygon points='50,8 90,28 90,72 50,92 10,72 10,28' fill='%23080c16' stroke='%2300f2fe' stroke-width='4'/%3E%3Cpolygon points='50,22 78,36 78,64 50,78 22,64 22,36' fill='none' stroke='%23f43f5e' stroke-width='2' stroke-dasharray='6 3'/%3E%3Ccircle cx='50' cy='50' r='10' fill='%2300f2fe'/%3E%3C/svg%3E">
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -84,6 +104,16 @@
                 <!-- Settings [Esc] -->
                 <button class="icon-action-btn" id="openSettingsBtn" type="button" title="Audio & Systems Settings">
                     <svg class="action-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+                </button>
+
+                <!-- Fullscreen Toggle [F11] -->
+                <button class="icon-action-btn" id="fullscreenToggleBtn" type="button" title="Toggle Fullscreen Mode [F11]">
+                    <svg class="action-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>
+                </button>
+
+                <!-- Share Game -->
+                <button class="icon-action-btn" id="topbarShareBtn" type="button" title="Share Cyber Arena to Social Media">
+                    <svg class="action-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
                 </button>
 
                 <!-- Network Telemetry -->
@@ -803,6 +833,18 @@
                             </div>
                         </div>
 
+                        <!-- Multi-Kill Combo Announcement Banner -->
+                        <div class="multi-kill-banner" id="multiKillBanner" style="display: none;">
+                            <div class="multi-kill-glow"></div>
+                            <div class="multi-kill-content">
+                                <span class="multi-kill-icon" id="multiKillIcon">⚡</span>
+                                <div class="multi-kill-text">
+                                    <span class="multi-kill-title" id="multiKillTitle">DOUBLE KILL</span>
+                                    <span class="multi-kill-sub" id="multiKillSub">+50 PTS • STREAK ACTIVE</span>
+                                </div>
+                            </div>
+                        </div>
+
                         <!-- Minimalist Sliding Kill Feed -->
                         <div class="kill-feed" id="killFeed"></div>
 
@@ -1258,6 +1300,11 @@
                             <span class="slider round"></span>
                         </label>
                     </div>
+                    <div class="settings-row" style="margin-top: 14px; border-top: 1px solid rgba(148, 163, 184, 0.12); padding-top: 12px;">
+                        <label for="customBackendUrlInput" style="font-size: 0.85rem; color: var(--cyan-primary);">Remote Multiplayer Server URL (Optional)</label>
+                        <input type="text" id="customBackendUrlInput" placeholder="e.g. https://battle-arena.up.railway.app" class="form-input" style="width: 100%; margin-top: 6px; padding: 8px 12px; background: rgba(6, 8, 15, 0.8); border: 1px solid var(--border-default); border-radius: 4px; color: #fff; font-family: var(--font-mono); font-size: 0.8rem;">
+                        <span style="font-size: 0.72rem; color: var(--text-muted); display: block; margin-top: 4px;">Leave blank for local host or standalone arcade engine (Vercel).</span>
+                    </div>
                 </div>
                 <div class="settings-footer">
                     <button type="button" class="btn-secondary-action" id="modalSoundToggleBtn">AUDIO: ACTIVE</button>
@@ -1407,6 +1454,26 @@
                 </div>
 
                 <div class="match-summary-scores" id="matchSummaryScores"></div>
+
+                <!-- Social Media Sharing Showcase -->
+                <div class="social-share-container" id="socialShareContainer">
+                    <span class="social-share-title">⚡ TRANSMIT BATTLE RECORD TO SOCIAL MEDIA</span>
+                    <div class="social-share-row" id="socialShareRow">
+                        <button class="btn-social-share btn-twitter" id="postToTwitterBtn" type="button" title="Post Match Result to X (Twitter)">
+                            <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+                            <span>POST TO X</span>
+                        </button>
+                        <button class="btn-social-share btn-reddit" id="shareToRedditBtn" type="button" title="Share Match on Reddit">
+                            <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M12 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0zm5.01 4.744c.688 0 1.25.561 1.25 1.249a1.25 1.25 0 0 1-2.498.056l-2.597-.547-.8 3.747c1.824.07 3.48.632 4.674 1.488.308-.309.73-.491 1.207-.491.968 0 1.754.786 1.754 1.754 0 .716-.435 1.333-1.01 1.614a3.111 3.111 0 0 1 .042.52c0 2.694-3.13 4.87-7.004 4.87-3.874 0-7.004-2.176-7.004-4.87 0-.183.015-.366.043-.534A1.748 1.748 0 0 1 4.028 12c0-.968.786-1.754 1.754-1.754.463 0 .898.196 1.207.49 1.207-.883 2.878-1.43 4.744-1.487l.885-4.182a.342.342 0 0 1 .14-.197.35.35 0 0 1 .238-.042l2.906.617a1.214 1.214 0 0 1 1.108-.703zM9.25 12C8.561 12 8 12.562 8 13.25c0 .687.561 1.248 1.25 1.248.687 0 1.248-.561 1.248-1.249 0-.688-.561-1.249-1.249-1.249zm5.5 0c-.687 0-1.248.561-1.248 1.25 0 .687.561 1.248 1.249 1.248.688 0 1.249-.561 1.249-1.249 0-.687-.562-1.249-1.25-1.249zm-5.466 3.99a.327.327 0 0 0-.231.094.33.33 0 0 0 0 .463c.842.842 2.484.913 2.961.913.477 0 2.105-.056 2.961-.913a.361.361 0 0 0 .029-.463.33.33 0 0 0-.464 0c-.547.533-1.684.73-2.512.73-.828 0-1.979-.196-2.512-.73a.326.326 0 0 0-.232-.095z"/></svg>
+                            <span>REDDIT</span>
+                        </button>
+                        <button class="btn-social-share btn-native-share" id="nativeShareBtn" type="button" title="Share via Mobile Share Sheet">
+                            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+                            <span>SHARE</span>
+                        </button>
+                    </div>
+                </div>
+
                 <div class="modal-actions">
                     <button class="btn-secondary-action" id="copyBattleReportBtn" type="button">SHARE REPORT</button>
                     <button class="btn-primary-action" id="rematchBtn" style="display: none;" type="button">REMATCH</button>
