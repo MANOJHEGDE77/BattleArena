@@ -257,3 +257,4 @@ const pngBuf = createPngBuffer(1200, 630);
 });
 
 console.log('✅ Generated social-preview.svg and social-preview.png in docs/assets and static/assets!');
+

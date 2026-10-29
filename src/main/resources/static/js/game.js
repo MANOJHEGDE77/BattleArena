@@ -1385,6 +1385,42 @@ class SoundEngine {
         } catch {}
     }
 
+    playEmote() {
+        this.playUiDeploy();
+    }
+
+    playGameStart() {
+        this.playUiDeploy();
+    }
+
+    playKillcam() {
+        this.playKillSting();
+    }
+
+    playLevelUp() {
+        this.playAchievementUnlocked();
+    }
+
+    playGameOver() {
+        if (this.muted) return;
+        this.init();
+        if (!this.ctx) return;
+        try {
+            const now = this.ctx.currentTime;
+            const osc = this.ctx.createOscillator();
+            const gain = this.ctx.createGain();
+            osc.type = 'sawtooth';
+            osc.frequency.setValueAtTime(320, now);
+            osc.frequency.exponentialRampToValueAtTime(110, now + 0.45);
+            gain.gain.setValueAtTime(this.getEffectiveVolume() * 0.7, now);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.5);
+            osc.connect(gain);
+            gain.connect(this.ctx.destination);
+            osc.start(now);
+            osc.stop(now + 0.52);
+        } catch {}
+    }
+
     playHitmarker(isCrit = false) {
         if (this.muted) return;
         this.init();
@@ -1721,7 +1757,7 @@ const HERO_ABILITIES = {
 };
 
 let heroAbilityState = {
-    lastUsed: 0,
+    lastUsed: -99999,
     cooldownMs: 10000
 };
 
@@ -4424,6 +4460,7 @@ class PvPEmulatorEngine {
         player.heading = 0;
         player.stimUntil = 0;
         player.speedBoostUntil = 0;
+        heroAbilityState.lastUsed = -99999;
 
         // Mock Multiplayer Room
         this.mockRoom = {
@@ -5814,6 +5851,11 @@ function renderFilteredRooms() {
     });
 }
 
+function openPvPEmulatorModal() {
+    const pvpEmulatorModal = document.getElementById('pvpEmulatorModal');
+    if (pvpEmulatorModal) pvpEmulatorModal.style.display = 'flex';
+}
+
 async function fetchRoomsList() {
     if (!isServerOnline) {
         if (roomsContainer) {
@@ -6873,15 +6915,27 @@ function copyBattleReport() {
         });
     }
     const reportText = lines.join('\n');
-    navigator.clipboard.writeText(reportText).then(() => {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(reportText).then(() => {
+            if (copyBattleReportBtn) {
+                const originalText = copyBattleReportBtn.textContent;
+                copyBattleReportBtn.textContent = '✅ Copied to Clipboard!';
+                setTimeout(() => { copyBattleReportBtn.textContent = originalText; }, 2200);
+            }
+        }).catch(() => {
+            if (copyBattleReportBtn) {
+                const originalText = copyBattleReportBtn.textContent;
+                copyBattleReportBtn.textContent = '📋 Report Generated!';
+                setTimeout(() => { copyBattleReportBtn.textContent = originalText; }, 2200);
+            }
+        });
+    } else {
         if (copyBattleReportBtn) {
             const originalText = copyBattleReportBtn.textContent;
-            copyBattleReportBtn.textContent = '✅ Copied to Clipboard!';
+            copyBattleReportBtn.textContent = '📋 Report Ready!';
             setTimeout(() => { copyBattleReportBtn.textContent = originalText; }, 2200);
         }
-    }).catch(() => {
-        alert(reportText);
-    });
+    }
 }
 
 function closeGameOverModal() {
@@ -7787,6 +7841,7 @@ function escapeHtml(str) {
 
 let isMatchmakingBusy = false;
 let currentBotDifficulty = 'VETERAN';
+let currentSelectedMap = 'CYBER_CORE';
 
 function setMatchmakingBusy(busy, statusMessage) {
     isMatchmakingBusy = busy;
@@ -8139,7 +8194,9 @@ function setupRoomEventListeners() {
     if (giantPlayNowBtn) {
         giantPlayNowBtn.addEventListener('click', () => {
             if (isMatchmakingBusy) return;
-            if (soundEngine) soundEngine.playEmote();
+            if (soundEngine && typeof soundEngine.playUiDeploy === 'function') {
+                soundEngine.playUiDeploy();
+            }
             if (currentLobbyMode === 'FFA') {
                 quickBattle();
             } else if (currentLobbyMode === 'DUEL') {
