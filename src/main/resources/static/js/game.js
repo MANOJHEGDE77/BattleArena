@@ -8121,15 +8121,15 @@ function setupRoomEventListeners() {
             giantPlayNowBtn.classList.remove('mode-ffa', 'mode-duel', 'mode-practice');
             if (mode === 'FFA') {
                 giantPlayNowBtn.classList.add('mode-ffa');
-                giantPlayLabel.textContent = 'BATTLE NOW';
+                giantPlayLabel.textContent = 'Deploy Into Battle';
                 giantPlaySub.textContent = 'Quick Match FFA • 4 Pilots';
             } else if (mode === 'DUEL') {
                 giantPlayNowBtn.classList.add('mode-duel');
-                giantPlayLabel.textContent = 'DUEL NOW';
+                giantPlayLabel.textContent = 'Deploy 1v1 Duel';
                 giantPlaySub.textContent = '1v1 PvP Duel • First to 3 Kills';
             } else if (mode === 'PRACTICE') {
                 giantPlayNowBtn.classList.add('mode-practice');
-                giantPlayLabel.textContent = 'ENTER DOJO';
+                giantPlayLabel.textContent = 'Practice With AI';
                 giantPlaySub.textContent = `Practice vs ${currentBotDifficulty} Bot • Solo Training`;
             }
         }
