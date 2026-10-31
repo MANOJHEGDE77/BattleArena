@@ -550,9 +550,10 @@ function renderHeroChassis(targetCanvas, className, time) {
     hCtx.save();
     hCtx.translate(cx, cy);
 
-    // Idle breathing scale
+    // Idle breathing & chassis presence scale
     const breath = 1 + Math.sin(time * 0.0025) * 0.015;
-    hCtx.scale(breath, breath);
+    const chassisScale = targetCanvas.id === 'hangarOperatorCanvas' ? 1.55 : 1.45;
+    hCtx.scale(chassisScale * breath, chassisScale * breath);
 
     // 1. Ambient back-glow
     const bgGrad = hCtx.createRadialGradient(0, 0, 10, 0, 0, 180);

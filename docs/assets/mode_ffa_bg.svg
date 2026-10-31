@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 240" width="100%" height="100%">
+  <defs>
+    <radialGradient id="ffaGlow" cx="50%" cy="30%" r="70%">
+      <stop offset="0%" stop-color="#17C8F3" stop-opacity="0.25"/>
+      <stop offset="60%" stop-color="#101722" stop-opacity="0.8"/>
+      <stop offset="100%" stop-color="#080B12" stop-opacity="0.98"/>
+    </radialGradient>
+    <linearGradient id="ffaLaser" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#17C8F3" stop-opacity="0.8"/>
+      <stop offset="50%" stop-color="#00D6A3" stop-opacity="0.5"/>
+      <stop offset="100%" stop-color="transparent" stop-opacity="0"/>
+    </linearGradient>
+    <pattern id="ffaGrid" width="20" height="20" patternUnits="userSpaceOnUse">
+      <path d="M 20 0 L 0 0 0 20" fill="none" stroke="rgba(23, 200, 243, 0.08)" stroke-width="1"/>
+    </pattern>
+  </defs>
+  <rect width="400" height="240" fill="#080B12"/>
+  <rect width="400" height="240" fill="url(#ffaGlow)"/>
+  <rect width="400" height="240" fill="url(#ffaGrid)"/>
+  <!-- Perspective Platform Floor -->
+  <polygon points="0,180 400,180 400,240 0,240" fill="#0d1522" opacity="0.9"/>
+  <line x1="0" y1="180" x2="400" y2="180" stroke="#17C8F3" stroke-width="1.5" opacity="0.4"/>
+  <line x1="60" y1="180" x2="20" y2="240" stroke="#17C8F3" stroke-width="1" opacity="0.2"/>
+  <line x1="140" y1="180" x2="110" y2="240" stroke="#17C8F3" stroke-width="1" opacity="0.2"/>
+  <line x1="200" y1="180" x2="200" y2="240" stroke="#17C8F3" stroke-width="1" opacity="0.3"/>
+  <line x1="260" y1="180" x2="290" y2="240" stroke="#17C8F3" stroke-width="1" opacity="0.2"/>
+  <line x1="340" y1="180" x2="380" y2="240" stroke="#17C8F3" stroke-width="1" opacity="0.2"/>
+  <!-- Tactical Hex Rings -->
+  <circle cx="200" cy="110" r="70" fill="none" stroke="#17C8F3" stroke-width="1" stroke-dasharray="6 4" opacity="0.3"/>
+  <circle cx="200" cy="110" r="45" fill="none" stroke="#00D6A3" stroke-width="1.2" stroke-dasharray="10 8" opacity="0.4"/>
+  <circle cx="200" cy="110" r="20" fill="none" stroke="#17C8F3" stroke-width="1.5" opacity="0.5"/>
+  <line x1="120" y1="110" x2="280" y2="110" stroke="#17C8F3" stroke-width="0.8" opacity="0.2"/>
+  <line x1="200" y1="30" x2="200" y2="190" stroke="#17C8F3" stroke-width="0.8" opacity="0.2"/>
+  <!-- Dynamic Laser Streams -->
+  <line x1="30" y1="20" x2="220" y2="130" stroke="url(#ffaLaser)" stroke-width="2"/>
+  <line x1="370" y1="40" x2="190" y2="120" stroke="url(#ffaLaser)" stroke-width="1.8" opacity="0.7"/>
+  <!-- Energy Nodes -->
+  <circle cx="70" cy="70" r="2.5" fill="#17C8F3" opacity="0.6"/>
+  <circle cx="330" cy="85" r="3" fill="#00D6A3" opacity="0.7"/>
+  <circle cx="150" cy="140" r="2" fill="#17C8F3" opacity="0.5"/>
+</svg>

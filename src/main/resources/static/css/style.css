@@ -7,34 +7,34 @@
 :root {
     /* AAA Tactical Sci-Fi Color Palette */
     --bg-void: #080B12;
-    --bg-secondary: #0D1420;
-    --bg-surface: #131D2B;
-    --bg-surface-elevated: #182538;
-    --bg-surface-hover: #1f3047;
-    --bg-glass: rgba(13, 20, 32, 0.85);
-    --bg-glass-card: rgba(19, 29, 43, 0.75);
+    --bg-secondary: #101722;
+    --bg-surface: #172131;
+    --bg-surface-elevated: #1e2c40;
+    --bg-surface-hover: #253750;
+    --bg-glass: rgba(16, 23, 34, 0.88);
+    --bg-glass-card: rgba(23, 33, 49, 0.75);
 
     /* Borders & Dividers */
     --border-subtle: rgba(255, 255, 255, 0.08);
     --border-default: rgba(255, 255, 255, 0.14);
-    --border-hover: rgba(22, 200, 242, 0.4);
-    --border-highlight: rgba(22, 200, 242, 0.55);
+    --border-hover: rgba(23, 200, 243, 0.4);
+    --border-highlight: rgba(23, 200, 243, 0.55);
 
     /* Accents */
-    --cyan-primary: #16C8F2;
-    --cyan-glow: 0 0 24px rgba(22, 200, 242, 0.45);
-    --accent-teal: #00E6A0;
-    --teal-glow: 0 0 24px rgba(0, 230, 160, 0.4);
-    --amber-gold: #FF9B45;
-    --combat-red: #FF4565;
-    --combat-glow: 0 0 24px rgba(255, 69, 101, 0.45);
+    --cyan-primary: #17C8F3;
+    --cyan-glow: 0 0 24px rgba(23, 200, 243, 0.45);
+    --accent-teal: #00D6A3;
+    --teal-glow: 0 0 24px rgba(0, 214, 163, 0.4);
+    --amber-gold: #F3A74B;
+    --combat-red: #F45B69;
+    --combat-glow: 0 0 24px rgba(244, 91, 105, 0.45);
     --purple-scout: #A855F7;
-    --emerald-green: #00E6A0;
+    --emerald-green: #00D6A3;
 
     /* Typography */
-    --text-primary: #F3F6FC;
-    --text-secondary: #8795A9;
-    --text-muted: #566479;
+    --text-primary: #F4F7FC;
+    --text-secondary: #9AA8B9;
+    --text-muted: #5d6f85;
     --font-display: 'Orbitron', 'Space Grotesk', sans-serif;
     --font-title: 'Space Grotesk', 'Rajdhani', sans-serif;
     --font-ui: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
@@ -968,7 +968,9 @@ html, body {
 
 .mode-card {
     position: relative;
-    background: rgba(14, 20, 34, 0.65);
+    background: rgba(14, 20, 34, 0.75);
+    background-size: cover;
+    background-position: center;
     backdrop-filter: blur(10px);
     border: 1px solid rgba(255, 255, 255, 0.08);
     border-radius: 12px;
@@ -983,20 +985,50 @@ html, body {
     outline: none;
     overflow: hidden;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
-    transition: transform var(--transition-fast), background var(--transition-fast), border-color var(--transition-fast), box-shadow var(--transition-fast);
+    transition: transform var(--transition-fast), border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+#quickCardFfa {
+    background-image: linear-gradient(180deg, rgba(16, 23, 34, 0.78) 0%, rgba(8, 11, 18, 0.94) 100%), url('../assets/mode_ffa_bg.svg');
+}
+
+#quickCardDuel {
+    background-image: linear-gradient(180deg, rgba(16, 23, 34, 0.78) 0%, rgba(8, 11, 18, 0.94) 100%), url('../assets/mode_duel_bg.svg');
+}
+
+#quickCardPve {
+    background-image: linear-gradient(180deg, rgba(16, 23, 34, 0.78) 0%, rgba(8, 11, 18, 0.94) 100%), url('../assets/mode_pve_bg.svg');
+}
+
+#quickCardCustom {
+    background-image: linear-gradient(180deg, rgba(16, 23, 34, 0.78) 0%, rgba(8, 11, 18, 0.94) 100%), url('../assets/mode_custom_bg.svg');
 }
 
 .mode-card:hover {
     transform: translateY(-2px);
-    background: rgba(20, 28, 46, 0.8);
-    border-color: rgba(56, 189, 248, 0.3);
-    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.4);
+    border-color: rgba(23, 200, 243, 0.4);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.5), 0 0 14px rgba(23, 200, 243, 0.15);
+}
+
+#quickCardFfa:hover {
+    background-image: linear-gradient(180deg, rgba(16, 23, 34, 0.6) 0%, rgba(8, 11, 18, 0.88) 100%), url('../assets/mode_ffa_bg.svg');
+}
+
+#quickCardDuel:hover {
+    background-image: linear-gradient(180deg, rgba(16, 23, 34, 0.6) 0%, rgba(8, 11, 18, 0.88) 100%), url('../assets/mode_duel_bg.svg');
+}
+
+#quickCardPve:hover {
+    background-image: linear-gradient(180deg, rgba(16, 23, 34, 0.6) 0%, rgba(8, 11, 18, 0.88) 100%), url('../assets/mode_pve_bg.svg');
+}
+
+#quickCardCustom:hover {
+    background-image: linear-gradient(180deg, rgba(16, 23, 34, 0.6) 0%, rgba(8, 11, 18, 0.88) 100%), url('../assets/mode_custom_bg.svg');
 }
 
 .mode-card.active-mode {
-    background: rgba(16, 27, 48, 0.85);
-    border-color: #38bdf8;
-    box-shadow: 0 0 20px rgba(56, 189, 248, 0.2), inset 0 0 10px rgba(56, 189, 248, 0.06);
+    border-color: var(--cyan-primary);
+    box-shadow: 0 0 22px rgba(23, 200, 243, 0.3), inset 0 0 14px rgba(23, 200, 243, 0.08);
 }
 
 .mode-card-header {
@@ -1245,17 +1277,17 @@ html, body {
     display: inline-flex;
     align-items: center;
     gap: 10px;
-    padding: 13px 28px;
-    background: linear-gradient(180deg, #10b981 0%, #059669 100%);
-    border: 1px solid #10b981;
-    clip-path: polygon(0 0, calc(100% - 10px) 0, 100% 10px, 100% 100%, 10px 100%, 0 calc(100% - 10px));
-    color: #ffffff;
-    font-family: var(--font-display);
-    font-size: 0.85rem;
-    font-weight: 900;
-    letter-spacing: 2px;
+    padding: 12px 24px;
+    background: linear-gradient(135deg, #00D6A3 0%, #059669 100%);
+    border: 1px solid #00D6A3;
+    border-radius: var(--radius-md);
+    color: #080B12;
+    font-family: var(--font-title);
+    font-size: 0.84rem;
+    font-weight: 700;
+    letter-spacing: 1px;
     cursor: pointer;
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.45), 0 0 18px rgba(16, 185, 129, 0.4);
+    box-shadow: 0 4px 14px rgba(0, 214, 163, 0.35);
     transition: all var(--transition-fast);
     overflow: hidden;
 }
@@ -1670,7 +1702,7 @@ html, body {
     padding: 7px 16px;
     background: linear-gradient(180deg, rgba(255, 255, 255, 0.06) 0%, rgba(255, 255, 255, 0.02) 100%);
     border: 1px solid rgba(255, 255, 255, 0.14);
-    clip-path: polygon(6px 0, 100% 0, 100% calc(100% - 6px), calc(100% - 6px) 100%, 0 100%, 0 6px);
+    border-radius: var(--radius-md);
     color: var(--text-secondary);
     font-family: var(--font-display);
     font-size: 0.72rem;
@@ -1772,7 +1804,7 @@ html, body {
     padding: 10px 22px;
     background: linear-gradient(135deg, #00f2fe 0%, #0284c7 100%);
     border: 1px solid #00f2fe;
-    clip-path: polygon(8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%, 0 8px);
+    border-radius: var(--radius-md);
     color: #06080f;
     font-family: var(--font-display);
     font-size: 0.78rem;
@@ -1823,7 +1855,7 @@ html, body {
     padding: 10px 20px;
     background: linear-gradient(180deg, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0.02) 100%);
     border: 1px solid rgba(255, 255, 255, 0.18);
-    clip-path: polygon(8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%, 0 8px);
+    border-radius: var(--radius-md);
     color: var(--text-secondary);
     font-family: var(--font-display);
     font-size: 0.76rem;
@@ -2153,7 +2185,7 @@ html, body {
     padding: 10px 20px;
     background: linear-gradient(135deg, rgba(244, 63, 94, 0.18) 0%, rgba(190, 18, 60, 0.08) 100%);
     border: 1px solid rgba(244, 63, 94, 0.45);
-    clip-path: polygon(8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%, 0 8px);
+    border-radius: var(--radius-md);
     color: var(--combat-red);
     font-family: var(--font-display);
     font-size: 0.76rem;
@@ -2194,7 +2226,7 @@ html, body {
     padding: 10px 24px;
     background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
     border: 1px solid #f59e0b;
-    clip-path: polygon(8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%, 0 8px);
+    border-radius: var(--radius-md);
     color: #06080f;
     font-family: var(--font-display);
     font-size: 0.78rem;
@@ -2240,7 +2272,7 @@ html, body {
     padding: 10px 26px;
     background: linear-gradient(135deg, #10b981 0%, #059669 100%);
     border: 1px solid #10b981;
-    clip-path: polygon(8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%, 0 8px);
+    border-radius: var(--radius-md);
     color: #06080f;
     font-family: var(--font-display);
     font-size: 0.82rem;
@@ -2443,7 +2475,7 @@ html, body {
     padding: 6px 16px;
     background: linear-gradient(180deg, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0.02) 100%);
     border: 1px solid rgba(255, 255, 255, 0.16);
-    clip-path: polygon(6px 0, 100% 0, 100% calc(100% - 6px), calc(100% - 6px) 100%, 0 100%, 0 6px);
+    border-radius: var(--radius-md);
     color: var(--text-secondary);
     font-family: var(--font-mono);
     font-size: 0.72rem;
@@ -2533,7 +2565,7 @@ html, body {
     padding: 8px 24px;
     background: linear-gradient(135deg, rgba(6, 8, 15, 0.95) 0%, rgba(15, 23, 42, 0.95) 100%);
     border: 1px solid #f59e0b;
-    clip-path: polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px);
+    border-radius: var(--radius-md);
     box-shadow: 0 8px 28px rgba(0, 0, 0, 0.8), 0 0 20px rgba(245, 158, 11, 0.4);
     opacity: 0;
     transition: transform 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.25s ease;
@@ -2691,7 +2723,7 @@ html, body {
     padding: 8px 20px;
     background: linear-gradient(180deg, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0.02) 100%);
     border: 1px solid rgba(255, 255, 255, 0.16);
-    clip-path: polygon(6px 0, 100% 0, 100% calc(100% - 6px), calc(100% - 6px) 100%, 0 100%, 0 6px);
+    border-radius: var(--radius-md);
     color: var(--text-secondary);
     font-family: var(--font-mono);
     font-size: 0.72rem;
@@ -2757,7 +2789,7 @@ html, body {
     justify-content: center;
     background: linear-gradient(135deg, rgba(244, 63, 94, 0.2) 0%, rgba(190, 18, 60, 0.1) 100%);
     border: 1px solid rgba(244, 63, 94, 0.4);
-    clip-path: polygon(6px 0, 100% 0, 100% calc(100% - 6px), calc(100% - 6px) 100%, 0 100%, 0 6px);
+    border-radius: var(--radius-md);
     color: var(--combat-red);
     cursor: pointer;
     box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.15), inset 0 -1px 0 rgba(0, 0, 0, 0.4);
@@ -3229,7 +3261,7 @@ html, body {
     padding: 13px 18px;
     background: linear-gradient(180deg, rgba(255, 255, 255, 0.06) 0%, rgba(255, 255, 255, 0.02) 100%);
     border: 1px solid rgba(255, 255, 255, 0.14);
-    clip-path: polygon(8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%, 0 8px);
+    border-radius: var(--radius-md);
     color: #ffffff;
     font-family: var(--font-display);
     font-size: 0.8rem;
@@ -3315,7 +3347,7 @@ html, body {
     padding: 13px 20px;
     background: linear-gradient(135deg, #00f2fe 0%, #0284c7 100%);
     border: 1px solid #00f2fe;
-    clip-path: polygon(8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%, 0 8px);
+    border-radius: var(--radius-md);
     color: #06080f;
     font-family: var(--font-display);
     font-size: 0.85rem;
@@ -3377,7 +3409,7 @@ html, body {
     padding: 11px 18px;
     background: linear-gradient(135deg, rgba(245, 158, 11, 0.15) 0%, rgba(217, 119, 6, 0.05) 100%);
     border: 1px solid rgba(245, 158, 11, 0.4);
-    clip-path: polygon(8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%, 0 8px);
+    border-radius: var(--radius-md);
     color: var(--amber-gold);
     font-family: var(--font-display);
     font-size: 0.78rem;

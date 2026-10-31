@@ -68,10 +68,14 @@ server.listen(PORT, '127.0.0.1', async () => {
         await send('Page.enable');
         await sleep(1500);
 
+        // 0. Initial Play view
+        let snap = await send('Page.captureScreenshot', { format: 'png' });
+        fs.writeFileSync(path.join(DOCS_DIR, 'assets', 'snap_play.png'), Buffer.from(snap.data, 'base64'));
+
         // 1. Switch to operators and take snapshot
         await send('Runtime.evaluate', { expression: 'switchView("operators")' });
         await sleep(600);
-        let snap = await send('Page.captureScreenshot', { format: 'png' });
+        snap = await send('Page.captureScreenshot', { format: 'png' });
         fs.writeFileSync(path.join(DOCS_DIR, 'assets', 'snap_operators.png'), Buffer.from(snap.data, 'base64'));
 
         // 2. Switch to career and take snapshot
@@ -92,7 +96,19 @@ server.listen(PORT, '127.0.0.1', async () => {
         snap = await send('Page.captureScreenshot', { format: 'png' });
         fs.writeFileSync(path.join(DOCS_DIR, 'assets', 'snap_arenas.png'), Buffer.from(snap.data, 'base64'));
 
-        console.log('SUCCESS_ALL_VIEWS');
+        // 5. Open PvP Emulator modal and take snapshot
+        await send('Runtime.evaluate', { expression: 'openPvPEmulatorModal()' });
+        await sleep(600);
+        snap = await send('Page.captureScreenshot', { format: 'png' });
+        fs.writeFileSync(path.join(DOCS_DIR, 'assets', 'snap_emulator.png'), Buffer.from(snap.data, 'base64'));
+
+        // 6. Launch match to capture live combat HUD
+        await send('Runtime.evaluate', { expression: 'document.getElementById("startEmulatorSubmitBtn")?.click()' });
+        await sleep(1500);
+        snap = await send('Page.captureScreenshot', { format: 'png' });
+        fs.writeFileSync(path.join(DOCS_DIR, 'assets', 'snap_combat.png'), Buffer.from(snap.data, 'base64'));
+
+        console.log('SUCCESS_ALL_SEVEN_VIEWS');
         ws.close();
     } catch (e) {
         console.error(e);
