@@ -5468,7 +5468,7 @@ async function checkBackendHealth() {
         statusDot.className = 'status-dot arcade';
         statusText.textContent = 'ARCADE';
         if (hudPing) {
-            hudPing.textContent = '0 ms (LOCAL)';
+            hudPing.textContent = '0 ms';
             hudPing.className = 'telemetry-ping good';
         }
         ensureLocalArcadeProfile();
