@@ -1,3 +1,44 @@
+
+function updateHomeIntelDock(profile) {
+    if (!profile) return;
+    try {
+        const lvl = profile.level || 1;
+        const xp = profile.xp || 0;
+        const xpInLevel = xp % 1000;
+        const xpPct = Math.min(100, Math.round((xpInLevel / 1000) * 100));
+        const kills = profile.kills || 0;
+        const deaths = profile.deaths || 0;
+        const kdRatio = (kills / Math.max(1, deaths)).toFixed(2);
+        const games = profile.totalGames || 0;
+        const wins = profile.wins || 0;
+        const winRate = games > 0 ? Math.round((wins / games) * 100) : 0;
+
+        const homeLevel = document.getElementById('homeIntelLevel');
+        const homeXpFill = document.getElementById('homeIntelXpFill');
+        const homeXpText = document.getElementById('homeIntelXpText');
+        const homeKd = document.getElementById('homeIntelKd');
+        const homeKdSub = document.getElementById('homeIntelKdSub');
+        const homeWinRate = document.getElementById('homeIntelWinRate');
+        const homeRecordSub = document.getElementById('homeIntelRecordSub');
+        const homeHighScore = document.getElementById('homeIntelHighScore');
+        const homeScoreSub = document.getElementById('homeIntelScoreSub');
+        const intelRankBadge = document.getElementById('intelRankBadge');
+
+        if (homeLevel) homeLevel.textContent = `LVL ${lvl}`;
+        if (homeXpFill) homeXpFill.style.width = `${xpPct}%`;
+        if (homeXpText) homeXpText.textContent = `${xpInLevel} / 1000 XP (${xp} Total)`;
+        if (homeKd) homeKd.textContent = kdRatio;
+        if (homeKdSub) homeKdSub.textContent = `${kills} Kills / ${deaths} Deaths`;
+        if (homeWinRate) homeWinRate.textContent = `${winRate}%`;
+        if (homeRecordSub) homeRecordSub.textContent = `${wins} Wins / ${games} Battles`;
+        if (homeHighScore) homeHighScore.textContent = profile.highestScore || 0;
+        if (homeScoreSub) homeScoreSub.textContent = `${profile.totalScore || 0} Total Career Pts`;
+        if (intelRankBadge) intelRankBadge.textContent = `RANK: ${profile.equippedTitle || 'RECRUIT'}`;
+    } catch (e) {
+        console.warn('Failed to update Home Intel Dock:', e);
+    }
+}
+
 /**
  * Battle Arena - Phase 2: Game Loop, Vector Rendering & Collision Engine
  * Low-Resource Architecture: 0 image assets, 0 external libraries, pure Canvas 2D.
@@ -5435,6 +5476,7 @@ function saveLocalArcadeProfile(profile) {
 function ensureLocalArcadeProfile() {
     const profile = getLocalArcadeProfile();
     currentUserProfile = profile;
+            updateHomeIntelDock(profile);
     updateAuthState(profile);
     const userLevelBadge = document.getElementById('userLevelBadge');
     const userTitleBadge = document.getElementById('userTitleBadge');
@@ -7006,6 +7048,7 @@ function renderLocalCareerProfile() {
     if (userTitleBadge) userTitleBadge.textContent = profile.equippedTitle || 'RECRUIT';
 
     populateCosmeticsLocker(profile);
+    updateHomeIntelDock(profile);
 
     const matches = profile.matches || [];
     if (matches.length === 0) {
