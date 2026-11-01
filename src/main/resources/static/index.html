@@ -235,8 +235,8 @@
                                             <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="10" rx="2"/><circle cx="12" cy="5" r="2"/><path d="M12 7v4"/><line x1="8" y1="16" x2="8.01" y2="16"/><line x1="16" y1="16" x2="16.01" y2="16"/></svg>
                                         </div>
                                         <div class="emulator-btn-text">
-                                            <span class="emulator-title">Practice With AI</span>
-                                            <span class="emulator-sub">Instant Bots • Offline Mode</span>
+                                            <span class="emulator-title">AI PRACTICE</span>
+                                            <span class="emulator-sub">Solo Training Dojo</span>
                                         </div>
                                     </div>
                                 </button>
@@ -867,6 +867,17 @@
                             <span class="hud-sep">|</span>
                             <span class="hud-ping-val" id="hudPingCombat">-- ms</span>
                         </div>
+                        <!-- In-Game PvP Emulator Badge & Instant Controls (Docked in Top Strip) -->
+                        <div class="hud-emulator-indicator" id="hudEmulatorIndicator" style="display: none;">
+                            <div class="emulator-indicator-badge">
+                                <span class="indicator-pulse-dot"></span>
+                                <span id="emulatorModeText"><span id="emulatorIndicatorLabel">AI SIMULATOR</span></span>
+                            </div>
+                            <div class="emulator-quick-actions">
+                                <button type="button" class="btn-emulator-quick" id="emulatorQuickRestartBtn" title="Instant Rematch">🔄 RESTART</button>
+                                <button type="button" class="btn-emulator-quick" id="emulatorQuickConfigBtn" title="Change Map & Bots">⚙️ CONFIG</button>
+                            </div>
+                        </div>
                     </div>
 
                     <!-- Top Center: Objective & Timer -->
@@ -1047,17 +1058,6 @@
                             </div>
                         </div>
 
-                        <!-- In-Game PvP Emulator Badge & Instant Controls -->
-                        <div class="hud-emulator-indicator" id="hudEmulatorIndicator" style="display: none;">
-                            <div class="emulator-indicator-badge">
-                                <span class="indicator-pulse-dot"></span>
-                                <span id="emulatorModeText">PVP EMULATOR: ACTIVE</span>
-                            </div>
-                            <div class="emulator-quick-actions">
-                                <button type="button" class="btn-emulator-quick" id="emulatorQuickRestartBtn" title="Instant Rematch">🔄 RESTART</button>
-                                <button type="button" class="btn-emulator-quick" id="emulatorQuickConfigBtn" title="Change Map & Bots">⚙️ CONFIG</button>
-                            </div>
-                        </div>
 
                         <!-- Mobile & Touch Screen Tactile Controller Overlay -->
                         <div class="touch-controls-overlay" id="touchControls" style="display: none;">
@@ -1249,7 +1249,7 @@
             <div class="modal-header">
                 <div class="modal-header-text">
                     <div class="modal-tag-badge">TACTICAL SIMULATOR ENGINE</div>
-                    <h3 class="emulator-title">PVP COMBAT EMULATOR</h3>
+                    <h3 class="emulator-modal-title">PVP COMBAT EMULATOR</h3>
                     <p class="modal-subtitle">Zero-latency offline simulation arena with autonomous combat AI agents, dynamic abilities, and tactical ballistics.</p>
                 </div>
                 <button class="modal-close-btn" id="closeEmulatorModalBtn" type="button">&times;</button>

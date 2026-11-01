@@ -56,11 +56,11 @@ let dpr = Math.min(window.devicePixelRatio || 1, 2);
 function updateCanvasScaling() {
     if (!canvas) return;
     dpr = Math.min(window.devicePixelRatio || 1, 2);
-    canvas.width = Math.round(ARENA_WIDTH * dpr);
-    canvas.height = Math.round(ARENA_HEIGHT * dpr);
-    canvas.style.maxWidth = '100%';
-    canvas.style.maxHeight = '100%';
-    canvas.style.aspectRatio = '4 / 3';
+    const container = canvas.parentElement || document.getElementById('canvasContainer');
+    const displayW = container && container.clientWidth > 0 ? container.clientWidth : (canvas.clientWidth > 0 ? canvas.clientWidth : ARENA_WIDTH);
+    const displayH = container && container.clientHeight > 0 ? container.clientHeight : (canvas.clientHeight > 0 ? canvas.clientHeight : ARENA_HEIGHT);
+    canvas.width = Math.round(displayW * dpr);
+    canvas.height = Math.round(displayH * dpr);
 }
 updateCanvasScaling();
 window.addEventListener('resize', updateCanvasScaling);
@@ -2416,6 +2416,18 @@ function updatePhysics(dt) {
         }
     }
 
+    // Out-of-Combat Shield Regeneration (activates after 3.5s of taking no damage)
+    if (player.alive && player.shield < player.maxShield) {
+        const timeSinceDamage = Date.now() - (player.lastDamageTime || 0);
+        if (timeSinceDamage >= 3500) {
+            const prevShield = player.shield;
+            player.shield = Math.min(player.maxShield, player.shield + 14 * dt);
+            if (Math.floor(player.shield) !== Math.floor(prevShield)) {
+                updateHudHealth();
+            }
+        }
+    }
+
     // Update lightweight HUD
     hudPos.textContent = `X: ${Math.round(player.x)}, Y: ${Math.round(player.y)}`;
 }
@@ -2634,6 +2646,23 @@ function resolveObstacleCollisions(p) {
             }
         }
     }
+}
+
+// Line-of-sight obstacle occlusion test for tactical bot intelligence
+function hasObstacleBetween(x1, y1, x2, y2) {
+    if (!obstacles || obstacles.length === 0) return false;
+    const steps = 8;
+    for (let s = 1; s < steps; s++) {
+        const px = x1 + (x2 - x1) * (s / steps);
+        const py = y1 + (y2 - y1) * (s / steps);
+        for (let i = 0; i < obstacles.length; i++) {
+            const obs = obstacles[i];
+            if (px >= obs.x && px <= obs.x + obs.width && py >= obs.y && py <= obs.y + obs.height) {
+                return true;
+            }
+        }
+    }
+    return false;
 }
 
 // Phase 17: Interactive Environmental Hazards & Traps Map
@@ -4138,50 +4167,46 @@ function renderRemotePlayers() {
         ctx.fillStyle = '#ffffff';
         ctx.fill();
 
-        // 6. Floating Health & Shield Bar
-        const barWidth = 36;
-        const barHeight = 4;
+        // 6. Sleek Floating Health & Shield Bar (AAA Minimalist)
+        const barWidth = 32;
+        const barHeight = 3;
         const barX = -barWidth / 2;
-        const barY = -pRadius - 16;
+        const barY = -pRadius - 9;
         const hp = rp.health !== undefined ? rp.health : classInfo.maxHp;
         const maxHp = rp.maxHealth || classInfo.maxHp;
         const hpRatio = Math.max(0, Math.min(1, hp / maxHp));
 
-        ctx.fillStyle = 'rgba(0, 0, 0, 0.65)';
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
         ctx.fillRect(barX, barY, barWidth, barHeight);
 
         ctx.fillStyle = hpRatio > 0.5 ? '#10b981' : (hpRatio > 0.25 ? '#f59e0b' : '#ef4444');
         ctx.fillRect(barX, barY, barWidth * hpRatio, barHeight);
-
-        ctx.strokeStyle = 'rgba(255, 255, 255, 0.15)';
-        ctx.lineWidth = 0.5;
-        ctx.strokeRect(barX, barY, barWidth, barHeight);
 
         // Remote shield bar & aura
         if (rp.shield && rp.shield > 0) {
             const maxShield = rp.maxShield || classInfo.maxShield;
             const shieldRatio = Math.max(0, Math.min(1, rp.shield / maxShield));
             ctx.fillStyle = '#06b6d4';
-            ctx.fillRect(barX, barY - 4, barWidth * shieldRatio, 2.5);
+            ctx.fillRect(barX, barY - 3, barWidth * shieldRatio, 2);
 
             const sPulse = Math.sin(performance.now() * 0.008) * 1.5;
             ctx.beginPath();
-            ctx.arc(0, 0, pRadius + 7 + sPulse, 0, Math.PI * 2);
+            ctx.arc(0, 0, pRadius + 6 + sPulse, 0, Math.PI * 2);
             ctx.strokeStyle = '#22d3ee';
-            ctx.lineWidth = 2;
+            ctx.lineWidth = 1.8;
             ctx.shadowColor = '#06b6d4';
-            ctx.shadowBlur = 8;
+            ctx.shadowBlur = 6;
             ctx.stroke();
-            ctx.fillStyle = 'rgba(6, 182, 212, 0.12)';
+            ctx.fillStyle = 'rgba(6, 182, 212, 0.1)';
             ctx.fill();
             ctx.shadowBlur = 0;
         }
 
-        // 7. Remote player name & score tag with class badge
-        ctx.fillStyle = classInfo.accentColor;
-        ctx.font = '600 11px Outfit, sans-serif';
+        // 7. Remote player sleek callsign tag (Minimalist & Uncluttered)
+        ctx.fillStyle = '#f1f5f9';
+        ctx.font = '600 10px Outfit, sans-serif';
         ctx.textAlign = 'center';
-        ctx.fillText(`${username} [${wClass}] (${rp.score || 0})`, 0, -pRadius - 4);
+        ctx.fillText(username, 0, -pRadius - 13);
 
         // 8. Observer target reticle for tracked player (Phase 15)
         if (isSpectator && spectateTargetUsername === username) {
@@ -4354,50 +4379,54 @@ function renderPlayer() {
         ctx.restore();
     }
 
-    // 6. Floating Health Bar & Shield Bar
-    const barWidth = 36;
-    const barHeight = 4;
-    const barX = -barWidth / 2;
-    const barY = -pRadius - 16;
-    const maxHp = player.maxHealth || classInfo.maxHp;
-    const hpRatio = Math.max(0, Math.min(1, player.health / maxHp));
-
-    ctx.fillStyle = 'rgba(0, 0, 0, 0.65)';
-    ctx.fillRect(barX, barY, barWidth, barHeight);
-
-    ctx.fillStyle = hpRatio > 0.5 ? '#10b981' : (hpRatio > 0.25 ? '#f59e0b' : '#ef4444');
-    ctx.fillRect(barX, barY, barWidth * hpRatio, barHeight);
-
-    ctx.strokeStyle = 'rgba(255, 255, 255, 0.15)';
-    ctx.lineWidth = 0.5;
-    ctx.strokeRect(barX, barY, barWidth, barHeight);
-
-    // Active Energy Shield Bubble & Floating Shield Bar
+    // 6. Active Energy Shield Bubble
     if (player.shield > 0) {
-        const maxShield = player.maxShield || classInfo.maxShield;
-        const shieldRatio = Math.max(0, Math.min(1, player.shield / maxShield));
-        ctx.fillStyle = '#06b6d4';
-        ctx.fillRect(barX, barY - 4, barWidth * shieldRatio, 2.5);
-
         const shieldPulse = Math.sin(performance.now() * 0.008) * 1.5;
         ctx.beginPath();
         ctx.arc(0, 0, pRadius + 7 + shieldPulse, 0, Math.PI * 2);
         ctx.strokeStyle = '#22d3ee';
-        ctx.lineWidth = 2.5;
+        ctx.lineWidth = 2.2;
         ctx.shadowColor = '#06b6d4';
-        ctx.shadowBlur = 10;
+        ctx.shadowBlur = 8;
         ctx.stroke();
-        ctx.fillStyle = 'rgba(6, 182, 212, 0.15)';
+        ctx.fillStyle = 'rgba(6, 182, 212, 0.12)';
         ctx.fill();
         ctx.shadowBlur = 0;
     }
 
-    // 7. Name & score tag with class badge and equipped title
-    ctx.fillStyle = classInfo.accentColor;
-    ctx.font = '600 11px Outfit, sans-serif';
-    ctx.textAlign = 'center';
-    const titleStr = player.equippedTitle ? ` [${player.equippedTitle}]` : '';
-    ctx.fillText(`${player.name}${titleStr} [${currentClass}] (${myScore})`, 0, -pRadius - 4);
+    // Spawn Invulnerability Shield Visual & Tech Ring
+    if (player.invulnerableUntil && player.invulnerableUntil > Date.now()) {
+        const remainSec = ((player.invulnerableUntil - Date.now()) / 1000).toFixed(1);
+        const pulse = Math.sin(performance.now() * 0.014) * 2;
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(0, 0, pRadius + 11 + pulse, 0, Math.PI * 2);
+        ctx.strokeStyle = '#00f2fe';
+        ctx.lineWidth = 2.5;
+        ctx.shadowColor = '#00f2fe';
+        ctx.shadowBlur = 12;
+        ctx.stroke();
+        ctx.fillStyle = 'rgba(0, 242, 254, 0.16)';
+        ctx.fill();
+
+        // Orbiting protective tech brackets
+        ctx.rotate(performance.now() * 0.003);
+        for (let i = 0; i < 3; i++) {
+            ctx.beginPath();
+            ctx.arc(0, 0, pRadius + 14, (i * Math.PI * 2 / 3), (i * Math.PI * 2 / 3) + 0.8);
+            ctx.strokeStyle = '#38bdf8';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+        }
+        ctx.restore();
+
+        ctx.save();
+        ctx.font = '700 9px Orbitron, sans-serif';
+        ctx.fillStyle = '#38bdf8';
+        ctx.textAlign = 'center';
+        ctx.fillText(`SHIELDED: ${remainSec}s`, 0, -pRadius - 16);
+        ctx.restore();
+    }
 
     ctx.restore();
 }
@@ -4412,11 +4441,11 @@ function renderTacticalRadar() {
     const radarW = 124;
     const radarH = 92;
     const radarX = ARENA_WIDTH - radarW - 14;
-    const radarY = 14;
+    const radarY = ARENA_HEIGHT - radarH - 14;
 
     ctx.save();
     // Glass surface
-    ctx.fillStyle = 'rgba(6, 10, 22, 0.82)';
+    ctx.fillStyle = 'rgba(6, 10, 22, 0.65)';
     ctx.fillRect(radarX, radarY, radarW, radarH);
 
     // Border with cyber glow
@@ -4630,6 +4659,10 @@ class PvPEmulatorEngine {
         hudTarget.textContent = this.targetScore;
         hudHp.textContent = `${player.health} / ${player.maxHealth} HP`;
         hudKd.textContent = `${player.kills} K / ${player.deaths} D`;
+
+        // 3.5s Initial Spawn Protection & Damage Timer Reset
+        player.invulnerableUntil = Date.now() + 3500;
+        player.lastDamageTime = 0;
 
         addFloatingText('⚡ PVP SIMULATION ARENA READY', 400, 220, '#00f2fe', true);
         soundEngine.playGameStart();
@@ -4952,6 +4985,13 @@ class PvPEmulatorEngine {
             bot.deaths++;
             bot.respawnTimer = 3.5;
 
+            // Geometry Wars style explosive elimination juice
+            addShockwave(bot.x, bot.y, 80, '#ff3b5c');
+            addCombatSparks(bot.x, bot.y, '#00f2fe', 22);
+            addCombatSparks(bot.x, bot.y, '#f59e0b', 14);
+            addCombatSparks(bot.x, bot.y, '#ff3b5c', 14);
+            triggerScreenShake(7, 0.2);
+
             if (attackerName === player.name) {
                 player.kills++;
                 player.score += 10;
@@ -5016,6 +5056,8 @@ class PvPEmulatorEngine {
             }
         }
 
+        player.lastDamageTime = Date.now();
+
         if (actualDmg > 0) {
             player.health -= actualDmg;
         }
@@ -5031,6 +5073,12 @@ class PvPEmulatorEngine {
             playerKillstreak = 0;
             soundEngine.updateHeartbeat(false);
             updateHudHealth();
+
+            // Player elimination explosion juice
+            addShockwave(player.x, player.y, 90, '#ff3b5c');
+            addCombatSparks(player.x, player.y, '#ff3b5c', 28);
+            addCombatSparks(player.x, player.y, '#00f2fe', 16);
+            triggerScreenShake(10, 0.3);
 
             const killerBot = this.bots.find(b => b.name === attackerName);
             if (killerBot) {
@@ -5061,10 +5109,39 @@ class PvPEmulatorEngine {
                         player.alive = true;
                         player.health = player.maxHealth;
                         player.shield = player.maxShield;
-                        player.x = 140;
-                        player.y = 300;
+                        player.invulnerableUntil = Date.now() + 3500;
+                        player.lastDamageTime = 0;
+
+                        // Farthest safe spawn point selection away from active enemies
+                        const spawnSpots = [
+                            { x: 100, y: 100 },
+                            { x: 700, y: 100 },
+                            { x: 100, y: 500 },
+                            { x: 700, y: 500 },
+                            { x: 400, y: 100 },
+                            { x: 400, y: 500 }
+                        ];
+                        let bestSpot = spawnSpots[0];
+                        let maxSafeDist = -1;
+                        spawnSpots.forEach(spot => {
+                            let minEnemyDist = 9999;
+                            if (this && this.bots) {
+                                this.bots.forEach(b => {
+                                    if (!b.alive) return;
+                                    const d = Math.hypot(spot.x - b.x, spot.y - b.y);
+                                    if (d < minEnemyDist) minEnemyDist = d;
+                                });
+                            }
+                            if (minEnemyDist > maxSafeDist) {
+                                maxSafeDist = minEnemyDist;
+                                bestSpot = spot;
+                            }
+                        });
+                        player.x = bestSpot.x;
+                        player.y = bestSpot.y;
                         updateHudHealth();
-                        addShockwave(player.x, player.y, 70, '#00f2fe');
+                        addShockwave(player.x, player.y, 75, '#00f2fe');
+                        addFloatingText('🛡️ SHIELD DEPLOYED', player.x, player.y - 25, '#00f2fe', true);
                     }
                 }, 1000);
             }
@@ -5092,45 +5169,51 @@ class PvPEmulatorEngine {
                 return;
             }
 
-            // Pick closest valid target
-            let target = null;
-            let minDist = 9999;
-
-            if (!isSpectator && player.alive) {
-                minDist = Math.hypot(player.x - bot.x, player.y - bot.y);
-                target = player;
+            // Target Acquisition & Dynamic Locking
+            let target = bot.currentTarget;
+            if (!target || !target.alive || now > (bot.targetLockUntil || 0)) {
+                let candidates = [];
+                if (!isSpectator && player.alive) {
+                    candidates.push({ target: player, dist: Math.hypot(player.x - bot.x, player.y - bot.y) });
+                }
+                if (this.mode !== 'DUEL_1V1') {
+                    this.bots.forEach(other => {
+                        if (other.id === bot.id || !other.alive) return;
+                        candidates.push({ target: other, dist: Math.hypot(other.x - bot.x, other.y - bot.y) });
+                    });
+                }
+                if (candidates.length > 0) {
+                    candidates.sort((a, b) => a.dist - b.dist);
+                    const pickIndex = (Math.random() < 0.75 || candidates.length === 1) ? 0 : 1;
+                    bot.currentTarget = candidates[pickIndex].target;
+                    bot.targetLockUntil = now + 2500 + Math.random() * 2000;
+                } else {
+                    bot.currentTarget = null;
+                }
+                target = bot.currentTarget;
             }
 
-            // In FFA or Spectate, bot can target opposing bots
-            if (this.mode !== 'DUEL_1V1') {
-                this.bots.forEach(other => {
-                    if (other.id === bot.id || !other.alive) return;
-                    const d = Math.hypot(other.x - bot.x, other.y - bot.y);
-                    if (d < minDist) {
-                        minDist = d;
-                        target = other;
-                    }
-                });
-            }
+            let minDist = target ? Math.hypot(target.x - bot.x, target.y - bot.y) : 9999;
 
             if (target) {
                 const angle = Math.atan2(target.y - bot.y, target.x - bot.x);
 
-                // Lead Angle Prediction
+                // Lead Angle Prediction with Natural Human-like Spread
                 let leadAngle = angle;
                 if (this.difficulty === 'RECRUIT') {
-                    leadAngle += (Math.random() - 0.5) * 0.35;
+                    leadAngle += (Math.random() - 0.5) * 0.40;
                 } else if (this.difficulty === 'VETERAN') {
+                    leadAngle += (Math.random() - 0.5) * 0.22;
+                } else if (this.difficulty === 'ELITE') {
                     leadAngle += (Math.random() - 0.5) * 0.12;
-                } else if (this.difficulty === 'ELITE' || this.difficulty === 'APEX') {
-                    // Predictive target lead
+                } else if (this.difficulty === 'APEX') {
                     const bulletSpeed = (WARRIOR_CLASSES[bot.warriorClass] || WARRIOR_CLASSES.ASSAULT).bulletSpeed;
                     const timeToHit = minDist / bulletSpeed;
                     const targetVx = (target === player ? (activeKeys.has('d') ? 1 : (activeKeys.has('a') ? -1 : 0)) : 0) * (target.speed || 220);
                     const targetVy = (target === player ? (activeKeys.has('s') ? 1 : (activeKeys.has('w') ? -1 : 0)) : 0) * (target.speed || 220);
-                    const predX = target.x + targetVx * timeToHit * 0.5;
-                    const predY = target.y + targetVy * timeToHit * 0.5;
-                    leadAngle = Math.atan2(predY - bot.y, predX - bot.x);
+                    const predX = target.x + targetVx * timeToHit * 0.4;
+                    const predY = target.y + targetVy * timeToHit * 0.4;
+                    leadAngle = Math.atan2(predY - bot.y, predX - bot.x) + (Math.random() - 0.5) * 0.08;
                 }
 
                 bot.heading = leadAngle;
@@ -5180,8 +5263,9 @@ class PvPEmulatorEngine {
                 bot.y = Math.max(bot.radius + 2, Math.min(ARENA_HEIGHT - bot.radius - 2, bot.y));
                 resolveObstacleCollisions(bot);
 
-                // Attack Trigger
-                if (now - bot.lastAttackTime >= bot.cooldownMs && minDist < 550) {
+                // Attack Trigger with line-of-sight check & balanced range
+                const hasLos = !hasObstacleBetween(bot.x, bot.y, target.x, target.y);
+                if (now - bot.lastAttackTime >= bot.cooldownMs && minDist < 380 && hasLos) {
                     bot.lastAttackTime = now;
                     this.handleBotAttack(bot, leadAngle);
                 }
@@ -5474,7 +5558,9 @@ function gameLoop(currentTime) {
     }
 
     ctx.save();
-    ctx.scale(dpr, dpr);
+    const scaleX = canvas.width / ARENA_WIDTH;
+    const scaleY = canvas.height / ARENA_HEIGHT;
+    ctx.scale(scaleX, scaleY);
 
     // Apply Screen Shake if active (Phase 17)
     let hasShake = false;
@@ -7599,6 +7685,7 @@ function updateGameLayoutState() {
     if (isPlaying) {
         if (viewCombat) viewCombat.style.display = 'flex';
         if (hudBar) hudBar.style.display = 'flex';
+        setTimeout(updateCanvasScaling, 40);
         if (clientTopbar) clientTopbar.style.display = 'none';
         if (clientFooter) clientFooter.style.display = 'none';
         ['viewPlay', 'viewOperators', 'viewCareer', 'viewLeaderboard', 'viewArenas', 'activeRoomView'].forEach(id => {

@@ -1004,14 +1004,18 @@ html, body {
     gap: 1px;
 }
 
+.btn-emulator-launch .emulator-title,
 .emulator-title {
-    font-family: var(--font-title);
-    font-size: 0.88rem;
-    font-weight: 700;
-    letter-spacing: 0.2px;
-    color: #f1f5f9;
+    font-family: var(--font-title) !important;
+    font-size: 0.88rem !important;
+    font-weight: 700 !important;
+    letter-spacing: 0.3px;
+    color: #f1f5f9 !important;
+    -webkit-text-fill-color: #f1f5f9 !important;
     line-height: 1.15;
     white-space: nowrap;
+    text-overflow: ellipsis;
+    overflow: hidden;
 }
 
 .emulator-sub {
@@ -2764,7 +2768,7 @@ html, body {
     transform: translateY(1px);
 }
 
-/* COMBAT CANVAS VIEWPORT */
+/* COMBAT CANVAS VIEWPORT — RESPONSIVE VIEWPORT-FILLING ARENA */
 .combat-canvas-viewport {
     flex: 1;
     position: relative;
@@ -2772,25 +2776,29 @@ html, body {
     align-items: center;
     justify-content: center;
     overflow: hidden;
+    padding: 6px 16px;
+    width: 100%;
+    height: 100%;
 }
 
 .canvas-container {
     position: relative;
-    width: 800px;
-    height: 600px;
-    max-width: 95vw;
-    max-height: calc(100vh - 140px);
+    width: min(calc(100vw - 32px), calc((100vh - 120px) * (4 / 3)));
+    height: min(calc(100vh - 120px), calc((100vw - 32px) * (3 / 4)));
+    max-width: 1440px;
+    max-height: 1080px;
     aspect-ratio: 4 / 3;
-    box-shadow: 0 16px 48px rgba(0, 0, 0, 0.9), 0 0 0 1px rgba(0, 242, 254, 0.2), 0 0 32px rgba(0, 242, 254, 0.08);
-    border-radius: 4px;
+    box-shadow: 0 24px 64px rgba(0, 0, 0, 0.95), 0 0 0 1px rgba(22, 200, 242, 0.35), 0 0 36px rgba(22, 200, 242, 0.12);
+    border-radius: 8px;
     overflow: hidden;
+    background: #080B12;
 }
 
 #gameCanvas {
     width: 100%;
     height: 100%;
     display: block;
-    background: #0a0e1a;
+    background: #080B12;
     cursor: crosshair;
 }
 
@@ -3083,23 +3091,29 @@ html, body {
 /* Kill Feed */
 .kill-feed {
     position: absolute;
-    top: 14px;
+    top: 12px;
     right: 14px;
     display: flex;
     flex-direction: column;
     gap: 6px;
     pointer-events: none;
-    z-index: 10;
+    z-index: 25;
+    max-width: 260px;
 }
 
-.kill-feed-item {
+.kill-feed-item,
+.killfeed-item {
     padding: 4px 10px;
-    background: rgba(10, 14, 25, 0.85);
-    border-left: 2px solid var(--combat-red);
+    background: linear-gradient(90deg, rgba(13, 20, 32, 0.88), rgba(8, 11, 18, 0.7));
+    backdrop-filter: blur(6px);
+    border-left: 3px solid var(--combat-red);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.45);
     font-family: var(--font-mono);
-    font-size: 0.72rem;
-    color: #ffffff;
-    border-radius: 2px;
+    font-size: 0.70rem;
+    font-weight: 600;
+    letter-spacing: 0.4px;
+    color: #f1f5f9;
+    border-radius: 3px;
     animation: slideInKill 0.2s ease-out;
 }
 
@@ -3408,12 +3422,18 @@ html, body {
     gap: 8px;
     flex-shrink: 0;
     min-width: 0;
+    margin: 0;
+    padding-left: 2px;
 }
 
 .footer-tag {
     color: var(--cyan-primary);
     font-family: var(--font-display);
     font-weight: 700;
+    letter-spacing: 0.8px;
+    white-space: nowrap;
+    text-shadow: 0 0 10px rgba(22, 200, 242, 0.3);
+}
     letter-spacing: 0.8px;
     white-space: nowrap;
 }
@@ -4728,7 +4748,7 @@ input:checked + .slider::before { transform: translateX(20px); background-color:
     color: var(--cyan-primary);
 }
 
-.emulator-title {
+.emulator-modal-title {
     font-family: var(--font-display);
     font-size: 1.4rem;
     font-weight: 900;
@@ -4960,58 +4980,70 @@ input:checked + .slider::before { transform: translateX(20px); background-color:
 }
 
 /* ------------------------------------------------------------------------------
- * HUD PVP EMULATOR OVERLAY INDICATOR
+ * HUD PVP EMULATOR TOP STRIP DOCKED INDICATOR
  * ------------------------------------------------------------------------------ */
 .hud-emulator-indicator {
-    position: absolute;
-    top: 14px;
-    left: 20px;
-    z-index: 45;
+    position: static;
     display: flex;
     align-items: center;
-    gap: 10px;
-    padding: 6px 14px;
+    gap: 8px;
+    padding: 3px 10px;
     background: rgba(14, 19, 34, 0.88);
-    backdrop-filter: blur(10px);
-    border: 1px solid rgba(0, 242, 254, 0.4);
-    border-radius: 20px;
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(8px);
+    border: 1px solid rgba(0, 242, 254, 0.35);
+    border-radius: 14px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
     pointer-events: auto;
+    margin-left: 10px;
 }
 
-.emulator-badge-pulse {
-    width: 8px;
-    height: 8px;
+.emulator-indicator-badge {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-family: var(--font-mono);
+    font-size: 0.65rem;
+    font-weight: 700;
+    letter-spacing: 0.8px;
+    color: var(--cyan-primary);
+    white-space: nowrap;
+}
+
+.indicator-pulse-dot {
+    width: 6px;
+    height: 6px;
     border-radius: 50%;
     background: var(--cyan-primary);
-    box-shadow: 0 0 10px var(--cyan-primary);
+    box-shadow: 0 0 8px var(--cyan-primary);
     animation: reconnectPulse 1.5s infinite;
 }
 
-.emulator-indicator-label {
-    font-family: var(--font-mono);
-    font-size: 0.68rem;
-    font-weight: 800;
-    letter-spacing: 1px;
-    color: #e2e8f0;
+.emulator-quick-actions {
+    display: flex;
+    align-items: center;
+    gap: 4px;
 }
 
+.btn-emulator-quick,
 .emulator-quick-btn {
-    padding: 3px 8px;
-    background: rgba(0, 242, 254, 0.15);
-    border: 1px solid rgba(0, 242, 254, 0.35);
+    padding: 2px 7px;
+    background: rgba(0, 242, 254, 0.12);
+    border: 1px solid rgba(0, 242, 254, 0.3);
     border-radius: 4px;
     font-family: var(--font-mono);
-    font-size: 0.6rem;
+    font-size: 0.58rem;
     font-weight: 700;
-    color: var(--cyan-primary);
+    color: #e2e8f0;
     cursor: pointer;
     transition: all var(--transition-fast);
+    white-space: nowrap;
 }
 
+.btn-emulator-quick:hover,
 .emulator-quick-btn:hover {
-    background: rgba(0, 242, 254, 0.3);
+    background: rgba(0, 242, 254, 0.28);
     color: #ffffff;
+    border-color: var(--cyan-primary);
 }
 
 /* ========================================================================= */
