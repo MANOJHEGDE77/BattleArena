@@ -442,6 +442,22 @@
                             <canvas id="hangarOperatorCanvas" width="500" height="440"></canvas>
                         </div>
 
+                        <!-- Operator Signature Tactical Ability Card -->
+                        <div class="hangar-ability-card" id="hangarAbilityCard">
+                            <div class="hangar-ability-header">
+                                <div class="hangar-ability-icon-wrap" id="hangarAbilityIconWrap">
+                                    <span id="hangarAbilityIcon">⚡</span>
+                                </div>
+                                <div class="hangar-ability-meta">
+                                    <span class="hangar-ability-tag">SIGNATURE COMBAT ABILITY</span>
+                                    <span class="hangar-ability-name" id="hangarAbilityName">OVERCHARGE STIM</span>
+                                </div>
+                                <div class="hangar-ability-cd" id="hangarAbilityCd">10s CD</div>
+                            </div>
+                            <p class="hangar-ability-desc" id="hangarAbilityDesc">+40% Movement Speed & 2x Rapid Fire Cadence for 4.5s</p>
+                            <div class="hangar-ability-keybind">ACTIVATION: <kbd>SPACE</kbd> or <kbd>RIGHT CLICK</kbd></div>
+                        </div>
+
                         <div class="hangar-action-bar">
                             <button class="btn-equip-operator" id="equipOperatorBtn" type="button">
                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
@@ -738,6 +754,56 @@
                             </tbody>
                         </table>
                     </div>
+
+                    <!-- Competitive Ranked Divisions Matrix -->
+                    <div class="leaderboard-tier-matrix">
+                        <div class="tier-matrix-header">
+                            <span class="tactical-badge">COMPETITIVE TIERS</span>
+                            <span class="tier-matrix-title">SEASON 1 RANKED DIVISIONS & ACCREDITATIONS</span>
+                        </div>
+                        <div class="tier-cards-row">
+                            <div class="tier-badge-card apex">
+                                <div class="tier-icon">🏆</div>
+                                <div class="tier-info">
+                                    <span class="tier-name text-gold">APEX PREDATOR</span>
+                                    <span class="tier-req">1,500+ PTS</span>
+                                </div>
+                                <span class="tier-perk">Top 1% Global</span>
+                            </div>
+                            <div class="tier-badge-card master">
+                                <div class="tier-icon">💎</div>
+                                <div class="tier-info">
+                                    <span class="tier-name text-magenta">MASTER COMBATANT</span>
+                                    <span class="tier-req">1,000+ PTS</span>
+                                </div>
+                                <span class="tier-perk">Top 5% Global</span>
+                            </div>
+                            <div class="tier-badge-card diamond">
+                                <div class="tier-icon">⚔️</div>
+                                <div class="tier-info">
+                                    <span class="tier-name text-cyan">DIAMOND VANGUARD</span>
+                                    <span class="tier-req">600+ PTS</span>
+                                </div>
+                                <span class="tier-perk">Top 15% Global</span>
+                            </div>
+                            <div class="tier-badge-card gold">
+                                <div class="tier-icon">🎖️</div>
+                                <div class="tier-info">
+                                    <span class="tier-name text-teal">GOLD STRIKER</span>
+                                    <span class="tier-req">300+ PTS</span>
+                                </div>
+                                <span class="tier-perk">Top 35% Global</span>
+                            </div>
+                            <div class="tier-badge-card recruit">
+                                <div class="tier-icon">🔰</div>
+                                <div class="tier-info">
+                                    <span class="tier-name text-silver">RECRUIT PILOT</span>
+                                    <span class="tier-req">0 - 299 PTS</span>
+                                </div>
+                                <span class="tier-perk">Entry Level</span>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </section>
 
@@ -778,7 +844,56 @@
                     </div>
 
                     <div class="rooms-container" id="roomsContainer">
-                        <div class="empty-rooms" id="emptyRoomsMsg">No active arenas discovered. Host a custom battle room to recruit combatants!</div>
+                        <div class="empty-rooms" id="emptyRoomsMsg">
+                            <div class="featured-arenas-header">
+                                <span class="tactical-badge">TACTICAL DEPLOYMENT ZONES</span>
+                                <span class="featured-arenas-title">FEATURED BATTLE SPREADS & SIMULATION ARENAS</span>
+                            </div>
+                            <div class="featured-maps-grid">
+                                <div class="featured-map-card" data-map="CYBER_CORE">
+                                    <div class="map-card-thumb map-cyber-core">
+                                        <span class="map-type-pill">STANDARD</span>
+                                        <span class="map-scale-tag">1600 × 1200</span>
+                                    </div>
+                                    <div class="map-card-body">
+                                        <h4 class="map-title">Cyber Core</h4>
+                                        <p class="map-desc">Central fortified bunker with dual jump conduits, 4 tactical control beacons, and high cover density.</p>
+                                        <div class="map-card-footer">
+                                            <span class="map-hazard-tag">⚡ Jump Pads + Barrels</span>
+                                            <button type="button" class="btn-host-map" data-map="CYBER_CORE">HOST ARENA</button>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="featured-map-card" data-map="NEON_OUTPOST">
+                                    <div class="map-card-thumb map-neon-outpost">
+                                        <span class="map-type-pill">CQB DUEL</span>
+                                        <span class="map-scale-tag">1200 × 900</span>
+                                    </div>
+                                    <div class="map-card-body">
+                                        <h4 class="map-title">Neon Outpost</h4>
+                                        <p class="map-desc">High-speed tactical arena featuring dual horizontal battlements, 2 central power stations, and rapid slingshots.</p>
+                                        <div class="map-card-footer">
+                                            <span class="map-hazard-tag">🔥 Slingshots + EMP</span>
+                                            <button type="button" class="btn-host-map" data-map="NEON_OUTPOST">HOST ARENA</button>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="featured-map-card" data-map="ORBITAL_STATION">
+                                    <div class="map-card-thumb map-orbital-station">
+                                        <span class="map-type-pill">WIDE THEATER</span>
+                                        <span class="map-scale-tag">1800 × 1400</span>
+                                    </div>
+                                    <div class="map-card-body">
+                                        <h4 class="map-title">Orbital Station</h4>
+                                        <p class="map-desc">Low-gravity reactor complex with superheated geothermal vents, long sniper sightlines, and quad boost pads.</p>
+                                        <div class="map-card-footer">
+                                            <span class="map-hazard-tag">🌀 Geothermal Vents</span>
+                                            <button type="button" class="btn-host-map" data-map="ORBITAL_STATION">HOST ARENA</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </section>

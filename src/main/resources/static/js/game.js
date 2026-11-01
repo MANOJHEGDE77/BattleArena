@@ -468,6 +468,19 @@ async function selectWarriorClass(className, notifyServer = true) {
         hangarOperatorRole.textContent = cInfo.description || cInfo.badgeText;
     }
 
+    // Update Signature Tactical Ability Card in Hangar
+    if (typeof HERO_ABILITIES !== 'undefined' && HERO_ABILITIES[className]) {
+        const ability = HERO_ABILITIES[className];
+        const hIcon = document.getElementById('hangarAbilityIcon');
+        const hName = document.getElementById('hangarAbilityName');
+        const hCd = document.getElementById('hangarAbilityCd');
+        const hDesc = document.getElementById('hangarAbilityDesc');
+        if (hIcon) hIcon.textContent = ability.icon;
+        if (hName) hName.textContent = ability.name;
+        if (hCd) hCd.textContent = `${Math.round(ability.cooldownMs / 1000)}s CD`;
+        if (hDesc) hDesc.textContent = ability.desc;
+    }
+
     // Update Dossier Stat Meters
     const hpMeter = document.getElementById('operatorHpMeter');
     const hpVal = document.getElementById('operatorHpVal');
@@ -6105,22 +6118,76 @@ async function fetchRoomsList() {
     if (!isServerOnline) {
         if (roomsContainer) {
             roomsContainer.innerHTML = `
-                <div class="arcade-custom-launcher-card" style="padding: 24px; background: rgba(14, 19, 34, 0.85); border: 1px solid var(--border-highlight); border-radius: var(--radius-md); text-align: center;">
-                    <div style="font-family: var(--font-display); font-size: 1.2rem; color: var(--cyan-primary); letter-spacing: 2px; margin-bottom: 8px;">ARCADE ARENA SIMULATOR</div>
-                    <p style="color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 20px;">Deploy customized tactical matches instantly against autonomous AI combatants across all 3 maps.</p>
+                <div class="arcade-custom-launcher-card" style="padding: 18px 24px; background: rgba(14, 19, 34, 0.88); border: 1px solid var(--border-highlight); border-radius: var(--radius-md); text-align: center;">
+                    <div style="font-family: var(--font-display); font-size: 1.15rem; font-weight: 800; color: var(--cyan-primary); letter-spacing: 2px; margin-bottom: 6px;">ARCADE COMBAT SIMULATOR</div>
+                    <p style="color: #94a3b8; font-size: 0.84rem; margin-bottom: 16px;">Deploy customized tactical matches instantly against autonomous AI combatants across all 3 arena sectors.</p>
                     <div style="display: flex; gap: 12px; justify-content: center; flex-wrap: wrap;">
-                        <button type="button" class="btn-primary-action" id="arcadeLaunchFfaBtn" style="padding: 10px 20px;">⚔️ QUICK FFA (CYBER CORE)</button>
-                        <button type="button" class="btn-secondary-action" id="arcadeLaunchDuelBtn" style="padding: 10px 20px;">🔥 1V1 APEX DUEL (NEON OUTPOST)</button>
-                        <button type="button" class="btn-secondary-action" id="arcadeLaunchCustomBtn" style="padding: 10px 20px;">⚙️ CONFIGURE CUSTOM ARENA</button>
+                        <button type="button" class="btn-primary-action" id="arcadeLaunchFfaBtn" style="padding: 8px 18px;">⚔️ QUICK FFA (CYBER CORE)</button>
+                        <button type="button" class="btn-secondary-action" id="arcadeLaunchDuelBtn" style="padding: 8px 18px;">🔥 1V1 APEX DUEL (NEON OUTPOST)</button>
+                        <button type="button" class="btn-secondary-action" id="arcadeLaunchCustomBtn" style="padding: 8px 18px;">⚙️ CONFIGURE CUSTOM ARENA</button>
+                    </div>
+                </div>
+                <div class="featured-arenas-header" style="margin-top: 18px; display: flex; align-items: center; gap: 10px;">
+                    <span class="tactical-badge">ARENA DIRECTORY</span>
+                    <span class="featured-arenas-title">DEPLOYMENT MAPS & COMBAT THEATERS</span>
+                </div>
+                <div class="featured-maps-grid">
+                    <div class="featured-map-card" data-map="CYBER_CORE">
+                        <div class="map-card-thumb map-cyber-core">
+                            <span class="map-type-pill">STANDARD</span>
+                            <span class="map-scale-tag">1600 × 1200</span>
+                        </div>
+                        <div class="map-card-body">
+                            <h4 class="map-title">Cyber Core</h4>
+                            <p class="map-desc">Central fortified bunker with dual jump conduits, 4 tactical control beacons, and high cover density.</p>
+                            <div class="map-card-footer">
+                                <span class="map-hazard-tag">⚡ Jump Pads + Barrels</span>
+                                <button type="button" class="btn-host-map" id="arcadeMapCoreBtn">PLAY THIS MAP</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="featured-map-card" data-map="NEON_OUTPOST">
+                        <div class="map-card-thumb map-neon-outpost">
+                            <span class="map-type-pill">CQB DUEL</span>
+                            <span class="map-scale-tag">1200 × 900</span>
+                        </div>
+                        <div class="map-card-body">
+                            <h4 class="map-title">Neon Outpost</h4>
+                            <p class="map-desc">High-speed tactical arena featuring dual horizontal battlements, 2 central power stations, and rapid slingshots.</p>
+                            <div class="map-card-footer">
+                                <span class="map-hazard-tag">🔥 Slingshots + EMP</span>
+                                <button type="button" class="btn-host-map" id="arcadeMapOutpostBtn">PLAY THIS MAP</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="featured-map-card" data-map="ORBITAL_STATION">
+                        <div class="map-card-thumb map-orbital-station">
+                            <span class="map-type-pill">WIDE THEATER</span>
+                            <span class="map-scale-tag">1800 × 1400</span>
+                        </div>
+                        <div class="map-card-body">
+                            <h4 class="map-title">Orbital Station</h4>
+                            <p class="map-desc">Low-gravity reactor complex with superheated geothermal vents, long sniper sightlines, and quad boost pads.</p>
+                            <div class="map-card-footer">
+                                <span class="map-hazard-tag">🌀 Geothermal Vents</span>
+                                <button type="button" class="btn-host-map" id="arcadeMapOrbitalBtn">PLAY THIS MAP</button>
+                            </div>
+                        </div>
                     </div>
                 </div>
             `;
             const ffaBtn = document.getElementById('arcadeLaunchFfaBtn');
             const duelBtn = document.getElementById('arcadeLaunchDuelBtn');
             const customBtn = document.getElementById('arcadeLaunchCustomBtn');
+            const coreBtn = document.getElementById('arcadeMapCoreBtn');
+            const outpostBtn = document.getElementById('arcadeMapOutpostBtn');
+            const orbitalBtn = document.getElementById('arcadeMapOrbitalBtn');
             if (ffaBtn) ffaBtn.addEventListener('click', () => pvpEmulator.start({ mode: 'FFA_SOLO', map: 'CYBER_CORE', botCount: 3, targetScore: 10 }));
             if (duelBtn) duelBtn.addEventListener('click', () => pvpEmulator.start({ mode: 'DUEL_1V1', map: 'NEON_OUTPOST', difficulty: 'APEX', targetScore: 3 }));
             if (customBtn) customBtn.addEventListener('click', openPvPEmulatorModal);
+            if (coreBtn) coreBtn.addEventListener('click', () => pvpEmulator.start({ mode: 'FFA_SOLO', map: 'CYBER_CORE', botCount: 3, targetScore: 10 }));
+            if (outpostBtn) outpostBtn.addEventListener('click', () => pvpEmulator.start({ mode: 'DUEL_1V1', map: 'NEON_OUTPOST', difficulty: 'APEX', targetScore: 3 }));
+            if (orbitalBtn) orbitalBtn.addEventListener('click', () => pvpEmulator.start({ mode: 'FFA_SOLO', map: 'ORBITAL_STATION', botCount: 4, targetScore: 15 }));
         }
         return;
     }
@@ -7255,7 +7322,20 @@ function renderLocalCareerProfile() {
 
     const matches = profile.matches || [];
     if (matches.length === 0) {
-        matchHistoryList.innerHTML = '<div class="empty-history-msg">No completed matches yet. Jump into an arena to record your first battle!</div>';
+        matchHistoryList.innerHTML = `<div class="empty-state-card" id="emptyCareerCard">
+              <div class="empty-state-icon">
+                  <svg viewBox="0 0 24 24" width="36" height="36" fill="none" stroke="#16C8F2" stroke-width="1.8">
+                      <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+                  </svg>
+              </div>
+              <div class="empty-state-title">NO COMBAT OPERATIONS RECORDED</div>
+              <p class="empty-state-desc">Your pilot flight telemetry and combat log diagnostics will initialize automatically when you enter battle. Deploy into quick matches, PvP duels, or bot simulations to record K/D ratios, match accolades, and career XP.</p>
+              <div class="empty-state-actions">
+                  <button class="btn-primary-action" type="button" onclick="switchView('play')" style="padding: 10px 22px;">
+                      <span>DEPLOY COMBAT ARENA</span>
+                  </button>
+              </div>
+          </div>`;
         return;
     }
 
@@ -7363,7 +7443,20 @@ async function fetchAndShowMatchHistory(openModalFlag = false) {
         if (res.ok) {
             const matches = await res.json();
             if (matches.length === 0) {
-                matchHistoryList.innerHTML = '<div class="empty-history-msg">No completed matches yet. Jump into an arena to record your first battle!</div>';
+                matchHistoryList.innerHTML = `<div class="empty-state-card" id="emptyCareerCard">
+              <div class="empty-state-icon">
+                  <svg viewBox="0 0 24 24" width="36" height="36" fill="none" stroke="#16C8F2" stroke-width="1.8">
+                      <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+                  </svg>
+              </div>
+              <div class="empty-state-title">NO COMBAT OPERATIONS RECORDED</div>
+              <p class="empty-state-desc">Your pilot flight telemetry and combat log diagnostics will initialize automatically when you enter battle. Deploy into quick matches, PvP duels, or bot simulations to record K/D ratios, match accolades, and career XP.</p>
+              <div class="empty-state-actions">
+                  <button class="btn-primary-action" type="button" onclick="switchView('play')" style="padding: 10px 22px;">
+                      <span>DEPLOY COMBAT ARENA</span>
+                  </button>
+              </div>
+          </div>`;
                 return;
             }
 
@@ -9652,3 +9745,16 @@ window.addEventListener('DOMContentLoaded', () => {
     });
     requestAnimationFrame(gameLoop);
 });
+
+
+    // Featured Tactical Arena Map Host Buttons
+    document.querySelectorAll('.btn-host-map').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const map = btn.getAttribute('data-map');
+            const mapSelect = document.getElementById('roomMapSelect');
+            if (mapSelect && map) mapSelect.value = map;
+            const createModal = document.getElementById('createRoomModal');
+            if (createModal) createModal.style.display = 'flex';
+        });
+    });
