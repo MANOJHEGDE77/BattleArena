@@ -1081,20 +1081,21 @@ html, body {
     transition: transform 0.15s ease-out;
 }
 
-/* Floating Holographic Spec Card */
+/* Floating Holographic Spec Card - Upper Right HUD Position */
 .hero-spec-card {
     position: absolute;
-    top: 6px;
-    left: 8px;
+    top: 14px;
+    right: 18px;
+    left: auto;
     z-index: 3;
-    background: rgba(10, 15, 26, 0.82);
-    backdrop-filter: blur(10px);
-    border: 1px solid rgba(22, 200, 242, 0.25);
+    background: rgba(10, 15, 26, 0.88);
+    backdrop-filter: blur(14px);
+    border: 1px solid rgba(22, 200, 242, 0.3);
     border-radius: var(--radius-sm);
-    padding: 8px 12px;
-    min-width: 145px;
+    padding: 9px 13px;
+    min-width: 155px;
     pointer-events: none;
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.1);
 }
 
 .spec-card-header {
@@ -1157,13 +1158,18 @@ html, body {
 
 .stage-telemetry-tag {
     position: absolute;
-    bottom: 8px;
-    right: 12px;
+    bottom: 12px;
+    right: 18px;
     display: flex;
     flex-direction: column;
     align-items: flex-end;
     font-family: var(--font-mono);
     z-index: 3;
+    background: rgba(10, 15, 26, 0.65);
+    backdrop-filter: blur(8px);
+    padding: 3px 8px;
+    border-radius: 4px;
+    border: 1px solid rgba(255, 255, 255, 0.06);
 }
 
 .telemetry-label {
@@ -1297,8 +1303,55 @@ html, body {
 }
 
 .mode-card.active-mode {
-    border-color: var(--cyan-primary);
-    box-shadow: 0 0 22px rgba(23, 200, 243, 0.3), inset 0 0 14px rgba(23, 200, 243, 0.08);
+    border-color: var(--cyan-primary) !important;
+    box-shadow: 0 0 22px rgba(23, 200, 243, 0.35), inset 0 0 14px rgba(23, 200, 243, 0.1) !important;
+}
+
+#quickCardDuel.active-mode {
+    border-color: #f43f5e !important;
+    box-shadow: 0 0 22px rgba(244, 63, 94, 0.35), inset 0 0 14px rgba(244, 63, 94, 0.1) !important;
+}
+
+#quickCardPve.active-mode {
+    border-color: #fbbf24 !important;
+    box-shadow: 0 0 22px rgba(251, 191, 36, 0.35), inset 0 0 14px rgba(251, 191, 36, 0.1) !important;
+}
+
+#quickCardCustom.active-mode {
+    border-color: #818cf8 !important;
+    box-shadow: 0 0 22px rgba(129, 140, 248, 0.35), inset 0 0 14px rgba(129, 140, 248, 0.1) !important;
+}
+
+.mode-card.active-mode .mode-select-btn {
+    background: linear-gradient(135deg, #17C8F3 0%, #0284c7 100%) !important;
+    border-color: #17C8F3 !important;
+    color: #080B12 !important;
+    box-shadow: 0 0 16px rgba(23, 200, 243, 0.5) !important;
+    font-weight: 800 !important;
+}
+
+#quickCardDuel.active-mode .mode-select-btn {
+    background: linear-gradient(135deg, #f43f5e 0%, #be123c 100%) !important;
+    border-color: #f43f5e !important;
+    color: #ffffff !important;
+    box-shadow: 0 0 16px rgba(244, 63, 94, 0.5) !important;
+    font-weight: 800 !important;
+}
+
+#quickCardPve.active-mode .mode-select-btn {
+    background: linear-gradient(135deg, #fbbf24 0%, #d97706 100%) !important;
+    border-color: #fbbf24 !important;
+    color: #080B12 !important;
+    box-shadow: 0 0 16px rgba(251, 191, 36, 0.5) !important;
+    font-weight: 800 !important;
+}
+
+#quickCardCustom.active-mode .mode-select-btn {
+    background: linear-gradient(135deg, #818cf8 0%, #4f46e5 100%) !important;
+    border-color: #818cf8 !important;
+    color: #ffffff !important;
+    box-shadow: 0 0 16px rgba(129, 140, 248, 0.5) !important;
+    font-weight: 800 !important;
 }
 
 .mode-card-header {
@@ -5400,24 +5453,28 @@ input:checked + .slider::before { transform: translateX(20px); background-color:
 
 
 /* ==============================================================================
- * PLAYER INTELLIGENCE & TELEMETRY SECTION (LOBBY STATS)
+ * PLAYER INTELLIGENCE & TELEMETRY SECTION (LOBBY STATS) - DOCKED HUD FOOTER
  * ============================================================================== */
 .player-intel-dock {
-    background: rgba(13, 20, 32, 0.7);
-    backdrop-filter: blur(12px);
+    background: rgba(10, 16, 26, 0.85);
+    backdrop-filter: blur(14px);
     border: 1px solid rgba(255, 255, 255, 0.08);
-    border-radius: var(--radius-lg);
-    padding: 12px 18px;
+    border-radius: var(--radius-md);
+    padding: 7px 18px;
     display: flex;
-    flex-direction: column;
-    gap: 8px;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
     flex-shrink: 0;
+    min-height: 48px;
+    box-sizing: border-box;
 }
 
 .intel-dock-header {
     display: flex;
     align-items: center;
-    justify-content: space-between;
+    gap: 12px;
+    flex-shrink: 0;
 }
 
 .intel-dock-title-group {
@@ -5442,7 +5499,7 @@ input:checked + .slider::before { transform: translateX(20px); background-color:
 
 .intel-dock-title {
     font-family: var(--font-title);
-    font-size: 0.78rem;
+    font-size: 0.74rem;
     font-weight: 700;
     letter-spacing: 1.2px;
     color: var(--text-primary);
@@ -5450,9 +5507,7 @@ input:checked + .slider::before { transform: translateX(20px); background-color:
 }
 
 .intel-dock-hint {
-    font-family: var(--font-ui);
-    font-size: 0.72rem;
-    color: var(--text-muted);
+    display: none;
 }
 
 .intel-dock-rank-badge {
@@ -5468,68 +5523,71 @@ input:checked + .slider::before { transform: translateX(20px); background-color:
 }
 
 .intel-metrics-grid {
-    display: grid;
-    grid-template-columns: 1.4fr 1fr 1fr 1fr;
-    gap: 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex: 1;
+    justify-content: flex-end;
 }
 
 .intel-metric-card {
-    background: rgba(19, 29, 43, 0.6);
+    background: rgba(19, 29, 43, 0.55);
     border: 1px solid rgba(255, 255, 255, 0.06);
-    border-radius: var(--radius-md);
-    padding: 10px 14px;
+    border-radius: 6px;
+    padding: 4px 9px;
     display: flex;
-    flex-direction: column;
-    justify-content: space-between;
-    gap: 4px;
+    align-items: center;
+    gap: 6px;
     transition: all var(--transition-fast);
 }
 
 .intel-metric-card:hover {
-    background: rgba(24, 37, 56, 0.75);
-    border-color: rgba(22, 200, 242, 0.25);
+    background: rgba(24, 37, 56, 0.85);
+    border-color: rgba(22, 200, 242, 0.3);
 }
 
 .intel-metric-card.level-card {
-    background: linear-gradient(135deg, rgba(22, 200, 242, 0.08) 0%, rgba(19, 29, 43, 0.6) 100%);
-    border-color: rgba(22, 200, 242, 0.18);
+    background: linear-gradient(135deg, rgba(22, 200, 242, 0.1) 0%, rgba(19, 29, 43, 0.65) 100%);
+    border-color: rgba(22, 200, 242, 0.22);
 }
 
 .metric-top {
     display: flex;
     align-items: center;
-    justify-content: space-between;
+    gap: 6px;
 }
 
 .metric-label {
     font-family: var(--font-title);
-    font-size: 0.65rem;
+    font-size: 0.62rem;
     font-weight: 600;
-    letter-spacing: 0.8px;
-    color: var(--text-secondary);
+    letter-spacing: 0.6px;
+    color: var(--text-muted);
     text-transform: uppercase;
+    white-space: nowrap;
 }
 
 .metric-val, .metric-value {
     font-family: var(--font-display);
-    font-size: 1.15rem;
+    font-size: 0.95rem;
     font-weight: 800;
-    line-height: 1.1;
+    line-height: 1;
+    white-space: nowrap;
 }
 
 .metric-val.text-cyan, .metric-value.text-cyan {
     color: var(--cyan-primary);
-    text-shadow: 0 0 12px rgba(22, 200, 242, 0.35);
+    text-shadow: 0 0 10px rgba(22, 200, 242, 0.35);
 }
 
 .metric-val.text-teal, .metric-value.text-teal {
     color: var(--accent-teal);
-    text-shadow: 0 0 12px rgba(0, 230, 160, 0.35);
+    text-shadow: 0 0 10px rgba(0, 230, 160, 0.35);
 }
 
 .metric-val.text-gold, .metric-value.text-gold {
     color: var(--amber-gold);
-    text-shadow: 0 0 12px rgba(255, 155, 69, 0.35);
+    text-shadow: 0 0 10px rgba(255, 155, 69, 0.35);
 }
 
 .metric-val.text-white, .metric-value.text-white {
@@ -5537,12 +5595,13 @@ input:checked + .slider::before { transform: translateX(20px); background-color:
 }
 
 .intel-xp-track {
-    width: 100%;
+    width: 60px;
     height: 4px;
     background: rgba(255, 255, 255, 0.08);
     border-radius: 2px;
     overflow: hidden;
-    margin: 2px 0;
+    margin: 0;
+    flex-shrink: 0;
 }
 
 .intel-xp-fill {
@@ -5554,8 +5613,9 @@ input:checked + .slider::before { transform: translateX(20px); background-color:
 
 .metric-sub {
     font-family: var(--font-mono);
-    font-size: 0.68rem;
+    font-size: 0.62rem;
     color: var(--text-muted);
+    white-space: nowrap;
 }
 
 /* Empty State Badges for Tactical Intel Cards */

@@ -8349,23 +8349,43 @@ function setupRoomEventListeners() {
         const quickCardFfa = document.getElementById('quickCardFfa');
         const quickCardDuel = document.getElementById('quickCardDuel');
         const quickCardPve = document.getElementById('quickCardPve');
+        const quickCardCustom = document.getElementById('quickCardCustom');
+        const heroActiveModeBadge = document.getElementById('heroActiveModeBadge');
         const deckSelectedModeBadge = document.getElementById('deckSelectedModeBadge');
         const giantPlayNowBtn = document.getElementById('giantPlayNowBtn');
         const giantPlayLabel = document.getElementById('giantPlayLabel');
         const giantPlaySub = document.getElementById('giantPlaySub');
+        const heroQuickPlayBtn = document.getElementById('heroQuickPlayBtn');
+        const heroDuelBtn = document.getElementById('heroDuelBtn');
+        const heroPracticeBtn = document.getElementById('heroPracticeBtn');
+        const heroCustomBtn = document.getElementById('heroCustomBtn');
 
         if (quickCardFfa) quickCardFfa.classList.toggle('active-mode', mode === 'FFA');
         if (quickCardDuel) quickCardDuel.classList.toggle('active-mode', mode === 'DUEL');
         if (quickCardPve) quickCardPve.classList.toggle('active-mode', mode === 'PRACTICE');
+        if (quickCardCustom) quickCardCustom.classList.toggle('active-mode', mode === 'CUSTOM');
+
+        if (heroActiveModeBadge) {
+            if (mode === 'FFA') heroActiveModeBadge.textContent = 'FFA DEATHMATCH';
+            else if (mode === 'DUEL') heroActiveModeBadge.textContent = '1v1 TACTICAL DUEL';
+            else if (mode === 'PRACTICE') heroActiveModeBadge.textContent = 'SOLO AI TRAINING';
+            else if (mode === 'CUSTOM') heroActiveModeBadge.textContent = 'CUSTOM ARENAS';
+        }
 
         if (deckSelectedModeBadge) {
             if (mode === 'FFA') deckSelectedModeBadge.textContent = 'MODE: QUICK FFA';
             else if (mode === 'DUEL') deckSelectedModeBadge.textContent = 'MODE: 1v1 DUEL';
             else if (mode === 'PRACTICE') deckSelectedModeBadge.textContent = 'MODE: BOT DOJO';
+            else if (mode === 'CUSTOM') deckSelectedModeBadge.textContent = 'MODE: CUSTOM ARENAS';
         }
 
+        if (heroQuickPlayBtn) heroQuickPlayBtn.textContent = (mode === 'FFA') ? 'ACTIVE' : 'SELECT';
+        if (heroDuelBtn) heroDuelBtn.textContent = (mode === 'DUEL') ? 'ACTIVE' : 'SELECT';
+        if (heroPracticeBtn) heroPracticeBtn.textContent = (mode === 'PRACTICE') ? 'ACTIVE' : 'SELECT';
+        if (heroCustomBtn) heroCustomBtn.textContent = (mode === 'CUSTOM') ? 'ACTIVE' : 'BROWSE';
+
         if (giantPlayNowBtn && giantPlayLabel && giantPlaySub) {
-            giantPlayNowBtn.classList.remove('mode-ffa', 'mode-duel', 'mode-practice');
+            giantPlayNowBtn.classList.remove('mode-ffa', 'mode-duel', 'mode-practice', 'mode-custom');
             if (mode === 'FFA') {
                 giantPlayNowBtn.classList.add('mode-ffa');
                 giantPlayLabel.textContent = 'Deploy Into Battle';
@@ -8378,6 +8398,10 @@ function setupRoomEventListeners() {
                 giantPlayNowBtn.classList.add('mode-practice');
                 giantPlayLabel.textContent = 'Practice With AI';
                 giantPlaySub.textContent = `Practice vs ${currentBotDifficulty} Bot • Solo Training`;
+            } else if (mode === 'CUSTOM') {
+                giantPlayNowBtn.classList.add('mode-custom');
+                giantPlayLabel.textContent = 'Browse Arenas';
+                giantPlaySub.textContent = 'Join or Host Custom Matches';
             }
         }
     }
@@ -8387,8 +8411,11 @@ function setupRoomEventListeners() {
     if (heroQuickPlayBtn) {
         heroQuickPlayBtn.addEventListener('click', (e) => {
             e.stopPropagation();
-            setLobbyBattleMode('FFA');
-            quickBattle();
+            if (currentLobbyMode === 'FFA') {
+                quickBattle();
+            } else {
+                setLobbyBattleMode('FFA');
+            }
         });
     }
     if (quickCardFfa) {
@@ -8405,8 +8432,11 @@ function setupRoomEventListeners() {
     if (heroDuelBtn) {
         heroDuelBtn.addEventListener('click', (e) => {
             e.stopPropagation();
-            setLobbyBattleMode('DUEL');
-            quickPvPDuel();
+            if (currentLobbyMode === 'DUEL') {
+                quickPvPDuel();
+            } else {
+                setLobbyBattleMode('DUEL');
+            }
         });
     }
     if (quickCardDuel) {
@@ -8423,8 +8453,11 @@ function setupRoomEventListeners() {
     if (heroPracticeBtn) {
         heroPracticeBtn.addEventListener('click', (e) => {
             e.stopPropagation();
-            setLobbyBattleMode('PRACTICE');
-            startPracticeBattle();
+            if (currentLobbyMode === 'PRACTICE') {
+                startPracticeBattle();
+            } else {
+                setLobbyBattleMode('PRACTICE');
+            }
         });
     }
     if (quickCardPve) {
@@ -8450,9 +8483,14 @@ function setupRoomEventListeners() {
                 quickPvPDuel();
             } else if (currentLobbyMode === 'PRACTICE') {
                 startPracticeBattle();
+            } else if (currentLobbyMode === 'CUSTOM') {
+                switchView('arenas');
             }
         });
     }
+
+    // Initialize lobby battle mode to FFA on startup
+    setLobbyBattleMode('FFA');
 
     // In-Staging Header Return to Menu Button
     const roomBackToLobbyBtn = document.getElementById('roomBackToLobbyBtn');
