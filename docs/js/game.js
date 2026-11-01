@@ -6118,13 +6118,64 @@ async function fetchRoomsList() {
     if (!isServerOnline) {
         if (roomsContainer) {
             roomsContainer.innerHTML = `
-                <div class="arcade-custom-launcher-card" style="padding: 18px 24px; background: rgba(14, 19, 34, 0.88); border: 1px solid var(--border-highlight); border-radius: var(--radius-md); text-align: center;">
-                    <div style="font-family: var(--font-display); font-size: 1.15rem; font-weight: 800; color: var(--cyan-primary); letter-spacing: 2px; margin-bottom: 6px;">ARCADE COMBAT SIMULATOR</div>
-                    <p style="color: #94a3b8; font-size: 0.84rem; margin-bottom: 16px;">Deploy customized tactical matches instantly against autonomous AI combatants across all 3 arena sectors.</p>
-                    <div style="display: flex; gap: 12px; justify-content: center; flex-wrap: wrap;">
-                        <button type="button" class="btn-primary-action" id="arcadeLaunchFfaBtn" style="padding: 8px 18px;">⚔️ QUICK FFA (CYBER CORE)</button>
-                        <button type="button" class="btn-secondary-action" id="arcadeLaunchDuelBtn" style="padding: 8px 18px;">🔥 1V1 APEX DUEL (NEON OUTPOST)</button>
-                        <button type="button" class="btn-secondary-action" id="arcadeLaunchCustomBtn" style="padding: 8px 18px;">⚙️ CONFIGURE CUSTOM ARENA</button>
+                <div class="arcade-custom-launcher-card" style="padding: 14px 22px; background: rgba(14, 19, 34, 0.88); border: 1px solid var(--border-highlight); border-radius: var(--radius-md); text-align: center;">
+                    <div style="font-family: var(--font-display); font-size: 1.1rem; font-weight: 800; color: var(--cyan-primary); letter-spacing: 2px; margin-bottom: 4px;">ARCADE ARENA SIMULATOR</div>
+                    <p style="color: #94a3b8; font-size: 0.8rem; margin-bottom: 12px;">Instant zero-latency tactical matches against autonomous combatants across all 3 combat theaters.</p>
+                    <div style="display: flex; gap: 10px; justify-content: center; flex-wrap: wrap;">
+                        <button type="button" class="btn-primary-action" id="arcadeLaunchFfaBtn" style="padding: 7px 16px;">⚔️ QUICK FFA (CYBER CORE)</button>
+                        <button type="button" class="btn-secondary-action" id="arcadeLaunchDuelBtn" style="padding: 7px 16px;">🔥 1V1 APEX DUEL (NEON OUTPOST)</button>
+                        <button type="button" class="btn-secondary-action" id="arcadeLaunchCustomBtn" style="padding: 7px 16px;">⚙️ CONFIGURE CUSTOM ARENA</button>
+                    </div>
+                </div>
+
+                <!-- Simulated Live Public Multiplayer Lobbies -->
+                <div class="featured-arenas-header" style="margin-top: 14px; display: flex; align-items: center; justify-content: space-between;">
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <span class="tactical-badge">SIMULATED SESSIONS</span>
+                        <span class="featured-arenas-title">ACTIVE COMMUNITY ROOMS</span>
+                    </div>
+                    <span style="font-family: var(--font-mono); font-size: 0.65rem; color: #10b981;">● 4 ROOMS ONLINE</span>
+                </div>
+                <div class="simulated-lobbies-grid">
+                    <div class="sim-lobby-card">
+                        <div class="sim-lobby-left">
+                            <div class="sim-map-pip">⚡</div>
+                            <div class="sim-lobby-info">
+                                <span class="sim-lobby-title">Alpha Sector Deathmatch</span>
+                                <span class="sim-lobby-meta">CYBER CORE • <span>FFA 4-PILOT</span> • <span class="sim-ping">● 14ms</span></span>
+                            </div>
+                        </div>
+                        <button type="button" class="btn-join-sim" id="simJoinFfaBtn">JOIN (3/4)</button>
+                    </div>
+                    <div class="sim-lobby-card">
+                        <div class="sim-lobby-left">
+                            <div class="sim-map-pip">🔥</div>
+                            <div class="sim-lobby-info">
+                                <span class="sim-lobby-title">Apex Tactical 1v1 Duel</span>
+                                <span class="sim-lobby-meta">NEON OUTPOST • <span>1v1 DUEL</span> • <span class="sim-ping">● 11ms</span></span>
+                            </div>
+                        </div>
+                        <button type="button" class="btn-join-sim" id="simJoinDuelBtn">JOIN (1/2)</button>
+                    </div>
+                    <div class="sim-lobby-card">
+                        <div class="sim-lobby-left">
+                            <div class="sim-map-pip">🌀</div>
+                            <div class="sim-lobby-info">
+                                <span class="sim-lobby-title">Orbital Reactor Warmup</span>
+                                <span class="sim-lobby-meta">ORBITAL STATION • <span>SOLO DOJO</span> • <span class="sim-ping">● 8ms</span></span>
+                            </div>
+                        </div>
+                        <button type="button" class="btn-join-sim" id="simJoinOrbitalBtn">JOIN (2/4)</button>
+                    </div>
+                    <div class="sim-lobby-card">
+                        <div class="sim-lobby-left">
+                            <div class="sim-map-pip">💥</div>
+                            <div class="sim-lobby-info">
+                                <span class="sim-lobby-title">Mayhem Protocol (High Octane)</span>
+                                <span class="sim-lobby-meta">CYBER CORE • <span>MAYHEM FFA</span> • <span class="sim-ping">● 16ms</span></span>
+                            </div>
+                        </div>
+                        <button type="button" class="btn-join-sim" id="simJoinMayhemBtn">JOIN (4/8)</button>
                     </div>
                 </div>
                 <div class="featured-arenas-header" style="margin-top: 18px; display: flex; align-items: center; gap: 10px;">
@@ -6188,6 +6239,16 @@ async function fetchRoomsList() {
             if (coreBtn) coreBtn.addEventListener('click', () => pvpEmulator.start({ mode: 'FFA_SOLO', map: 'CYBER_CORE', botCount: 3, targetScore: 10 }));
             if (outpostBtn) outpostBtn.addEventListener('click', () => pvpEmulator.start({ mode: 'DUEL_1V1', map: 'NEON_OUTPOST', difficulty: 'APEX', targetScore: 3 }));
             if (orbitalBtn) orbitalBtn.addEventListener('click', () => pvpEmulator.start({ mode: 'FFA_SOLO', map: 'ORBITAL_STATION', botCount: 4, targetScore: 15 }));
+
+            const simFfaBtn = document.getElementById('simJoinFfaBtn');
+            const simDuelBtn = document.getElementById('simJoinDuelBtn');
+            const simOrbitalBtn = document.getElementById('simJoinOrbitalBtn');
+            const simMayhemBtn = document.getElementById('simJoinMayhemBtn');
+            if (simFfaBtn) simFfaBtn.addEventListener('click', () => pvpEmulator.start({ mode: 'FFA_SOLO', map: 'CYBER_CORE', botCount: 3, targetScore: 10 }));
+            if (simDuelBtn) simDuelBtn.addEventListener('click', () => pvpEmulator.start({ mode: 'DUEL_1V1', map: 'NEON_OUTPOST', difficulty: 'APEX', targetScore: 3 }));
+            if (simOrbitalBtn) simOrbitalBtn.addEventListener('click', () => pvpEmulator.start({ mode: 'FFA_SOLO', map: 'ORBITAL_STATION', botCount: 2, targetScore: 10 }));
+            if (simMayhemBtn) simMayhemBtn.addEventListener('click', () => pvpEmulator.start({ mode: 'FFA_SOLO', map: 'CYBER_CORE', botCount: 4, targetScore: 15 }));
+
         }
         return;
     }
