@@ -7091,3 +7091,277 @@ input[type="range"]::-webkit-slider-thumb:hover {
     font-size: 0.65rem !important;
 }
 
+
+
+/* ==============================================================================
+ * AAA PRECISION ALIGNMENT FOR ENGAGEMENT DIRECTIVES
+ * ============================================================================== */
+.mode-selector-tray {
+    margin-top: 0 !important;
+    padding-top: 0 !important;
+    border: none !important;
+    flex: 0 0 auto !important;
+    width: 100% !important;
+}
+
+.tray-header {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    margin-bottom: 8px !important;
+    padding: 0 2px !important;
+}
+
+.tray-title-group {
+    display: flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+}
+
+.tray-title {
+    font-family: var(--font-display) !important;
+    font-size: 0.82rem !important;
+    font-weight: 800 !important;
+    letter-spacing: 1.2px !important;
+    color: #e2e8f0 !important;
+    text-transform: uppercase !important;
+}
+
+.tray-hint {
+    font-family: var(--font-ui) !important;
+    font-size: 0.72rem !important;
+    color: #64748b !important;
+}
+
+.tray-selection-indicator {
+    font-family: var(--font-mono) !important;
+    font-size: 0.68rem !important;
+    font-weight: 700 !important;
+    letter-spacing: 0.8px !important;
+    color: var(--cyan-primary) !important;
+    background: rgba(23, 200, 243, 0.08) !important;
+    border: 1px solid rgba(23, 200, 243, 0.25) !important;
+    padding: 3px 10px !important;
+    border-radius: 12px !important;
+    text-transform: uppercase !important;
+}
+
+.mode-cards-grid {
+    display: grid !important;
+    grid-template-columns: repeat(4, 1fr) !important;
+    gap: 12px !important;
+    align-items: stretch !important;
+    width: 100% !important;
+}
+
+.mode-card {
+    position: relative !important;
+    background: rgba(14, 20, 34, 0.8) !important;
+    background-size: cover !important;
+    background-position: center !important;
+    backdrop-filter: blur(12px) !important;
+    border: 1px solid rgba(255, 255, 255, 0.09) !important;
+    border-radius: var(--radius-lg) !important;
+    padding: 12px 14px 10px 14px !important;
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: space-between !important;
+    height: 180px !important;
+    min-height: 180px !important;
+    max-height: 180px !important;
+    box-sizing: border-box !important;
+    cursor: pointer !important;
+    outline: none !important;
+    overflow: hidden !important;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35) !important;
+    transition: transform var(--transition-fast), border-color var(--transition-fast), box-shadow var(--transition-fast) !important;
+}
+
+.mode-card-header {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    height: 28px !important;
+    margin-bottom: 4px !important;
+}
+
+.mode-icon-box {
+    width: 28px !important;
+    height: 28px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    background: rgba(255, 255, 255, 0.04) !important;
+    border: 1px solid rgba(255, 255, 255, 0.08) !important;
+    border-radius: 6px !important;
+    color: #38bdf8 !important;
+}
+
+.mode-tag {
+    font-family: var(--font-mono) !important;
+    font-size: 0.6rem !important;
+    font-weight: 700 !important;
+    letter-spacing: 0.6px !important;
+    padding: 2px 7px !important;
+    border-radius: 10px !important;
+    text-transform: uppercase !important;
+}
+
+.mode-card-body {
+    flex: 1 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: flex-start !important;
+    gap: 3px !important;
+    min-height: 0 !important;
+}
+
+.mode-name {
+    font-family: var(--font-display) !important;
+    font-size: 0.95rem !important;
+    font-weight: 800 !important;
+    letter-spacing: 0.4px !important;
+    color: #ffffff !important;
+    margin: 0 !important;
+    line-height: 1.2 !important;
+}
+
+.mode-description {
+    font-family: var(--font-ui) !important;
+    font-size: 0.72rem !important;
+    line-height: 1.35 !important;
+    color: #94a3b8 !important;
+    margin: 0 !important;
+    height: 34px !important;
+    overflow: hidden !important;
+    display: -webkit-box !important;
+    -webkit-line-clamp: 2 !important;
+    -webkit-box-orient: vertical !important;
+}
+
+.mode-rule-row,
+.mode-difficulty-row {
+    display: flex !important;
+    align-items: center !important;
+    gap: 6px !important;
+    height: 24px !important;
+    margin-top: auto !important;
+}
+
+.rule-chip {
+    font-family: var(--font-mono) !important;
+    font-size: 0.6rem !important;
+    font-weight: 700 !important;
+    color: var(--cyan-primary) !important;
+    background: rgba(23, 200, 243, 0.08) !important;
+    border: 1px solid rgba(23, 200, 243, 0.22) !important;
+    padding: 1px 6px !important;
+    border-radius: 4px !important;
+    letter-spacing: 0.4px !important;
+}
+
+.rule-chip.tag-red {
+    color: #fb7185 !important;
+    background: rgba(244, 63, 94, 0.08) !important;
+    border-color: rgba(244, 63, 94, 0.22) !important;
+}
+
+.rule-chip.tag-purple {
+    color: #a5b4fc !important;
+    background: rgba(129, 140, 248, 0.08) !important;
+    border-color: rgba(129, 140, 248, 0.22) !important;
+}
+
+.rule-chip-sub {
+    font-family: var(--font-mono) !important;
+    font-size: 0.58rem !important;
+    color: #64748b !important;
+    letter-spacing: 0.4px !important;
+    text-transform: uppercase !important;
+}
+
+.diff-label {
+    font-family: var(--font-mono) !important;
+    font-size: 0.6rem !important;
+    color: #64748b !important;
+    font-weight: 700 !important;
+    letter-spacing: 0.5px !important;
+}
+
+.diff-pill {
+    padding: 1px 6px !important;
+    background: rgba(255, 255, 255, 0.04) !important;
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+    border-radius: 4px !important;
+    font-family: var(--font-mono) !important;
+    font-size: 0.6rem !important;
+    font-weight: 700 !important;
+    color: #94a3b8 !important;
+    cursor: pointer !important;
+    transition: all var(--transition-fast) !important;
+}
+
+.diff-pill:hover {
+    background: rgba(255, 255, 255, 0.1) !important;
+    color: #ffffff !important;
+}
+
+.diff-pill.active {
+    background: rgba(245, 158, 11, 0.18) !important;
+    border-color: rgba(245, 158, 11, 0.5) !important;
+    color: #fbbf24 !important;
+    box-shadow: 0 0 8px rgba(245, 158, 11, 0.25) !important;
+}
+
+.mode-card-footer {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    padding-top: 6px !important;
+    border-top: 1px solid rgba(255, 255, 255, 0.08) !important;
+    height: 32px !important;
+    margin-top: 4px !important;
+    box-sizing: border-box !important;
+}
+
+.mode-capacity {
+    font-family: var(--font-mono) !important;
+    font-size: 0.66rem !important;
+    color: #64748b !important;
+    font-weight: 600 !important;
+    letter-spacing: 0.3px !important;
+}
+
+.mode-select-btn {
+    padding: 4px 14px !important;
+    background: rgba(255, 255, 255, 0.06) !important;
+    border: 1px solid rgba(255, 255, 255, 0.14) !important;
+    border-radius: 14px !important;
+    color: #94a3b8 !important;
+    font-family: var(--font-display) !important;
+    font-size: 0.68rem !important;
+    font-weight: 700 !important;
+    letter-spacing: 0.8px !important;
+    cursor: pointer !important;
+    height: 26px !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    transition: all var(--transition-fast) !important;
+}
+
+.mode-select-btn:hover {
+    background: rgba(23, 200, 243, 0.18) !important;
+    border-color: rgba(23, 200, 243, 0.5) !important;
+    color: #ffffff !important;
+    box-shadow: 0 0 12px rgba(23, 200, 243, 0.25) !important;
+}
+
+.mode-card.active-mode .mode-select-btn {
+    background: linear-gradient(135deg, #17C8F3 0%, #0284c7 100%) !important;
+    border-color: #17C8F3 !important;
+    color: #080B12 !important;
+    box-shadow: 0 0 16px rgba(23, 200, 243, 0.45) !important;
+    font-weight: 800 !important;
+}
+

@@ -288,6 +288,7 @@
                 <div class="mode-selector-tray">
                     <div class="tray-header">
                         <div class="tray-title-group">
+                            <span class="intel-live-indicator"></span>
                             <span class="tray-title">ENGAGEMENT DIRECTIVES</span>
                             <span class="tray-hint">Select a combat scenario to deploy</span>
                         </div>
@@ -306,11 +307,15 @@
                             </div>
                             <div class="mode-card-body">
                                 <h3 class="mode-name">Quick Match FFA</h3>
-                                <p class="mode-description">4-Pilot Free-For-All deathmatch. Eliminate opponents and collect power cores. First to 100 points wins.</p>
+                                <p class="mode-description">4-Pilot Free-For-All deathmatch. Eliminate opponents and collect power cores to reach 100 PTS.</p>
+                                <div class="mode-rule-row">
+                                    <span class="rule-chip">100 PTS TARGET</span>
+                                    <span class="rule-chip-sub">INSTANT RESPAWN</span>
+                                </div>
                             </div>
                             <div class="mode-card-footer">
                                 <span class="mode-capacity">4 Pilots Max</span>
-                                <button class="mode-select-btn" id="heroQuickPlayBtn" type="button">SELECT</button>
+                                <button class="mode-select-btn" id="heroQuickPlayBtn" type="button">ACTIVE</button>
                             </div>
                         </div>
 
@@ -325,7 +330,11 @@
                             </div>
                             <div class="mode-card-body">
                                 <h3 class="mode-name">1v1 PvP Duel</h3>
-                                <p class="mode-description">Head-to-head tactical showdown. Pure mechanical skill, obstacle maneuvering, and aim. First to 3 kills claims victory.</p>
+                                <p class="mode-description">Head-to-head tactical showdown. Pure mechanical skill, obstacle maneuvering, and aim to 3 kills.</p>
+                                <div class="mode-rule-row">
+                                    <span class="rule-chip tag-red">FIRST TO 3 KILLS</span>
+                                    <span class="rule-chip-sub">ELIMINATION</span>
+                                </div>
                             </div>
                             <div class="mode-card-footer">
                                 <span class="mode-capacity">2 Pilots (1v1)</span>
@@ -344,11 +353,11 @@
                             </div>
                             <div class="mode-card-body">
                                 <h3 class="mode-name">AI Training Dojo</h3>
-                                <p class="mode-description">Solo simulated combat against autonomous tactical AI bots. Test weapon ballistic profiles, practice dodging, and warm up.</p>
+                                <p class="mode-description">Solo simulated combat against autonomous tactical AI bots. Test ballistics, practice dodging, and warm up.</p>
                                 <div class="mode-difficulty-row" id="practiceDifficultyPills">
-                                    <span class="diff-label">AI PROTOCOL:</span>
-                                    <button type="button" class="diff-pill" data-diff="RECRUIT">RECRUIT</button>
-                                    <button type="button" class="diff-pill active" data-diff="VETERAN">VETERAN</button>
+                                    <span class="diff-label">PROTOCOL:</span>
+                                    <button type="button" class="diff-pill" data-diff="RECRUIT">REC</button>
+                                    <button type="button" class="diff-pill active" data-diff="VETERAN">VET</button>
                                     <button type="button" class="diff-pill" data-diff="NIGHTMARE">APEX</button>
                                 </div>
                             </div>
@@ -365,11 +374,15 @@
                                 <div class="mode-icon-box">
                                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg>
                                 </div>
-                                <span class="mode-tag tag-custom">BROWSE</span>
+                                <span class="mode-tag tag-custom">COMMUNITY</span>
                             </div>
                             <div class="mode-card-body">
                                 <h3 class="mode-name">Custom Arenas</h3>
                                 <p class="mode-description">Host private lobbies, customize player capacity and rules, or browse and join open community matches.</p>
+                                <div class="mode-rule-row">
+                                    <span class="rule-chip tag-purple">HOST & BROWSE</span>
+                                    <span class="rule-chip-sub">3 COMBAT MAPS</span>
+                                </div>
                             </div>
                             <div class="mode-card-footer">
                                 <span class="mode-capacity">Custom Slots</span>
@@ -379,8 +392,6 @@
                     </div>
                 </div>
 
-                <!-- Hidden compatibility buttons maintaining script API stability -->
-                
                 <!-- 4. PLAYER INTELLIGENCE & TELEMETRY SECTION -->
                 <div class="player-intel-dock" id="playerIntelDock">
                     <div class="intel-dock-header">
