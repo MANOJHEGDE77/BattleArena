@@ -385,8 +385,10 @@ const WARRIOR_CLASSES = {
         icon: '🛡️',
         maxHp: 100,
         maxShield: 50,
-        speed: 240,
-        cooldownMs: 320,
+        speed: 250,
+        cooldownMs: 280,
+        damage: 20,
+        bulletSpeed: 620,
         weaponName: 'Pulse Blaster',
         color: '#10b981',
         accentColor: '#34d399',
@@ -398,8 +400,10 @@ const WARRIOR_CLASSES = {
         icon: '🦾',
         maxHp: 150,
         maxShield: 75,
-        speed: 195,
-        cooldownMs: 480,
+        speed: 205,
+        cooldownMs: 440,
+        damage: 35,
+        bulletSpeed: 500,
         weaponName: 'Plasma Cannon',
         color: '#f59e0b',
         accentColor: '#fbbf24',
@@ -409,10 +413,12 @@ const WARRIOR_CLASSES = {
         name: 'SCOUT',
         badgeText: 'SCOUT (Twin Needles)',
         icon: '⚡',
-        maxHp: 75,
-        maxShield: 35,
-        speed: 290,
-        cooldownMs: 240,
+        maxHp: 80,
+        maxShield: 40,
+        speed: 300,
+        cooldownMs: 200,
+        damage: 15,
+        bulletSpeed: 720,
         weaponName: 'Twin Needles',
         color: '#a855f7',
         accentColor: '#c084fc',
@@ -424,8 +430,10 @@ const WARRIOR_CLASSES = {
         icon: '🎯',
         maxHp: 85,
         maxShield: 40,
-        speed: 220,
-        cooldownMs: 620,
+        speed: 230,
+        cooldownMs: 560,
+        damage: 45,
+        bulletSpeed: 920,
         weaponName: 'Hyper Railgun',
         color: '#06b6d4',
         accentColor: '#22d3ee',
@@ -2069,11 +2077,13 @@ function fireBlaster(targetHeading, isContinuous = false) {
 
     const heading = targetHeading !== undefined ? targetHeading : player.heading;
 
-    // Tactical Weapon Recoil & Muzzle Blast (Game Feel)
-    const kickback = currentClass === 'JUGGERNAUT' ? 8 : (currentClass === 'SNIPER' ? 10 : 5);
+    // Tactical Weapon Recoil & Muzzle Blast (Rock-steady gun feel)
+    const kickback = currentClass === 'JUGGERNAUT' ? 4 : (currentClass === 'SNIPER' ? 6 : 2.5);
     player.recoilDist = kickback;
     player.recoilAngle = heading;
-    triggerScreenShake(currentClass === 'JUGGERNAUT' ? 5 : (currentClass === 'SNIPER' ? 6 : 2.5), 0.08);
+    if (currentClass === 'SNIPER' || currentClass === 'JUGGERNAUT') {
+        triggerScreenShake(currentClass === 'SNIPER' ? 2.5 : 1.8, 0.06);
+    }
     addMuzzleFlash(player.x, player.y, heading, currentClass);
 
     if (isEmulating) {
@@ -2271,7 +2281,7 @@ function updatePhysics(dt) {
     const targetVx = moveX * effectiveSpeed;
     const targetVy = moveY * effectiveSpeed;
 
-    const accel = length > 0 ? 28 : 22;
+    const accel = length > 0 ? 46 : 38;
     const blend = Math.min(1, accel * dt);
     playerVx += (targetVx - playerVx) * blend;
     playerVy += (targetVy - playerVy) * blend;
@@ -4742,7 +4752,8 @@ class PvPEmulatorEngine {
         const id = 'p_local_' + (this.projectileIdCounter++);
         const currentClass = player.warriorClass || mySelectedClass || 'ASSAULT';
         const cInfo = WARRIOR_CLASSES[currentClass] || WARRIOR_CLASSES.ASSAULT;
-        const speed = cInfo.bulletSpeed;
+        const speed = (cInfo && cInfo.bulletSpeed) ? cInfo.bulletSpeed : 620;
+        const damage = (cInfo && cInfo.damage) ? cInfo.damage : 20;
         const pRadius = currentClass === 'JUGGERNAUT' ? 8 : (currentClass === 'SCOUT' ? 4 : 5);
 
         projectiles.set(id, {
@@ -4754,7 +4765,7 @@ class PvPEmulatorEngine {
             heading,
             speed,
             radius: pRadius,
-            damage: cInfo.damage,
+            damage,
             shooter: player.name,
             isPlayer: true,
             equippedTrail: player.equippedTrail || 'CYAN_PULSE',
@@ -4765,7 +4776,8 @@ class PvPEmulatorEngine {
     handleBotAttack(bot, heading) {
         const id = 'p_bot_' + (this.projectileIdCounter++);
         const cInfo = WARRIOR_CLASSES[bot.warriorClass] || WARRIOR_CLASSES.ASSAULT;
-        const speed = cInfo.bulletSpeed;
+        const speed = (cInfo && cInfo.bulletSpeed) ? cInfo.bulletSpeed : 580;
+        const damage = (cInfo && cInfo.damage) ? cInfo.damage : 20;
         const pRadius = bot.warriorClass === 'JUGGERNAUT' ? 8 : (bot.warriorClass === 'SCOUT' ? 4 : 5);
 
         projectiles.set(id, {
@@ -4777,7 +4789,7 @@ class PvPEmulatorEngine {
             heading,
             speed,
             radius: pRadius,
-            damage: cInfo.damage,
+            damage,
             shooter: bot.name,
             isPlayer: false,
             equippedTrail: 'CRIMSON_NEON',
@@ -5349,9 +5361,10 @@ document.addEventListener('visibilitychange', () => {
 });
 
 function gameLoop(currentTime) {
-    // Calculate delta time in seconds, clamped to 0.1s to prevent collision tunneling
+    if (!lastTime) lastTime = currentTime;
+    // Calculate delta time in seconds, clamped between 1ms and 50ms for buttery-smooth consistency
     let dt = (currentTime - lastTime) / 1000;
-    dt = Math.min(dt, 0.1);
+    dt = Math.max(0.001, Math.min(dt, 0.05));
     lastTime = currentTime;
 
     // Physics update step

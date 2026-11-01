@@ -613,26 +613,32 @@ html, body {
 }
 
 .pill-change-btn {
-    padding: 5px 11px;
+    padding: 5px 12px;
     background: rgba(255, 255, 255, 0.06);
-    border: 1px solid rgba(255, 255, 255, 0.12);
-    border-radius: 6px;
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    border-radius: 20px;
     color: #cbd5e1;
-    font-family: var(--font-ui);
+    font-family: var(--font-title);
     font-size: 0.72rem;
     font-weight: 600;
+    letter-spacing: 0.4px;
     cursor: pointer;
     display: inline-flex;
     align-items: center;
-    gap: 5px;
+    gap: 6px;
     transition: all var(--transition-fast);
 }
 
 .pill-change-btn:hover {
-    background: rgba(56, 189, 248, 0.15);
-    border-color: rgba(56, 189, 248, 0.4);
-    color: #38bdf8;
+    background: rgba(23, 200, 243, 0.16);
+    border-color: rgba(23, 200, 243, 0.5);
+    color: #17C8F3;
+    box-shadow: 0 0 10px rgba(23, 200, 243, 0.25);
     transform: translateY(-1px);
+}
+
+.pill-change-btn:active {
+    transform: scale(0.96);
 }
 
 /* THE PRIMARY PLAY & EMULATOR LAUNCH ACTIONS */
@@ -646,56 +652,84 @@ html, body {
 .hero-launch-btn-row {
     display: flex;
     align-items: stretch;
-    gap: 12px;
+    gap: 10px;
     flex-wrap: nowrap;
 }
 
 /* Primary Button — Deploy Into Battle */
 .btn-primary-launch {
     position: relative;
-    flex: 0 1 250px;
-    min-width: 220px;
-    height: 52px;
-    background: linear-gradient(135deg, #0284c7 0%, #2563eb 50%, #1e40af 100%);
-    border: 1px solid rgba(56, 189, 248, 0.45);
-    border-radius: 12px;
-    padding: 0 18px;
+    flex: 1 1 225px;
+    max-width: 240px;
+    height: 50px;
+    background: linear-gradient(135deg, #17C8F3 0%, #0284c7 60%, #0369a1 100%);
+    border: 1px solid rgba(23, 200, 243, 0.65);
+    border-radius: 10px;
+    padding: 0 14px;
     display: flex;
     align-items: center;
     cursor: pointer;
     outline: none;
-    box-shadow: 0 4px 18px rgba(2, 132, 199, 0.35);
+    box-shadow: 0 4px 16px rgba(23, 200, 243, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.4);
     transition: all var(--transition-smooth);
     user-select: none;
+    overflow: hidden;
 }
 
-.btn-launch-glow {
-    display: none;
+.btn-primary-launch::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 60%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.25), transparent);
+    transform: skewX(-25deg);
+    transition: left 0.55s ease;
+}
+
+.btn-primary-launch:hover::before {
+    left: 150%;
+}
+
+.btn-primary-launch:hover {
+    background: linear-gradient(135deg, #38d6ff 0%, #0ea5e9 60%, #0284c7 100%);
+    border-color: #38d6ff;
+    box-shadow: 0 6px 24px rgba(23, 200, 243, 0.6), inset 0 1px 0 #ffffff;
+    transform: translateY(-2px);
+}
+
+.btn-primary-launch:hover .btn-launch-arrow {
+    transform: translateX(5px);
+}
+
+.btn-primary-launch:active {
+    transform: translateY(1px) scale(0.98);
 }
 
 .btn-launch-content {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 10px;
     width: 100%;
 }
 
 .btn-launch-icon {
-    width: 32px;
-    height: 32px;
+    width: 28px;
+    height: 28px;
     display: flex;
     align-items: center;
     justify-content: center;
-    background: rgba(255, 255, 255, 0.15);
-    border-radius: 8px;
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    color: #ffffff;
+    background: rgba(8, 11, 18, 0.15);
+    border-radius: 6px;
+    border: 1px solid rgba(8, 11, 18, 0.25);
+    color: #080B12;
     flex-shrink: 0;
 }
 
 .btn-launch-icon svg {
-    width: 15px;
-    height: 15px;
+    width: 14px;
+    height: 14px;
 }
 
 .btn-launch-text {
@@ -707,63 +741,70 @@ html, body {
 }
 
 .launch-label {
-    font-family: var(--font-ui);
-    font-size: 0.94rem;
-    font-weight: 700;
-    color: #ffffff;
+    font-family: var(--font-title);
+    font-size: 0.88rem;
+    font-weight: 800;
+    color: #080B12;
     line-height: 1.15;
     letter-spacing: 0.2px;
+    white-space: nowrap;
 }
 
 .launch-desc {
     font-family: var(--font-ui);
-    font-size: 0.72rem;
-    font-weight: 500;
-    color: #bae6fd;
+    font-size: 0.68rem;
+    font-weight: 600;
+    color: rgba(8, 11, 18, 0.82);
     line-height: 1.15;
+    white-space: nowrap;
 }
 
 .btn-launch-arrow {
-    font-size: 1.2rem;
-    color: rgba(255, 255, 255, 0.9);
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: #080B12;
     transition: transform var(--transition-fast);
-}
-
-.btn-primary-launch:hover {
-    background: linear-gradient(135deg, #0369a1 0%, #3b82f6 50%, #1d4ed8 100%);
-    border-color: rgba(56, 189, 248, 0.7);
-    box-shadow: 0 6px 24px rgba(2, 132, 199, 0.5);
-    transform: translateY(-1px);
-}
-
-.btn-primary-launch:hover .btn-launch-arrow {
-    transform: translateX(5px);
-}
-
-.btn-primary-launch:active {
-    transform: translateY(1px);
 }
 
 /* Secondary Button — Practice With AI */
 .btn-emulator-launch {
     position: relative;
-    flex: 0 1 230px;
-    min-width: 200px;
-    height: 52px;
-    background: rgba(15, 23, 42, 0.75) !important;
+    flex: 1 1 215px;
+    max-width: 230px;
+    height: 50px;
+    background: rgba(16, 23, 34, 0.8) !important;
     backdrop-filter: blur(12px);
     border: 1px solid rgba(255, 255, 255, 0.12) !important;
-    border-radius: 12px !important;
-    padding: 0 16px !important;
+    border-radius: 10px !important;
+    padding: 0 14px !important;
     display: inline-flex !important;
     align-items: center !important;
     justify-content: flex-start !important;
     cursor: pointer !important;
     outline: none !important;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3) !important;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.06) !important;
     transition: all var(--transition-smooth) !important;
     color: #f1f5f9 !important;
     user-select: none;
+    overflow: hidden;
+}
+
+.btn-emulator-launch:hover {
+    background: rgba(23, 33, 49, 0.95) !important;
+    border-color: rgba(23, 200, 243, 0.45) !important;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.5), 0 0 16px rgba(23, 200, 243, 0.2) !important;
+    transform: translateY(-2px) !important;
+}
+
+.btn-emulator-launch:hover .emulator-btn-icon {
+    background: rgba(23, 200, 243, 0.18);
+    border-color: rgba(23, 200, 243, 0.45);
+    color: #17C8F3;
+    transform: scale(1.08);
+}
+
+.btn-emulator-launch:active {
+    transform: translateY(1px) scale(0.98) !important;
 }
 
 .emulator-btn-glow {
@@ -773,18 +814,18 @@ html, body {
 .emulator-btn-content {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 10px;
     width: 100%;
 }
 
 .emulator-btn-icon {
-    width: 32px;
-    height: 32px;
+    width: 28px;
+    height: 28px;
     display: flex;
     align-items: center;
     justify-content: center;
     background: rgba(56, 189, 248, 0.08);
-    border-radius: 8px;
+    border-radius: 6px;
     border: 1px solid rgba(56, 189, 248, 0.22);
     color: #38bdf8;
     flex-shrink: 0;
@@ -792,6 +833,8 @@ html, body {
 }
 
 .emulator-btn-icon svg {
+    width: 14px;
+    height: 14px;
     color: #38bdf8;
 }
 
@@ -803,37 +846,23 @@ html, body {
 }
 
 .emulator-title {
-    font-family: var(--font-ui) !important;
-    font-size: 0.92rem !important;
-    font-weight: 600 !important;
-    letter-spacing: 0.2px !important;
-    color: #f1f5f9 !important;
-    line-height: 1.15 !important;
+    font-family: var(--font-title);
+    font-size: 0.88rem;
+    font-weight: 700;
+    letter-spacing: 0.2px;
+    color: #f1f5f9;
+    line-height: 1.15;
+    white-space: nowrap;
 }
 
 .emulator-sub {
-    font-family: var(--font-ui) !important;
-    font-size: 0.72rem !important;
-    font-weight: 400 !important;
-    color: #94a3b8 !important;
-    letter-spacing: 0.1px !important;
-    line-height: 1.15 !important;
-}
-
-.btn-emulator-launch:hover {
-    background: rgba(24, 34, 54, 0.9) !important;
-    border-color: rgba(56, 189, 248, 0.35) !important;
-    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4) !important;
-    transform: translateY(-1px) !important;
-}
-
-.btn-emulator-launch:hover .emulator-btn-icon {
-    background: rgba(56, 189, 248, 0.16);
-    border-color: rgba(56, 189, 248, 0.35);
-}
-
-.btn-emulator-launch:active {
-    transform: translateY(1px) !important;
+    font-family: var(--font-ui);
+    font-size: 0.68rem;
+    font-weight: 500;
+    color: #94a3b8;
+    letter-spacing: 0.1px;
+    line-height: 1.15;
+    white-space: nowrap;
 }
 
 .launch-sub-status {
@@ -1171,31 +1200,33 @@ html, body {
 
 .mode-select-btn {
     position: relative;
-    padding: 4px 12px;
+    padding: 5px 14px;
     background: rgba(255, 255, 255, 0.06);
-    border: 1px solid rgba(255, 255, 255, 0.12);
-    border-radius: 6px;
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    border-radius: 20px;
     color: #94a3b8;
-    font-family: var(--font-ui);
-    font-size: 0.68rem;
-    font-weight: 600;
-    letter-spacing: 0.3px;
+    font-family: var(--font-title);
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.8px;
     cursor: pointer;
     transition: all var(--transition-fast);
 }
 
 .mode-select-btn:hover {
-    background: rgba(255, 255, 255, 0.12);
-    border-color: rgba(255, 255, 255, 0.22);
+    background: rgba(23, 200, 243, 0.15);
+    border-color: rgba(23, 200, 243, 0.5);
     color: #ffffff;
+    box-shadow: 0 0 12px rgba(23, 200, 243, 0.25);
     transform: translateY(-1px);
 }
 
 .mode-card.active-mode .mode-select-btn {
-    background: #0284c7;
-    border-color: #38bdf8;
-    color: #ffffff;
-    box-shadow: 0 2px 8px rgba(2, 132, 199, 0.35);
+    background: linear-gradient(135deg, #17C8F3 0%, #0284c7 100%);
+    border-color: #17C8F3;
+    color: #080B12;
+    box-shadow: 0 0 16px rgba(23, 200, 243, 0.45);
+    font-weight: 800;
 }
 
 

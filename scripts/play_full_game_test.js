@@ -230,9 +230,11 @@ async function main() {
             (() => {
                 const bList = pvpEmulator.bots;
                 if (bList.length > 0) {
-                    bList[0].shield = 0;
-                    bList[0].hp = 10;
-                    pvpEmulator.applyDamageToBot(bList[0], 25, player.name);
+                    const b0 = bList[0];
+                    b0.alive = true;
+                    b0.shield = 0;
+                    b0.hp = 10;
+                    pvpEmulator.applyDamageToBot(b0, 25, player.name);
                 }
             })()
         `);
@@ -247,9 +249,11 @@ async function main() {
             (() => {
                 const bList = pvpEmulator.bots;
                 if (bList.length > 1) {
-                    bList[1].shield = 0;
-                    bList[1].hp = 10;
-                    pvpEmulator.applyDamageToBot(bList[1], 25, player.name);
+                    const b1 = bList[1];
+                    b1.alive = true;
+                    b1.shield = 0;
+                    b1.hp = 10;
+                    pvpEmulator.applyDamageToBot(b1, 25, player.name);
                 }
             })()
         `);
