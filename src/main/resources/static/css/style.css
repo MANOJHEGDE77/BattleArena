@@ -5,49 +5,104 @@
  * ============================================================================== */
 
 :root {
-    /* AAA Tactical Sci-Fi Color Palette */
+    /* AAA Tactical Sci-Fi Color Palette Tokens */
     --bg-void: #080B12;
-    --bg-secondary: #101722;
-    --bg-surface: #172131;
-    --bg-surface-elevated: #1e2c40;
-    --bg-surface-hover: #253750;
-    --bg-glass: rgba(16, 23, 34, 0.88);
-    --bg-glass-card: rgba(23, 33, 49, 0.75);
+    --bg-secondary: #0D1420;
+    --bg-surface: #131D2B;
+    --bg-surface-elevated: #1A2638;
+    --bg-surface-hover: #22324A;
+    --bg-glass: rgba(13, 20, 32, 0.88);
+    --bg-glass-card: rgba(19, 29, 43, 0.82);
+
+    /* Elevation Surfaces */
+    --surface-1: #0A0F1A;
+    --surface-2: #101726;
+    --surface-3: #182337;
+    --surface-glass-1: rgba(10, 15, 26, 0.75);
+    --surface-glass-2: rgba(16, 23, 38, 0.82);
+    --surface-glass-3: rgba(24, 35, 55, 0.88);
 
     /* Borders & Dividers */
     --border-subtle: rgba(255, 255, 255, 0.08);
     --border-default: rgba(255, 255, 255, 0.14);
-    --border-hover: rgba(23, 200, 243, 0.4);
-    --border-highlight: rgba(23, 200, 243, 0.55);
+    --border-hover: rgba(22, 200, 242, 0.4);
+    --border-highlight: rgba(22, 200, 242, 0.65);
 
-    /* Accents */
-    --cyan-primary: #17C8F3;
-    --cyan-glow: 0 0 24px rgba(23, 200, 243, 0.45);
-    --accent-teal: #00D6A3;
-    --teal-glow: 0 0 24px rgba(0, 214, 163, 0.4);
-    --amber-gold: #F3A74B;
-    --combat-red: #F45B69;
-    --combat-glow: 0 0 24px rgba(244, 91, 105, 0.45);
+    /* Core Brand Accents */
+    --cyan-primary: #16C8F2;
+    --cyan-glow: 0 0 24px rgba(22, 200, 242, 0.45);
+    --cyan-glow-lg: 0 0 36px rgba(22, 200, 242, 0.65);
+    --accent-teal: #00E6A0;
+    --teal-glow: 0 0 24px rgba(0, 230, 160, 0.4);
+    --magenta-accent: #E02694;
+    --magenta-glow: 0 0 24px rgba(224, 38, 148, 0.45);
+    --amber-gold: #FFB300;
+    --combat-red: #FF3B5C;
+    --combat-glow: 0 0 24px rgba(255, 59, 92, 0.45);
     --purple-scout: #A855F7;
-    --emerald-green: #00D6A3;
+    --emerald-green: #00E6A0;
 
-    /* Typography */
-    --text-primary: #F4F7FC;
-    --text-secondary: #9AA8B9;
-    --text-muted: #5d6f85;
-    --font-display: 'Orbitron', 'Space Grotesk', sans-serif;
-    --font-title: 'Space Grotesk', 'Rajdhani', sans-serif;
+    /* Team / Enemy Tactical Colors */
+    --team-ally: #16C8F2;
+    --team-enemy: #FF3B5C;
+    --team-hazard: #FFB300;
+
+    /* Spacing Scale (4px Modular Grid) */
+    --space-1: 4px;
+    --space-2: 8px;
+    --space-3: 12px;
+    --space-4: 16px;
+    --space-5: 20px;
+    --space-6: 24px;
+    --space-8: 32px;
+    --space-10: 40px;
+    --space-12: 48px;
+
+    /* Unified Modular Typography */
+    --text-primary: #F3F6FC;
+    --text-secondary: #8795A9;
+    --text-muted: #576579;
+    --font-display: 'Orbitron', 'Rajdhani', sans-serif;
+    --font-title: 'Rajdhani', 'Space Grotesk', sans-serif;
     --font-ui: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
     --font-tactical: 'Rajdhani', 'Space Grotesk', sans-serif;
     --font-mono: 'JetBrains Mono', monospace;
 
-    /* Radii & Transitions */
+    /* Radii & Curves */
+    --radius-xs: 4px;
     --radius-sm: 6px;
     --radius-md: 10px;
     --radius-lg: 14px;
-    --radius-xl: 18px;
+    --radius-xl: 20px;
+    --radius-pill: 9999px;
+
+    /* Motion Easings & Durations */
+    --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+    --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+    --duration-fast: 150ms;
+    --duration-normal: 240ms;
+    --duration-slow: 380ms;
     --transition-fast: 0.16s cubic-bezier(0.16, 1, 0.3, 1);
     --transition-smooth: 0.24s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Colorblind Safe Mode Overrides */
+body.colorblind-deuteranopia {
+    --team-ally: #38bdf8;
+    --team-enemy: #fbbf24;
+    --combat-red: #f59e0b;
+}
+
+body.colorblind-protanopia {
+    --team-ally: #06b6d4;
+    --team-enemy: #eab308;
+    --combat-red: #d97706;
+}
+
+body.colorblind-tritanopia {
+    --team-ally: #00E6A0;
+    --team-enemy: #f43f5e;
+    --combat-red: #f43f5e;
 }
 
 /* Base Reset & Full Viewport Lock */
@@ -66,6 +121,109 @@ html, body {
     font-family: var(--font-ui);
     -webkit-font-smoothing: antialiased;
     user-select: none;
+}
+
+/* Ambient 60 FPS Parallax Starfield & Hex Grid Canvas */
+.ambient-bg-canvas {
+    position: fixed;
+    inset: 0;
+    width: 100vw;
+    height: 100vh;
+    z-index: 0;
+    pointer-events: none;
+    opacity: 0.85;
+}
+
+/* Mobile Screen Fallback Gate Overlay */
+.mobile-fallback-gate {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 999999;
+    background: rgba(6, 9, 16, 0.98);
+    backdrop-filter: blur(20px);
+    padding: 24px;
+    align-items: center;
+    justify-content: center;
+}
+
+@media (max-width: 768px) {
+    .mobile-fallback-gate {
+        display: flex;
+    }
+}
+
+.mobile-fallback-card {
+    max-width: 440px;
+    background: linear-gradient(135deg, rgba(16, 23, 38, 0.96), rgba(10, 15, 26, 0.98));
+    border: 1px solid rgba(22, 200, 242, 0.35);
+    border-radius: var(--radius-lg);
+    padding: 30px;
+    text-align: center;
+    box-shadow: 0 16px 48px rgba(0, 0, 0, 0.8), 0 0 35px rgba(22, 200, 242, 0.2);
+}
+
+.mobile-fallback-icon {
+    margin-bottom: 16px;
+    display: inline-flex;
+    padding: 14px;
+    border-radius: 50%;
+    background: rgba(22, 200, 242, 0.1);
+    border: 1px solid rgba(22, 200, 242, 0.3);
+}
+
+.mobile-fallback-badge {
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    color: var(--cyan-primary);
+    letter-spacing: 1.5px;
+    margin-bottom: 8px;
+    font-weight: 700;
+}
+
+.mobile-fallback-title {
+    font-family: var(--font-display);
+    font-size: 1.25rem;
+    font-weight: 800;
+    color: #fff;
+    margin-bottom: 12px;
+    letter-spacing: 0.5px;
+}
+
+.mobile-fallback-desc {
+    font-family: var(--font-ui);
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    line-height: 1.5;
+    margin-bottom: 16px;
+}
+
+.mobile-fallback-meta {
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    margin-bottom: 20px;
+}
+
+.mobile-override-btn {
+    width: 100%;
+    padding: 11px 16px;
+    background: rgba(22, 200, 242, 0.12);
+    border: 1px solid var(--cyan-primary);
+    border-radius: var(--radius-sm);
+    color: #fff;
+    font-family: var(--font-title);
+    font-size: 0.78rem;
+    font-weight: 700;
+    letter-spacing: 0.8px;
+    cursor: pointer;
+    transition: all var(--duration-fast) var(--ease-out-expo);
+}
+
+.mobile-override-btn:hover {
+    background: var(--cyan-primary);
+    color: #080B12;
+    box-shadow: var(--cyan-glow);
 }
 
 /* Ambient Background FX */
@@ -477,31 +635,32 @@ html, body {
 .view-play.active {
     display: flex !important;
     flex-direction: column !important;
-    justify-content: space-between !important;
-    gap: 10px !important;
+    gap: 14px !important;
     max-width: 1440px !important;
     width: 100% !important;
-    height: calc(100vh - 78px) !important;
+    min-height: calc(100vh - 78px) !important;
+    height: auto !important;
     margin: 0 auto !important;
-    padding: 8px 20px 8px 20px !important;
+    padding: 14px 24px 24px 24px !important;
     box-sizing: border-box !important;
 }
 
 /* Cinematic Hero Stage */
 .hero-stage {
     display: grid !important;
-    grid-template-columns: 1.18fr 0.82fr !important;
-    gap: 22px !important;
+    grid-template-columns: 1.15fr 0.85fr !important;
+    gap: 24px !important;
     align-items: center !important;
-    background: linear-gradient(135deg, rgba(14, 20, 36, 0.75) 0%, rgba(9, 14, 25, 0.85) 100%) !important;
-    border: 1px solid rgba(255, 255, 255, 0.08) !important;
-    border-radius: 14px !important;
-    padding: 14px 22px !important;
+    background: linear-gradient(135deg, rgba(16, 23, 38, 0.85) 0%, rgba(10, 15, 26, 0.92) 100%) !important;
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+    border-radius: var(--radius-lg) !important;
+    padding: 18px 26px !important;
     position: relative !important;
-    overflow: hidden !important;
+    overflow: visible !important;
     flex: 1 1 auto !important;
-    min-height: 250px !important;
-    max-height: 285px !important;
+    min-height: 275px !important;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.08) !important;
+    backdrop-filter: blur(16px);
     box-sizing: border-box !important;
 }
 
@@ -886,33 +1045,110 @@ html, body {
     box-shadow: 0 0 6px var(--emerald-green);
 }
 
-/* Right Cinematic Showcase Canvas */
+/* Right Cinematic Living 3D Showcase Canvas & Spec Card */
 .hero-stage-visual {
     position: relative;
     width: 100%;
     height: 100%;
-    min-height: 210px;
-    max-height: 245px;
+    min-height: 250px;
     display: flex;
     align-items: center;
     justify-content: center;
+    perspective: 800px;
 }
 
 .stage-backdrop-ring {
     position: absolute;
-    width: 200px;
-    height: 200px;
-    border: 1px dashed rgba(56, 189, 248, 0.18);
+    width: 240px;
+    height: 240px;
+    border: 1px dashed rgba(22, 200, 242, 0.22);
     border-radius: 50%;
     animation: rotateRing 40s linear infinite;
+    pointer-events: none;
 }
 
 .hero-showcase-canvas {
     position: relative;
     z-index: 2;
     max-width: 100%;
-    max-height: 220px;
+    max-height: 260px;
     object-fit: contain;
+    filter: drop-shadow(0 12px 28px rgba(0, 0, 0, 0.7));
+    transition: transform 0.15s ease-out;
+}
+
+/* Floating Holographic Spec Card */
+.hero-spec-card {
+    position: absolute;
+    top: 6px;
+    left: 8px;
+    z-index: 3;
+    background: rgba(10, 15, 26, 0.82);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(22, 200, 242, 0.25);
+    border-radius: var(--radius-sm);
+    padding: 8px 12px;
+    min-width: 145px;
+    pointer-events: none;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+.spec-card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin-bottom: 6px;
+}
+
+.spec-class-pill {
+    font-family: var(--font-display);
+    font-size: 0.74rem;
+    font-weight: 800;
+    color: var(--cyan-primary);
+    letter-spacing: 0.5px;
+}
+
+.spec-weapon-pill {
+    font-family: var(--font-ui);
+    font-size: 0.62rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+}
+
+.spec-stat-bars {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.spec-bar-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.spec-bar-label {
+    font-family: var(--font-mono);
+    font-size: 0.58rem;
+    color: var(--text-muted);
+    width: 28px;
+    letter-spacing: 0.5px;
+}
+
+.spec-bar-track {
+    flex: 1;
+    height: 4px;
+    background: rgba(255, 255, 255, 0.08);
+    border-radius: 2px;
+    overflow: hidden;
+}
+
+.spec-bar-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--cyan-primary), #00E6A0);
+    border-radius: 2px;
+    transition: width 0.35s var(--ease-out-expo);
 }
 
 .stage-telemetry-tag {
@@ -923,6 +1159,7 @@ html, body {
     flex-direction: column;
     align-items: flex-end;
     font-family: var(--font-mono);
+    z-index: 3;
 }
 
 .telemetry-label {
@@ -3154,29 +3391,67 @@ html, body {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 0 28px;
-    background: rgba(6, 8, 15, 0.9);
+    padding: 0 24px;
+    background: rgba(6, 9, 16, 0.95);
     border-top: 1px solid var(--border-subtle);
     font-family: var(--font-mono);
     font-size: 0.68rem;
     color: var(--text-muted);
+    overflow: hidden;
+    box-sizing: border-box;
+    width: 100%;
 }
 
 .footer-left {
     display: flex;
     align-items: center;
     gap: 8px;
+    flex-shrink: 0;
+    min-width: 0;
 }
 
 .footer-tag {
-    color: var(--text-secondary);
+    color: var(--cyan-primary);
+    font-family: var(--font-display);
     font-weight: 700;
+    letter-spacing: 0.8px;
+    white-space: nowrap;
+}
+
+.footer-sep {
+    color: var(--text-muted);
+}
+
+.footer-note {
+    color: var(--text-secondary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .footer-controls-hint {
     display: flex;
     align-items: center;
     gap: 12px;
+    flex-shrink: 1;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
+@media (max-width: 900px) {
+    .footer-note {
+        display: none;
+    }
+    .footer-sep {
+        display: none;
+    }
+}
+
+@media (max-width: 600px) {
+    .footer-controls-hint {
+        display: none;
+    }
 }
 
 /* ==============================================================================
@@ -5249,5 +5524,446 @@ input:checked + .slider::before { transform: translateX(20px); background-color:
     font-family: var(--font-mono);
     font-size: 0.68rem;
     color: var(--text-muted);
+}
+
+/* Empty State Badges for Tactical Intel Cards */
+.metric-empty-badge {
+    display: inline-block;
+    padding: 2px 7px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px dashed rgba(255, 255, 255, 0.16);
+    border-radius: var(--radius-xs);
+    font-family: var(--font-mono);
+    font-size: 0.62rem;
+    color: var(--text-muted);
+    letter-spacing: 0.6px;
+    text-transform: uppercase;
+}
+
+.stat-card-empty-pill {
+    display: inline-block;
+    padding: 3px 10px;
+    background: rgba(22, 200, 242, 0.08);
+    border: 1px dashed rgba(22, 200, 242, 0.28);
+    border-radius: 20px;
+    font-family: var(--font-mono);
+    font-size: 0.66rem;
+    color: var(--cyan-primary);
+    letter-spacing: 0.5px;
+}
+
+/* Overheat / Ammo Gauge in HUD */
+.hud-overheat-box {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(8, 11, 18, 0.6);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-sm);
+    padding: 3px 8px;
+    min-width: 90px;
+}
+
+.overheat-label {
+    font-family: var(--font-mono);
+    font-size: 0.62rem;
+    font-weight: 700;
+    color: var(--text-muted);
+    letter-spacing: 0.5px;
+}
+
+.overheat-track {
+    flex: 1;
+    height: 5px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 2px;
+    overflow: hidden;
+}
+
+.overheat-fill {
+    height: 100%;
+    width: 0%;
+    background: linear-gradient(90deg, #16C8F2, #FFB300, #FF3B5C);
+    transition: width 0.08s linear;
+}
+
+.overheat-fill.hot {
+    box-shadow: 0 0 10px #FF3B5C;
+}
+
+/* Tactical Crosshair with Hit & Kill Markers */
+.tactical-crosshair {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+    z-index: 10;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.crosshair-reticle {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.08s ease-out;
+}
+
+.ch-tick {
+    position: absolute;
+    background: var(--crosshair-color, #16C8F2);
+    box-shadow: 0 0 4px var(--crosshair-color, #16C8F2);
+    border-radius: 1px;
+}
+
+.ch-top {
+    top: 0;
+    left: 50%;
+    width: 2px;
+    height: 8px;
+    transform: translateX(-50%);
+}
+
+.ch-bottom {
+    bottom: 0;
+    left: 50%;
+    width: 2px;
+    height: 8px;
+    transform: translateX(-50%);
+}
+
+.ch-left {
+    left: 0;
+    top: 50%;
+    height: 2px;
+    width: 8px;
+    transform: translateY(-50%);
+}
+
+.ch-right {
+    right: 0;
+    top: 50%;
+    height: 2px;
+    width: 8px;
+    transform: translateY(-50%);
+}
+
+.ch-dot {
+    width: 3px;
+    height: 3px;
+    border-radius: 50%;
+    background: var(--crosshair-color, #16C8F2);
+    box-shadow: 0 0 6px var(--crosshair-color, #16C8F2);
+}
+
+.crosshair-reticle.firing {
+    transform: scale(1.4);
+}
+
+.crosshair-reticle.moving {
+    transform: scale(1.2);
+}
+
+/* Hit Marker (White X) */
+.hit-marker {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transform: scale(0.8);
+    transition: opacity 0.05s ease-out, transform 0.05s ease-out;
+}
+
+.hit-marker.active {
+    opacity: 1;
+    transform: scale(1.2);
+    animation: hitFade 0.16s ease-out forwards;
+}
+
+@keyframes hitFade {
+    0% { opacity: 1; transform: scale(1.2); }
+    100% { opacity: 0; transform: scale(1); }
+}
+
+.hm-diag {
+    position: absolute;
+    background: #ffffff;
+    box-shadow: 0 0 8px #ffffff;
+    width: 14px;
+    height: 2px;
+    border-radius: 1px;
+}
+
+.hm-1 { transform: rotate(45deg); }
+.hm-2 { transform: rotate(-45deg); }
+
+/* Kill Marker (Red Skull Flare) */
+.kill-marker {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    pointer-events: none;
+}
+
+.kill-marker.active {
+    animation: killFlare 0.4s ease-out forwards;
+}
+
+@keyframes killFlare {
+    0% { opacity: 1; transform: scale(0.7); }
+    50% { opacity: 1; transform: scale(1.4); filter: drop-shadow(0 0 12px #FF3B5C); }
+    100% { opacity: 0; transform: scale(1.8); }
+}
+
+.km-skull {
+    font-size: 1.4rem;
+    color: #FF3B5C;
+}
+
+/* Directional Damage Indicators */
+.directional-damage-container {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 9;
+    overflow: hidden;
+}
+
+.directional-damage-arc {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 220px;
+    height: 220px;
+    margin-top: -110px;
+    margin-left: -110px;
+    border-radius: 50%;
+    border-top: 5px solid rgba(255, 59, 92, 0.85);
+    border-left: 2px solid transparent;
+    border-right: 2px solid transparent;
+    border-bottom: 2px solid transparent;
+    filter: drop-shadow(0 0 10px #FF3B5C);
+    animation: damageArcFade 0.4s ease-out forwards;
+}
+
+@keyframes damageArcFade {
+    0% { opacity: 1; transform: rotate(var(--damage-angle, 0deg)) scale(1); }
+    100% { opacity: 0; transform: rotate(var(--damage-angle, 0deg)) scale(1.15); }
+}
+
+/* Low-Health Heartbeat Vignette Pulse */
+.combat-damage-vignette.low-health {
+    opacity: 1 !important;
+    animation: heartbeatPulse 1s infinite alternate ease-in-out !important;
+}
+
+@keyframes heartbeatPulse {
+    0% {
+        box-shadow: inset 0 0 50px rgba(255, 59, 92, 0.4);
+    }
+    100% {
+        box-shadow: inset 0 0 120px rgba(255, 59, 92, 0.85);
+    }
+}
+
+/* Settings Modal Customizer Controls */
+.modal-medium {
+    max-width: 580px !important;
+    width: 92% !important;
+}
+
+.settings-subhead {
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 1px;
+    color: var(--cyan-primary);
+    text-transform: uppercase;
+    padding-bottom: 4px;
+    border-bottom: 1px solid rgba(22, 200, 242, 0.2);
+    margin-bottom: 8px;
+}
+
+.graphics-preset-pills {
+    display: flex;
+    gap: 8px;
+    width: 100%;
+}
+
+.preset-pill {
+    flex: 1;
+    padding: 7px 10px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-sm);
+    color: var(--text-secondary);
+    font-family: var(--font-title);
+    font-size: 0.74rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all var(--duration-fast);
+}
+
+.preset-pill:hover {
+    background: rgba(22, 200, 242, 0.15);
+    border-color: var(--cyan-primary);
+    color: #fff;
+}
+
+.preset-pill.active {
+    background: var(--cyan-primary);
+    border-color: var(--cyan-primary);
+    color: #080B12;
+    box-shadow: var(--cyan-glow);
+}
+
+.crosshair-config-row {
+    display: flex;
+    gap: 16px;
+    align-items: center;
+    background: rgba(8, 11, 18, 0.6);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-md);
+    padding: 12px;
+}
+
+.crosshair-preview-stage {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+}
+
+.ch-preview-box {
+    width: 70px;
+    height: 70px;
+    background: #060910;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: var(--radius-sm);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+}
+
+.ch-preview-reticle {
+    position: relative;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.ch-prev-tick {
+    position: absolute;
+    background: var(--preview-ch-color, #16C8F2);
+    box-shadow: 0 0 4px var(--preview-ch-color, #16C8F2);
+}
+
+.ch-prev-top {
+    top: 0;
+    left: 50%;
+    width: 2px;
+    height: var(--ch-size, 8px);
+    transform: translateX(-50%);
+}
+
+.ch-prev-bottom {
+    bottom: 0;
+    left: 50%;
+    width: 2px;
+    height: var(--ch-size, 8px);
+    transform: translateX(-50%);
+}
+
+.ch-prev-left {
+    left: 0;
+    top: 50%;
+    height: 2px;
+    width: var(--ch-size, 8px);
+    transform: translateY(-50%);
+}
+
+.ch-prev-right {
+    right: 0;
+    top: 50%;
+    height: 2px;
+    width: var(--ch-size, 8px);
+    transform: translateY(-50%);
+}
+
+.ch-prev-dot {
+    width: 3px;
+    height: 3px;
+    border-radius: 50%;
+    background: var(--preview-ch-color, #16C8F2);
+}
+
+.ch-preview-hint {
+    font-family: var(--font-mono);
+    font-size: 0.58rem;
+    color: var(--text-muted);
+}
+
+.crosshair-controls-col {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.ch-control-item label {
+    font-family: var(--font-ui);
+    font-size: 0.72rem;
+    color: var(--text-secondary);
+    display: block;
+    margin-bottom: 4px;
+}
+
+.ch-color-picker {
+    display: flex;
+    gap: 8px;
+}
+
+.ch-color-btn {
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    border: 2px solid transparent;
+    cursor: pointer;
+    transition: transform var(--duration-fast);
+}
+
+.ch-color-btn:hover {
+    transform: scale(1.18);
+}
+
+.ch-color-btn.active {
+    border-color: #ffffff;
+    box-shadow: 0 0 10px rgba(255, 255, 255, 0.8);
+    transform: scale(1.15);
+}
+
+/* Accessibility: prefers-reduced-motion */
+@media (prefers-reduced-motion: reduce) {
+    *, ::before, ::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+    }
 }
 

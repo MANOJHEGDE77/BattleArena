@@ -31,6 +31,27 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&family=Orbitron:wght@700;800;900&family=Rajdhani:wght@500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
 </head>
 <body class="client-root">
+    <!-- Ambient 60 FPS Parallax Background Canvas -->
+    <canvas id="ambientBackgroundCanvas" class="ambient-bg-canvas" aria-hidden="true"></canvas>
+
+    <!-- Mobile Screen Fallback Gate -->
+    <div class="mobile-fallback-gate" id="mobileBlockerBanner" style="display: none;">
+        <div class="mobile-fallback-card">
+            <div class="mobile-fallback-icon">
+                <svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="#16C8F2" stroke-width="1.8">
+                    <rect x="2" y="3" width="20" height="14" rx="2"/>
+                    <line x1="8" y1="21" x2="16" y2="21"/>
+                    <line x1="12" y1="17" x2="12" y2="21"/>
+                </svg>
+            </div>
+            <div class="mobile-fallback-badge">TACTICAL SYSTEM SPEC</div>
+            <h2 class="mobile-fallback-title">DESKTOP TERMINAL REQUIRED</h2>
+            <p class="mobile-fallback-desc">Cyber Battle Arena features high-speed 60 FPS competitive WASD + mouse ballistics and requires a desktop display with keyboard & mouse.</p>
+            <div class="mobile-fallback-meta">Recommended: 1366×768 or higher • Chrome / Firefox / Edge</div>
+            <button class="mobile-override-btn" id="mobileBypassBtn" type="button">CONTINUE ANYWAY (PREVIEW ONLY)</button>
+        </div>
+    </div>
+
     <!-- Ambient Background FX Container -->
     <div class="ambient-fx-layer" aria-hidden="true">
         <div class="ambient-vignette"></div>
@@ -225,10 +246,37 @@
                         </div>
                     </div>
 
-                    <!-- Right Cinematic Interactive Operator Stage (Procedural Canvas) -->
-                    <div class="hero-stage-visual">
+                    <!-- Right Cinematic Interactive Operator Stage (Living 3D Showcase Canvas + Spec Bars) -->
+                    <div class="hero-stage-visual" id="heroStageVisual">
                         <div class="stage-backdrop-ring"></div>
-                        <canvas class="hero-showcase-canvas" id="heroShowcaseCanvas" width="560" height="480"></canvas>
+                        <canvas class="hero-showcase-canvas" id="heroShowcaseCanvas" width="580" height="460"></canvas>
+                        
+                        <!-- Floating Holographic Class Spec Overlay -->
+                        <div class="hero-spec-card" id="heroSpecCard">
+                            <div class="spec-card-header">
+                                <span class="spec-class-pill" id="heroSpecClassPill">ASSAULT</span>
+                                <span class="spec-weapon-pill" id="heroSpecWeaponPill">Pulse Blaster</span>
+                            </div>
+                            <div class="spec-stat-bars">
+                                <div class="spec-bar-row">
+                                    <span class="spec-bar-label">DMG</span>
+                                    <div class="spec-bar-track"><div class="spec-bar-fill" id="heroSpecDmg" style="width: 50%;"></div></div>
+                                </div>
+                                <div class="spec-bar-row">
+                                    <span class="spec-bar-label">SPD</span>
+                                    <div class="spec-bar-track"><div class="spec-bar-fill" id="heroSpecSpd" style="width: 75%;"></div></div>
+                                </div>
+                                <div class="spec-bar-row">
+                                    <span class="spec-bar-label">HLTH</span>
+                                    <div class="spec-bar-track"><div class="spec-bar-fill" id="heroSpecHp" style="width: 66%;"></div></div>
+                                </div>
+                                <div class="spec-bar-row">
+                                    <span class="spec-bar-label">ROF</span>
+                                    <div class="spec-bar-track"><div class="spec-bar-fill" id="heroSpecRof" style="width: 80%;"></div></div>
+                                </div>
+                            </div>
+                        </div>
+
                         <div class="stage-telemetry-tag">
                             <span class="telemetry-label">COMBAT CHASSIS</span>
                             <span class="telemetry-spec" id="heroChassisSpec">MARK-IV VANGUARD</span>
@@ -864,6 +912,27 @@
                     <div class="canvas-container" id="canvasContainer">
                         <canvas id="gameCanvas" width="800" height="600"></canvas>
 
+                        <!-- Directional Damage Indicator Overlay -->
+                        <div class="directional-damage-container" id="directionalDamageContainer" aria-hidden="true"></div>
+
+                        <!-- Tactical Dynamic Crosshair with Hit & Kill Markers -->
+                        <div class="tactical-crosshair" id="tacticalCrosshair" aria-hidden="true">
+                            <div class="crosshair-reticle" id="crosshairReticle">
+                                <span class="ch-tick ch-top"></span>
+                                <span class="ch-tick ch-bottom"></span>
+                                <span class="ch-tick ch-left"></span>
+                                <span class="ch-tick ch-right"></span>
+                                <span class="ch-dot" id="crosshairDot"></span>
+                            </div>
+                            <div class="hit-marker" id="hitMarker">
+                                <span class="hm-diag hm-1"></span>
+                                <span class="hm-diag hm-2"></span>
+                            </div>
+                            <div class="kill-marker" id="killMarker">
+                                <span class="km-skull">💀</span>
+                            </div>
+                        </div>
+
                         <!-- Dynamic Low-Health & Damage Flash Vignette -->
                         <div class="combat-damage-vignette" id="combatDamageVignette"></div>
 
@@ -1040,11 +1109,17 @@
                         <button class="btn-hud-action" id="hudEmoteTriggerBtn" type="button" title="Tactical Callouts [T]">CALLOUTS [T]</button>
                     </div>
 
-                    <!-- Bottom Right: Weapon Status -->
+                    <!-- Bottom Right: Weapon Status & Overheat Gauge -->
                     <div class="hud-weapon-gauge">
                         <div class="weapon-info-box">
                             <span class="weapon-label">BALLISTIC CANNON</span>
                             <span class="weapon-name" id="hudWeaponName">Pulse Blaster</span>
+                        </div>
+                        <div class="hud-overheat-box" id="hudOverheatBox">
+                            <span class="overheat-label">HEAT</span>
+                            <div class="overheat-track">
+                                <div class="overheat-fill" id="hudOverheatFill" style="width: 0%;"></div>
+                            </div>
                         </div>
                         <div class="weapon-status-indicator active" id="weaponReadyIndicator">READY</div>
                         <button class="btn-hud-exit" id="hudLeaveMatchBtn" type="button" title="Exit Match">
@@ -1308,13 +1383,15 @@
     <!-- SETTINGS & AUDIO MODAL -->
     <!-- ========================================================================= -->
     <div class="modal-overlay" id="settingsModal" style="display: none;">
-        <div class="modal-card">
+        <div class="modal-card modal-medium">
             <div class="modal-header">
-                <h3>SYSTEMS & AUDIO SYNTHESIZER</h3>
+                <h3>TACTICAL SYSTEMS & CONTROLS CONFIG</h3>
                 <button class="modal-close-btn" id="closeSettingsModalBtn" type="button">&times;</button>
             </div>
             <div class="modal-body">
                 <div class="settings-group">
+                    <!-- SECTION 1: AUDIO SYNTHESIZER -->
+                    <div class="settings-subhead">AUDIO SYNTHESIS & VOLUME</div>
                     <div class="settings-row">
                         <label for="masterVolumeRange">Master Volume (<span id="masterVolDisplay">50%</span>)</label>
                         <input type="range" id="masterVolumeRange" min="0" max="100" value="50" class="settings-slider">
@@ -1325,17 +1402,28 @@
                     </div>
                     <div class="settings-toggle-row">
                         <div class="toggle-info">
-                            <span class="toggle-title">Atmospheric Cyber Drone</span>
-                            <span class="toggle-desc">Procedural 55Hz sub-bass binaural harmonic oscillator</span>
+                            <span class="toggle-title">Atmospheric Cyber Drone & Synth</span>
+                            <span class="toggle-desc">Procedural sub-bass binaural harmonic oscillator loop</span>
                         </div>
                         <label class="switch">
                             <input type="checkbox" id="ambientDroneToggle">
                             <span class="slider round"></span>
                         </label>
                     </div>
+
+                    <!-- SECTION 2: GRAPHICS QUALITY & VISUAL JUICE -->
+                    <div class="settings-subhead" style="margin-top: 14px;">GRAPHICS PRESET & RENDERING</div>
+                    <div class="settings-row">
+                        <label>Visual Quality Preset</label>
+                        <div class="graphics-preset-pills" id="graphicsQualityPills">
+                            <button type="button" class="preset-pill" data-quality="low">LOW</button>
+                            <button type="button" class="preset-pill" data-quality="medium">MEDIUM</button>
+                            <button type="button" class="preset-pill active" data-quality="high">HIGH (AAA)</button>
+                        </div>
+                    </div>
                     <div class="settings-toggle-row">
                         <div class="toggle-info">
-                            <span class="toggle-title">Combat Screen Recoil Shake</span>
+                            <span class="toggle-title">Combat Screen Recoil & Trauma Shake</span>
                             <span class="toggle-desc">Dynamic blast impulse and projectile recoil feedback</span>
                         </div>
                         <label class="switch">
@@ -1343,6 +1431,56 @@
                             <span class="slider round"></span>
                         </label>
                     </div>
+
+                    <!-- SECTION 3: CROSSHAIR CUSTOMIZATION -->
+                    <div class="settings-subhead" style="margin-top: 14px;">BALLISTIC CROSSHAIR CUSTOMIZER</div>
+                    <div class="crosshair-config-row">
+                        <div class="crosshair-preview-stage">
+                            <div class="ch-preview-box" id="crosshairPreviewBox">
+                                <div class="ch-preview-reticle" id="chPreviewReticle">
+                                    <span class="ch-prev-tick ch-prev-top"></span>
+                                    <span class="ch-prev-tick ch-prev-bottom"></span>
+                                    <span class="ch-prev-tick ch-prev-left"></span>
+                                    <span class="ch-prev-tick ch-prev-right"></span>
+                                    <span class="ch-prev-dot" id="chPreviewDot"></span>
+                                </div>
+                            </div>
+                            <span class="ch-preview-hint">Live Reticle Preview</span>
+                        </div>
+                        <div class="crosshair-controls-col">
+                            <div class="ch-control-item">
+                                <label>Reticle Color</label>
+                                <div class="ch-color-picker" id="chColorPicker">
+                                    <button type="button" class="ch-color-btn active" data-color="#16C8F2" style="background: #16C8F2;" title="Cyan"></button>
+                                    <button type="button" class="ch-color-btn" data-color="#00E6A0" style="background: #00E6A0;" title="Teal Green"></button>
+                                    <button type="button" class="ch-color-btn" data-color="#E02694" style="background: #E02694;" title="Magenta"></button>
+                                    <button type="button" class="ch-color-btn" data-color="#FFB300" style="background: #FFB300;" title="Amber"></button>
+                                    <button type="button" class="ch-color-btn" data-color="#FFFFFF" style="background: #FFFFFF;" title="White"></button>
+                                </div>
+                            </div>
+                            <div class="ch-control-item">
+                                <label for="chSizeRange">Reticle Size (<span id="chSizeDisplay">10px</span>)</label>
+                                <input type="range" id="chSizeRange" min="6" max="18" value="10" class="settings-slider">
+                            </div>
+                            <div class="ch-control-item">
+                                <label for="chGapRange">Center Gap (<span id="chGapDisplay">5px</span>)</label>
+                                <input type="range" id="chGapRange" min="2" max="12" value="5" class="settings-slider">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- SECTION 4: ACCESSIBILITY & TELEMETRY -->
+                    <div class="settings-subhead" style="margin-top: 14px;">ACCESSIBILITY & TELEMETRY</div>
+                    <div class="settings-row">
+                        <label for="colorblindModeSelect">Colorblind Team/Enemy Palette</label>
+                        <select id="colorblindModeSelect" class="form-input" style="width: 100%; padding: 6px 10px; background: rgba(6, 8, 15, 0.85); border: 1px solid var(--border-default); border-radius: 4px; color: #fff; font-family: var(--font-ui); font-size: 0.8rem;">
+                            <option value="none" selected>Default (Tactical Cyan / Combat Red)</option>
+                            <option value="deuteranopia">Deuteranopia (Yellow / Blue)</option>
+                            <option value="protanopia">Protanopia (Soft Gold / Violet)</option>
+                            <option value="tritanopia">Tritanopia (Cyan / Coral)</option>
+                        </select>
+                    </div>
+
                     <div class="settings-row" style="margin-top: 14px; border-top: 1px solid rgba(148, 163, 184, 0.12); padding-top: 12px;">
                         <label for="customBackendUrlInput" style="font-size: 0.85rem; color: var(--cyan-primary);">Remote Multiplayer Server URL (Optional)</label>
                         <input type="text" id="customBackendUrlInput" placeholder="e.g. https://battle-arena.up.railway.app" class="form-input" style="width: 100%; margin-top: 6px; padding: 8px 12px; background: rgba(6, 8, 15, 0.8); border: 1px solid var(--border-default); border-radius: 4px; color: #fff; font-family: var(--font-mono); font-size: 0.8rem;">

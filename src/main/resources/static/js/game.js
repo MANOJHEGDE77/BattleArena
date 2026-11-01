@@ -539,7 +539,21 @@ async function selectWarriorClass(className, notifyServer = true) {
     }
 }
 
-// --- Cinematic Procedural Hero Operator Renderer for Menus ---
+// --- Parallax Mouse Tracking for Living 3D Ship Showcase ---
+let heroParallaxX = 0;
+let heroParallaxY = 0;
+let heroSmoothTiltX = 0;
+let heroSmoothTiltY = 0;
+const heroThrusterSparks = [];
+
+window.addEventListener('mousemove', (e) => {
+    const cx = window.innerWidth / 2;
+    const cy = window.innerHeight / 2;
+    heroParallaxX = (e.clientX - cx) / cx;
+    heroParallaxY = (e.clientY - cy) / cy;
+});
+
+// --- Cinematic Procedural Hero Operator Renderer for Menus (Living 3D Showcase) ---
 function renderHeroChassis(targetCanvas, className, time) {
     if (!targetCanvas) return;
     const hCtx = targetCanvas.getContext('2d');
@@ -555,67 +569,108 @@ function renderHeroChassis(targetCanvas, className, time) {
     const primaryColor = cInfo.color || '#10b981';
     const accentColor = cInfo.accentColor || '#34d399';
 
-    hCtx.save();
-    hCtx.translate(cx, cy);
+    // Smooth lerp mouse parallax tilt
+    heroSmoothTiltX += (heroParallaxX - heroSmoothTiltX) * 0.08;
+    heroSmoothTiltY += (heroParallaxY - heroSmoothTiltY) * 0.08;
 
-    // Idle breathing & chassis presence scale
-    const breath = 1 + Math.sin(time * 0.0025) * 0.015;
-    const chassisScale = targetCanvas.id === 'hangarOperatorCanvas' ? 1.55 : 1.45;
+    // Idle floating bob
+    const floatY = Math.sin(time * 0.002) * 7;
+
+    hCtx.save();
+    hCtx.translate(cx, cy + floatY);
+
+    // Living 3D perspective tilt
+    hCtx.transform(1, heroSmoothTiltY * 0.05, heroSmoothTiltX * 0.05, 1, 0, 0);
+
+    // Idle breathing & chassis scale
+    const breath = 1 + Math.sin(time * 0.0025) * 0.02;
+    const chassisScale = targetCanvas.id === 'hangarOperatorCanvas' ? 1.75 : 1.62;
     hCtx.scale(chassisScale * breath, chassisScale * breath);
 
     // 1. Ambient back-glow
-    const bgGrad = hCtx.createRadialGradient(0, 0, 10, 0, 0, 180);
-    bgGrad.addColorStop(0, primaryColor + '22');
+    const bgGrad = hCtx.createRadialGradient(0, 0, 10, 0, 0, 190);
+    bgGrad.addColorStop(0, primaryColor + '28');
     bgGrad.addColorStop(0.5, primaryColor + '08');
     bgGrad.addColorStop(1, 'transparent');
     hCtx.fillStyle = bgGrad;
     hCtx.beginPath();
-    hCtx.arc(0, 0, 180, 0, Math.PI * 2);
+    hCtx.arc(0, 0, 190, 0, Math.PI * 2);
     hCtx.fill();
 
-    // 2. Rotating tactical HUD reticles
+    // 2. Rotating holographic 3D gimbal orbit rings
     hCtx.save();
     hCtx.rotate(time * 0.0004);
-    hCtx.strokeStyle = 'rgba(0, 242, 254, 0.15)';
+    hCtx.strokeStyle = 'rgba(22, 200, 242, 0.2)';
     hCtx.lineWidth = 1.5;
-    hCtx.setLineDash([12, 8, 4, 8]);
+    hCtx.setLineDash([14, 8, 4, 8]);
     hCtx.beginPath();
-    hCtx.arc(0, 0, 130, 0, Math.PI * 2);
+    hCtx.arc(0, 0, 135, 0, Math.PI * 2);
     hCtx.stroke();
     hCtx.restore();
 
     hCtx.save();
     hCtx.rotate(-time * 0.0003);
-    hCtx.strokeStyle = primaryColor + '33';
+    hCtx.strokeStyle = primaryColor + '38';
     hCtx.lineWidth = 1;
-    hCtx.setLineDash([20, 15]);
+    hCtx.setLineDash([22, 14]);
     hCtx.beginPath();
-    hCtx.arc(0, 0, 155, 0, Math.PI * 2);
+    hCtx.arc(0, 0, 160, 0, Math.PI * 2);
     hCtx.stroke();
     hCtx.restore();
 
-    // Compass ticks
-    hCtx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
+    // Cardinal calibration ticks
+    hCtx.strokeStyle = 'rgba(255, 255, 255, 0.25)';
     hCtx.lineWidth = 1.5;
     hCtx.setLineDash([]);
     const tickLen = 8;
     [0, Math.PI / 2, Math.PI, (3 * Math.PI) / 2].forEach(angle => {
-        const x1 = Math.cos(angle) * 115;
-        const y1 = Math.sin(angle) * 115;
-        const x2 = Math.cos(angle) * (115 + tickLen);
-        const y2 = Math.sin(angle) * (115 + tickLen);
+        const x1 = Math.cos(angle) * 120;
+        const y1 = Math.sin(angle) * 120;
+        const x2 = Math.cos(angle) * (120 + tickLen);
+        const y2 = Math.sin(angle) * (120 + tickLen);
         hCtx.beginPath();
         hCtx.moveTo(x1, y1);
         hCtx.lineTo(x2, y2);
         hCtx.stroke();
     });
 
-    // 3. Thruster Flame & Plasma Sparks
+    // 3. Dynamic engine thruster particles
     const thrusterOffset = 42;
-    const flameLen = 25 + Math.sin(time * 0.02) * 8;
+    if (Math.random() < 0.55 && heroThrusterSparks.length < 40) {
+        [-14, 14].forEach(xOff => {
+            heroThrusterSparks.push({
+                x: xOff + (Math.random() - 0.5) * 6,
+                y: thrusterOffset + 2,
+                vx: (Math.random() - 0.5) * 10,
+                vy: Math.random() * 25 + 30,
+                alpha: 1,
+                size: Math.random() * 2.2 + 1.2,
+                color: primaryColor
+            });
+        });
+    }
+
+    // Render thruster sparks
+    for (let i = heroThrusterSparks.length - 1; i >= 0; i--) {
+        const p = heroThrusterSparks[i];
+        p.x += p.vx * 0.03;
+        p.y += p.vy * 0.03;
+        p.alpha -= 0.04;
+        if (p.alpha <= 0) {
+            heroThrusterSparks.splice(i, 1);
+            continue;
+        }
+        hCtx.fillStyle = `rgba(255, 255, 255, ${p.alpha})`;
+        hCtx.beginPath();
+        hCtx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+        hCtx.fill();
+    }
+
+    // Core thruster exhaust flame
+    const flameLen = 28 + Math.sin(time * 0.02) * 9;
     const thrusterGrad = hCtx.createLinearGradient(0, thrusterOffset, 0, thrusterOffset + flameLen);
     thrusterGrad.addColorStop(0, '#ffffff');
-    thrusterGrad.addColorStop(0.3, primaryColor);
+    thrusterGrad.addColorStop(0.25, primaryColor);
     thrusterGrad.addColorStop(1, 'transparent');
 
     hCtx.fillStyle = thrusterGrad;
@@ -633,60 +688,61 @@ function renderHeroChassis(targetCanvas, className, time) {
     hCtx.shadowBlur = 18;
 
     if (className === 'ASSAULT') {
-        // Vanguard Diamond Chassis
+        // Vanguard Diamond Chassis with layered armor plates
         hCtx.fillStyle = '#0f172a';
         hCtx.strokeStyle = primaryColor;
         hCtx.lineWidth = 3;
 
         hCtx.beginPath();
-        hCtx.moveTo(0, -48);
-        hCtx.lineTo(34, 15);
-        hCtx.lineTo(24, 40);
-        hCtx.lineTo(0, 32);
-        hCtx.lineTo(-24, 40);
-        hCtx.lineTo(-34, 15);
+        hCtx.moveTo(0, -50);
+        hCtx.lineTo(36, 16);
+        hCtx.lineTo(26, 42);
+        hCtx.lineTo(0, 34);
+        hCtx.lineTo(-26, 42);
+        hCtx.lineTo(-36, 16);
         hCtx.closePath();
         hCtx.fill();
         hCtx.stroke();
 
-        // Armored Wing Plates
-        hCtx.fillStyle = primaryColor + '33';
+        // Armored Wing Plates & Cockpit Canopy
+        hCtx.fillStyle = primaryColor + '35';
         hCtx.beginPath();
-        hCtx.moveTo(0, -30);
-        hCtx.lineTo(20, 10);
+        hCtx.moveTo(0, -32);
+        hCtx.lineTo(22, 10);
         hCtx.lineTo(0, 24);
-        hCtx.lineTo(-20, 10);
+        hCtx.lineTo(-22, 10);
         hCtx.closePath();
         hCtx.fill();
 
-        // Forward Pulse Cannon
+        // Forward Dual Pulse Cannons
         hCtx.fillStyle = primaryColor;
-        hCtx.fillRect(-3, -56, 6, 16);
+        hCtx.fillRect(-5, -58, 4, 18);
+        hCtx.fillRect(1, -58, 4, 18);
     } else if (className === 'JUGGERNAUT') {
-        // Heavy Titan Bulkhead Chassis
+        // Heavy Titan Dreadnought Bulkhead
         hCtx.fillStyle = '#1e1b18';
         hCtx.strokeStyle = primaryColor;
         hCtx.lineWidth = 4;
 
         hCtx.beginPath();
-        hCtx.moveTo(-28, -36);
-        hCtx.lineTo(28, -36);
-        hCtx.lineTo(44, 10);
-        hCtx.lineTo(32, 42);
-        hCtx.lineTo(-32, 42);
-        hCtx.lineTo(-44, 10);
+        hCtx.moveTo(-30, -38);
+        hCtx.lineTo(30, -38);
+        hCtx.lineTo(48, 12);
+        hCtx.lineTo(34, 44);
+        hCtx.lineTo(-34, 44);
+        hCtx.lineTo(-48, 12);
         hCtx.closePath();
         hCtx.fill();
         hCtx.stroke();
 
         // Dual Heavy Plasma Barrels
         hCtx.fillStyle = primaryColor;
-        hCtx.fillRect(-18, -54, 8, 22);
-        hCtx.fillRect(10, -54, 8, 22);
+        hCtx.fillRect(-20, -56, 9, 24);
+        hCtx.fillRect(11, -56, 9, 24);
 
         // Armor Plates
-        hCtx.fillStyle = primaryColor + '33';
-        hCtx.fillRect(-22, -15, 44, 25);
+        hCtx.fillStyle = primaryColor + '38';
+        hCtx.fillRect(-24, -16, 48, 26);
     } else if (className === 'SCOUT') {
         // Hyper Agile Delta Wing
         hCtx.fillStyle = '#180f24';
@@ -694,20 +750,20 @@ function renderHeroChassis(targetCanvas, className, time) {
         hCtx.lineWidth = 2.5;
 
         hCtx.beginPath();
-        hCtx.moveTo(0, -52);
-        hCtx.lineTo(40, 26);
-        hCtx.lineTo(16, 38);
-        hCtx.lineTo(0, 28);
-        hCtx.lineTo(-16, 38);
-        hCtx.lineTo(-40, 26);
+        hCtx.moveTo(0, -54);
+        hCtx.lineTo(42, 28);
+        hCtx.lineTo(18, 40);
+        hCtx.lineTo(0, 30);
+        hCtx.lineTo(-18, 40);
+        hCtx.lineTo(-42, 28);
         hCtx.closePath();
         hCtx.fill();
         hCtx.stroke();
 
-        // Needle Barrels
+        // Twin Needle Barrels
         hCtx.fillStyle = primaryColor;
-        hCtx.fillRect(-15, -46, 3, 20);
-        hCtx.fillRect(12, -46, 3, 20);
+        hCtx.fillRect(-16, -48, 3, 22);
+        hCtx.fillRect(13, -48, 3, 22);
     } else if (className === 'SNIPER') {
         // Precision Long-Range Rail Chassis
         hCtx.fillStyle = '#091522';
@@ -715,47 +771,63 @@ function renderHeroChassis(targetCanvas, className, time) {
         hCtx.lineWidth = 2.5;
 
         hCtx.beginPath();
-        hCtx.moveTo(0, -62);
-        hCtx.lineTo(22, 10);
-        hCtx.lineTo(16, 42);
-        hCtx.lineTo(-16, 42);
-        hCtx.lineTo(-22, 10);
+        hCtx.moveTo(0, -64);
+        hCtx.lineTo(24, 12);
+        hCtx.lineTo(18, 44);
+        hCtx.lineTo(-18, 44);
+        hCtx.lineTo(-24, 12);
         hCtx.closePath();
         hCtx.fill();
         hCtx.stroke();
 
         // Extended Hyper Railgun Barrel
         hCtx.fillStyle = '#ffffff';
-        hCtx.fillRect(-2, -72, 4, 30);
+        hCtx.fillRect(-2, -76, 4, 32);
 
         // Magnetic Coil Rings
         hCtx.fillStyle = primaryColor;
-        [-65, -55, -45].forEach(yPos => {
-            hCtx.fillRect(-5, yPos, 10, 3);
+        [-68, -58, -48].forEach(yPos => {
+            hCtx.fillRect(-6, yPos, 12, 3);
         });
 
         // Laser Sight Beam
-        hCtx.strokeStyle = 'rgba(0, 242, 254, 0.4)';
-        hCtx.lineWidth = 1;
+        hCtx.strokeStyle = 'rgba(22, 200, 242, 0.45)';
+        hCtx.lineWidth = 1.2;
         hCtx.beginPath();
-        hCtx.moveTo(0, -72);
-        hCtx.lineTo(0, -140);
+        hCtx.moveTo(0, -76);
+        hCtx.lineTo(0, -150);
         hCtx.stroke();
     }
 
     // 5. Glowing Central Fusion Reactor
-    hCtx.shadowBlur = 22;
+    hCtx.shadowBlur = 24;
     hCtx.shadowColor = accentColor;
-    const coreGrad = hCtx.createRadialGradient(0, 0, 1, 0, 0, 12);
+    const coreGrad = hCtx.createRadialGradient(0, 0, 1, 0, 0, 13);
     coreGrad.addColorStop(0, '#ffffff');
     coreGrad.addColorStop(0.6, accentColor);
     coreGrad.addColorStop(1, 'rgba(0,0,0,0)');
     hCtx.fillStyle = coreGrad;
     hCtx.beginPath();
-    hCtx.arc(0, 0, 12, 0, Math.PI * 2);
+    hCtx.arc(0, 0, 13, 0, Math.PI * 2);
     hCtx.fill();
 
     hCtx.restore();
+
+    // Update Floating Holographic Spec Card
+    if (targetCanvas.id === 'heroShowcaseCanvas') {
+        const specPill = document.getElementById('heroSpecClassPill');
+        const weaponPill = document.getElementById('heroSpecWeaponPill');
+        const dmgFill = document.getElementById('heroSpecDmg');
+        const spdFill = document.getElementById('heroSpecSpd');
+        const hpFill = document.getElementById('heroSpecHp');
+        const rofFill = document.getElementById('heroSpecRof');
+        if (specPill) specPill.textContent = className;
+        if (weaponPill) weaponPill.textContent = cInfo.weaponName;
+        if (dmgFill) dmgFill.style.width = `${Math.min(100, (cInfo.damage / 45) * 100)}%`;
+        if (spdFill) spdFill.style.width = `${Math.min(100, (cInfo.speed / 300) * 100)}%`;
+        if (hpFill) hpFill.style.width = `${Math.min(100, (cInfo.maxHp / 150) * 100)}%`;
+        if (rofFill) rofFill.style.width = `${Math.min(100, (1000 / cInfo.cooldownMs) * 20)}%`;
+    }
 }
 
 function renderHeroCanvases(time) {
@@ -2085,6 +2157,9 @@ function fireBlaster(targetHeading, isContinuous = false) {
         triggerScreenShake(currentClass === 'SNIPER' ? 2.5 : 1.8, 0.06);
     }
     addMuzzleFlash(player.x, player.y, heading, currentClass);
+
+    currentWeaponHeat = Math.min(100, currentWeaponHeat + (currentClass === 'SNIPER' ? 32 : (currentClass === 'JUGGERNAUT' ? 20 : 12)));
+    updateOverheatGauge();
 
     if (isEmulating) {
         pvpEmulator.handlePlayerAttack(heading);
@@ -4867,6 +4942,10 @@ class PvPEmulatorEngine {
         soundEngine.playHit();
         addCombatSparks(bot.x, bot.y, '#f59e0b', 5);
 
+        if (attackerName === player.name) {
+            triggerHitMarker();
+        }
+
         if (bot.hp <= 0) {
             bot.alive = false;
             bot.hp = 0;
@@ -4879,6 +4958,7 @@ class PvPEmulatorEngine {
                 hudScore.textContent = player.score;
                 hudKd.textContent = `${player.kills} K / ${player.deaths} D`;
                 soundEngine.playKillcam();
+                triggerKillMarker();
                 addFloatingText('+10 ELIMINATED!', bot.x, bot.y - 32, '#10b981', true);
                 showKillBanner(bot.name, 10);
             } else {
@@ -4908,6 +4988,23 @@ class PvPEmulatorEngine {
         let actualDmg = damage;
         player.damageFlashTimer = 0.2;
         triggerScreenShake(4, 0.15);
+
+        // Calculate and trigger directional damage indicator
+        let attackerX = player.x;
+        let attackerY = player.y;
+        if (this && this.bots) {
+            const b = this.bots.find(bot => bot.name === attackerName);
+            if (b) {
+                attackerX = b.x;
+                attackerY = b.y;
+            }
+        }
+        if (remotePlayers && remotePlayers.has(attackerName)) {
+            const rp = remotePlayers.get(attackerName);
+            attackerX = rp.x;
+            attackerY = rp.y;
+        }
+        triggerDirectionalDamage(attackerX, attackerY);
 
         if (player.shield > 0) {
             const absorbed = Math.min(player.shield, actualDmg);
@@ -5369,6 +5466,12 @@ function gameLoop(currentTime) {
 
     // Physics update step
     updatePhysics(dt);
+
+    // Cool down ballistic weapon heat
+    if (currentWeaponHeat > 0) {
+        currentWeaponHeat = Math.max(0, currentWeaponHeat - dt * 25);
+        updateOverheatGauge();
+    }
 
     ctx.save();
     ctx.scale(dpr, dpr);
@@ -8713,6 +8816,106 @@ function setupSettingsEventListeners() {
             updateSoundButtonUi(muted);
         });
     }
+
+    // Graphics Quality Presets
+    const qualityPills = document.querySelectorAll('#graphicsQualityPills .preset-pill');
+    const savedQuality = localStorage.getItem('battle_arena_graphics_preset') || 'high';
+    qualityPills.forEach(pill => {
+        if (pill.getAttribute('data-quality') === savedQuality) {
+            pill.classList.add('active');
+        } else {
+            pill.classList.remove('active');
+        }
+        pill.addEventListener('click', () => {
+            qualityPills.forEach(p => p.classList.remove('active'));
+            pill.classList.add('active');
+            const q = pill.getAttribute('data-quality') || 'high';
+            localStorage.setItem('battle_arena_graphics_preset', q);
+            currentGraphicsPreset = q;
+        });
+    });
+
+    // Crosshair Customization Controls
+    const chColorBtns = document.querySelectorAll('#chColorPicker .ch-color-btn');
+    const chSizeRange = document.getElementById('chSizeRange');
+    const chSizeDisplay = document.getElementById('chSizeDisplay');
+    const chGapRange = document.getElementById('chGapRange');
+    const chGapDisplay = document.getElementById('chGapDisplay');
+
+    const savedChColor = localStorage.getItem('battle_arena_ch_color') || '#16C8F2';
+    const savedChSize = localStorage.getItem('battle_arena_ch_size') || '10';
+    const savedChGap = localStorage.getItem('battle_arena_ch_gap') || '5';
+
+    function applyCrosshairSettings(color, size, gap) {
+        document.documentElement.style.setProperty('--crosshair-color', color);
+        document.documentElement.style.setProperty('--preview-ch-color', color);
+        document.documentElement.style.setProperty('--ch-size', `${size}px`);
+        document.documentElement.style.setProperty('--ch-gap', `${gap}px`);
+        if (chSizeDisplay) chSizeDisplay.textContent = `${size}px`;
+        if (chGapDisplay) chGapDisplay.textContent = `${gap}px`;
+    }
+
+    applyCrosshairSettings(savedChColor, savedChSize, savedChGap);
+
+    chColorBtns.forEach(btn => {
+        if (btn.getAttribute('data-color') === savedChColor) btn.classList.add('active');
+        else btn.classList.remove('active');
+
+        btn.addEventListener('click', () => {
+            chColorBtns.forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            const color = btn.getAttribute('data-color') || '#16C8F2';
+            localStorage.setItem('battle_arena_ch_color', color);
+            applyCrosshairSettings(color, chSizeRange ? chSizeRange.value : 10, chGapRange ? chGapRange.value : 5);
+        });
+    });
+
+    if (chSizeRange) {
+        chSizeRange.value = savedChSize;
+        chSizeRange.addEventListener('input', (e) => {
+            const val = e.target.value;
+            localStorage.setItem('battle_arena_ch_size', val);
+            const activeColor = localStorage.getItem('battle_arena_ch_color') || '#16C8F2';
+            applyCrosshairSettings(activeColor, val, chGapRange ? chGapRange.value : 5);
+        });
+    }
+
+    if (chGapRange) {
+        chGapRange.value = savedChGap;
+        chGapRange.addEventListener('input', (e) => {
+            const val = e.target.value;
+            localStorage.setItem('battle_arena_ch_gap', val);
+            const activeColor = localStorage.getItem('battle_arena_ch_color') || '#16C8F2';
+            applyCrosshairSettings(activeColor, chSizeRange ? chSizeRange.value : 10, val);
+        });
+    }
+
+    // Colorblind Mode Selector
+    const colorblindSelect = document.getElementById('colorblindModeSelect');
+    if (colorblindSelect) {
+        const savedCb = localStorage.getItem('battle_arena_colorblind') || 'none';
+        colorblindSelect.value = savedCb;
+        if (savedCb !== 'none') {
+            document.body.classList.add(`colorblind-${savedCb}`);
+        }
+        colorblindSelect.addEventListener('change', (e) => {
+            const val = e.target.value;
+            localStorage.setItem('battle_arena_colorblind', val);
+            document.body.classList.remove('colorblind-deuteranopia', 'colorblind-protanopia', 'colorblind-tritanopia');
+            if (val !== 'none') {
+                document.body.classList.add(`colorblind-${val}`);
+            }
+        });
+    }
+
+    // Mobile Fallback Screen Bypass
+    const mobileBypassBtn = document.getElementById('mobileBypassBtn');
+    if (mobileBypassBtn) {
+        mobileBypassBtn.addEventListener('click', () => {
+            const banner = document.getElementById('mobileBlockerBanner');
+            if (banner) banner.style.display = 'none';
+        });
+    }
 }
 
 function openSettingsModal() {
@@ -9162,6 +9365,144 @@ function setupSocialAndDisplayEventListeners() {
     }
 }
 
+// --- AAA In-Game HUD, Visual Juice & Ambient Background Systems ---
+let currentGraphicsPreset = localStorage.getItem('battle_arena_graphics_preset') || 'high';
+let currentWeaponHeat = 0;
+
+function updateOverheatGauge() {
+    const fill = document.getElementById('hudOverheatFill');
+    if (fill) {
+        fill.style.width = `${Math.min(100, Math.round(currentWeaponHeat))}%`;
+        if (currentWeaponHeat > 70) fill.classList.add('hot');
+        else fill.classList.remove('hot');
+    }
+}
+
+function triggerDirectionalDamage(attackerX, attackerY) {
+    const container = document.getElementById('directionalDamageContainer');
+    if (!container) return;
+    const dx = attackerX - player.x;
+    const dy = attackerY - player.y;
+    const angleRad = Math.atan2(dy, dx);
+    const angleDeg = (angleRad * 180 / Math.PI) + 90;
+
+    const arc = document.createElement('div');
+    arc.className = 'directional-damage-arc';
+    arc.style.setProperty('--damage-angle', `${angleDeg}deg`);
+    container.appendChild(arc);
+    setTimeout(() => arc.remove(), 420);
+}
+
+function triggerHitMarker() {
+    const hm = document.getElementById('hitMarker');
+    if (hm) {
+        hm.classList.remove('active');
+        void hm.offsetWidth;
+        hm.classList.add('active');
+    }
+}
+
+function triggerKillMarker() {
+    const km = document.getElementById('killMarker');
+    if (km) {
+        km.classList.remove('active');
+        void km.offsetWidth;
+        km.classList.add('active');
+    }
+}
+
+// 60 FPS Ambient Starfield & Hex Grid Canvas Background
+let ambientStars = [];
+let ambientHexDrift = 0;
+let ambientCanvas = null;
+let ambientCtx = null;
+
+function initAmbientBackground() {
+    ambientCanvas = document.getElementById('ambientBackgroundCanvas');
+    if (!ambientCanvas) return;
+    ambientCtx = ambientCanvas.getContext('2d');
+
+    function resizeAmbient() {
+        if (!ambientCanvas) return;
+        ambientCanvas.width = window.innerWidth;
+        ambientCanvas.height = window.innerHeight;
+    }
+    window.addEventListener('resize', resizeAmbient);
+    resizeAmbient();
+
+    ambientStars = [];
+    for (let i = 0; i < 90; i++) {
+        ambientStars.push({
+            x: Math.random() * window.innerWidth,
+            y: Math.random() * window.innerHeight,
+            size: Math.random() * 1.8 + 0.5,
+            alpha: Math.random() * 0.7 + 0.2,
+            twinkleSpeed: Math.random() * 0.02 + 0.005,
+            layer: Math.random() * 2 + 1
+        });
+    }
+
+    let lastAmbientTime = performance.now();
+    function animateAmbient(currentTime) {
+        requestAnimationFrame(animateAmbient);
+        const viewCombat = document.getElementById('viewCombat');
+        if (viewCombat && viewCombat.style.display !== 'none') return;
+
+        const dt = (currentTime - lastAmbientTime) / 1000;
+        lastAmbientTime = currentTime;
+
+        if (!ambientCtx || !ambientCanvas) return;
+        ambientCtx.clearRect(0, 0, ambientCanvas.width, ambientCanvas.height);
+
+        // Render ambient stars with gentle vertical drift
+        for (let i = 0; i < ambientStars.length; i++) {
+            const star = ambientStars[i];
+            star.y -= 8 * star.layer * dt;
+            if (star.y < 0) {
+                star.y = ambientCanvas.height;
+                star.x = Math.random() * ambientCanvas.width;
+            }
+            const pulse = 0.5 + 0.5 * Math.sin(currentTime * star.twinkleSpeed);
+            ambientCtx.fillStyle = `rgba(22, 200, 242, ${star.alpha * pulse * 0.5})`;
+            ambientCtx.beginPath();
+            ambientCtx.arc(star.x, star.y, star.size, 0, Math.PI * 2);
+            ambientCtx.fill();
+        }
+
+        // Drifting faint hex grid pattern
+        ambientHexDrift = (ambientHexDrift + dt * 10) % 60;
+        ambientCtx.strokeStyle = 'rgba(22, 200, 242, 0.025)';
+        ambientCtx.lineWidth = 1;
+        const spacing = 60;
+        const startY = ambientHexDrift - spacing;
+        ambientCtx.beginPath();
+        for (let y = startY; y < ambientCanvas.height + spacing; y += spacing) {
+            ambientCtx.moveTo(0, y);
+            ambientCtx.lineTo(ambientCanvas.width, y);
+        }
+        for (let x = 0; x < ambientCanvas.width; x += spacing) {
+            ambientCtx.moveTo(x, 0);
+            ambientCtx.lineTo(x, ambientCanvas.height);
+        }
+        ambientCtx.stroke();
+    }
+    requestAnimationFrame(animateAmbient);
+}
+
+// Tactical Crosshair Mouse Listener
+function initTacticalCrosshair() {
+    const cContainer = document.getElementById('canvasContainer');
+    if (!cContainer) return;
+    cContainer.addEventListener('mousemove', (e) => {
+        const rect = cContainer.getBoundingClientRect();
+        const ch = document.getElementById('tacticalCrosshair');
+        if (ch) {
+            ch.style.left = `${e.clientX - rect.left}px`;
+            ch.style.top = `${e.clientY - rect.top}px`;
+        }
+    });
+}
+
 // --- Application Bootstrap ---
 window.addEventListener('DOMContentLoaded', () => {
     setupAuthEventListeners();
@@ -9176,6 +9517,8 @@ window.addEventListener('DOMContentLoaded', () => {
     setupPvPEmulatorEventListeners();
     setupTouchControlsEventListeners();
     setupSocialAndDisplayEventListeners();
+    initAmbientBackground();
+    initTacticalCrosshair();
     checkBackendHealth();
     updateGameLayoutState();
     verifyExistingSession().then(() => {

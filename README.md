@@ -371,28 +371,40 @@ Messages are represented as JSON objects.
 
 ---
 
-## Controls
+## Controls & Keybindings
 
-| Input | Function |
-|---|---|
-| W, A, S, D | Movement |
-| Arrow Keys | Movement |
-| Mouse | Aim |
-| Left Click | Fire |
-| Space | Fire |
-| T | Open tactical emote wheel |
-| 1 - 8 | Tactical callouts |
-| Enter | Open and submit chat |
-| M | Toggle audio |
-| H | Open tactical manual |
-| Esc | Open settings or close modal |
+| Input | Function | Tactical Details |
+|---|---|---|
+| **W, A, S, D** | Omnidirectional Thrust | Fluid physics with barrier sliding and instant acceleration |
+| **Mouse Aim** | Precision Ballistic Aim | Chassis yaw rotation and weapon vector tracking |
+| **Left Click / Space** | Fire Primary Weapon | Class ballistics, dynamic muzzle flash, and tactical recoil |
+| **R-Click / Shift** | Signature Hero Ability | Overcharge Stim, Armored Bulwark, Blink Warp, or Rail Overclock |
+| **T / [1 - 8]** | Tactical Callout Wheel | Holographic map pings and status broadcasts |
+| **Enter** | Tactical Comms | In-game real-time chat broadcast |
+| **M** | Audio Mute Toggle | Mutes procedural synthesizer and ambient audio |
+| **F** | Fullscreen Toggle | Enters immersive 100vh borderless gaming view |
+| **Esc** | Pause & Settings | Opens configuration modal or dismisses active overlay |
 
-### Spectator Controls
+### Graphics Quality & Visual Juice Toggles
 
-| Input | Function |
-|---|---|
-| 1 - 8 | Follow player |
-| Space | Center camera |
+In the in-game Settings modal (`Esc` or `⚙️` icon in the top navigation):
+- **High (AAA)**: Enables 60 FPS ambient background starfield and drifting hex grid, real-time particle pooling (muzzle flashes, thruster trails, sparks, debris), dynamic trauma-decay screen shake, and full glowing laser passes.
+- **Medium**: Disables background starfield during idle states, reduces particle pool density by 50%, retains core ballistics feedback.
+- **Low**: Maximum performance mode; disables ambient background, bloom glow passes, and heavy screen shake for low-spec machines and older integrated GPUs.
+
+### Ballistic Crosshair Customizer
+
+- **Colors**: Choose between Tactical Cyan (`#16C8F2`), Emerald Green (`#00E6A0`), Magenta (`#E02694`), Amber Gold (`#FFB300`), and Pure White (`#FFFFFF`).
+- **Dynamic Spread**: The 4-tick reticle dynamically expands during ship maneuvering and firing kickback, returning to center upon settling.
+- **Hit & Kill Markers**: Instant white `X` hit-markers on damage registration and red skull flares on enemy elimination.
+
+### Accessibility: Colorblind-Safe Palettes
+
+Under **Settings → Accessibility**:
+- **Default**: Tactical Cyan (Allies) / Combat Red (Enemies) / Amber (Hazards).
+- **Deuteranopia**: Yellow / Blue high-contrast spectrum.
+- **Protanopia**: Soft Gold / Violet spectrum.
+- **Tritanopia**: Cyan / Coral spectrum.
 
 ---
 
