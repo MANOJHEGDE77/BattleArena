@@ -1,0 +1,23 @@
+{
+  "name": "cyber-battle-arena",
+  "version": "2.0.0",
+  "description": "AAA Tactical Multiplayer Combat 2D Shooter with Lightweight Native Desktop Client",
+  "main": "scripts/serve.js",
+  "scripts": {
+    "start": "node scripts/serve.js",
+    "app": "node scripts/launch_desktop_app.js",
+    "desktop": "node scripts/launch_desktop_app.js",
+    "test": "node verify_gameplay_and_emulator.js && node test_vercel_and_social_readiness.js && node scripts/play_full_game_test.js"
+  },
+  "keywords": [
+    "game",
+    "shooter",
+    "multiplayer",
+    "pwa",
+    "desktop-app",
+    "canvas",
+    "websocket"
+  ],
+  "author": "Cyber Arena Team",
+  "license": "MIT"
+}

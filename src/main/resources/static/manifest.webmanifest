@@ -1,0 +1,87 @@
+{
+  "name": "Cyber Battle Arena",
+  "short_name": "CyberArena",
+  "description": "AAA Tactical Multiplayer Combat 2D Shooter with Authoritative Engine",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "display_override": [
+    "window-controls-overlay",
+    "standalone",
+    "minimal-ui"
+  ],
+  "orientation": "landscape",
+  "background_color": "#080B12",
+  "theme_color": "#080B12",
+  "lang": "en",
+  "dir": "ltr",
+  "categories": [
+    "games",
+    "action"
+  ],
+  "prefer_related_applications": false,
+  "icons": [
+    {
+      "src": "assets/app-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "assets/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "assets/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "assets/icon-maskable.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Quick Match FFA",
+      "short_name": "Quick Play",
+      "description": "Instant 4-pilot multiplayer deathmatch",
+      "url": "./index.html?mode=FFA",
+      "icons": [
+        {
+          "src": "assets/icon-192.png",
+          "sizes": "192x192"
+        }
+      ]
+    },
+    {
+      "name": "1v1 PvP Duel",
+      "short_name": "1v1 Duel",
+      "description": "Tactical head-to-head showdown",
+      "url": "./index.html?mode=DUEL",
+      "icons": [
+        {
+          "src": "assets/icon-192.png",
+          "sizes": "192x192"
+        }
+      ]
+    },
+    {
+      "name": "Solo Bot Dojo",
+      "short_name": "PvP Emulator",
+      "description": "Zero-latency offline bot battle simulation",
+      "url": "./index.html?mode=EMULATOR",
+      "icons": [
+        {
+          "src": "assets/icon-192.png",
+          "sizes": "192x192"
+        }
+      ]
+    }
+  ]
+}

@@ -24,6 +24,14 @@
     <meta name="twitter:description" content="High-octane browser arena combat. 4 warrior classes, tactical abilities, smart AI bots, and procedural cyber audio. Play free now!">
     <meta name="twitter:image" content="assets/social-preview.png">
 
+    <!-- Progressive Web App (PWA) & Standalone Native App Support -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Cyber Arena">
+    <link rel="apple-touch-icon" href="assets/icon-192.png">
+    <link rel="icon" type="image/svg+xml" href="assets/app-icon.svg">
     <link rel="stylesheet" href="css/style.css">
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cpolygon points='50,8 90,28 90,72 50,92 10,72 10,28' fill='%23080c16' stroke='%2300f2fe' stroke-width='4'/%3E%3Cpolygon points='50,22 78,36 78,64 50,78 22,64 22,36' fill='none' stroke='%23f43f5e' stroke-width='2' stroke-dasharray='6 3'/%3E%3Ccircle cx='50' cy='50' r='10' fill='%2300f2fe'/%3E%3C/svg%3E">
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -110,6 +118,12 @@
 
             <!-- Right Telemetry & Actions -->
             <div class="topbar-actions">
+                                <!-- Install Desktop App Button -->
+                <button class="icon-action-btn btn-install-app" id="installAppBtn" type="button" title="Install Cyber Arena as Desktop App">
+                    <svg class="action-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                    <span class="install-app-tag">APP</span>
+                </button>
+
                 <!-- Sound Toggle -->
                 <button class="icon-action-btn" id="soundToggleBtn" type="button" title="Audio Synthesizer [M]">
                     <svg class="action-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
@@ -1665,6 +1679,21 @@
                         </div>
                     </div>
 
+                    
+                    <!-- SECTION 5: DESKTOP APPLICATION & OFFLINE CLIENT -->
+                    <div class="settings-subhead" style="margin-top: 14px;">DESKTOP APPLICATION &amp; OFFLINE CLIENT</div>
+                    <div class="settings-toggle-row">
+                        <div class="toggle-info">
+                            <span class="toggle-title">Native Standalone App Mode</span>
+                            <span class="toggle-desc">Run in dedicated borderless window with 60 FPS hardware acceleration &amp; full offline combat capability</span>
+                        </div>
+                        <button type="button" class="btn-action-pill" id="settingsInstallAppBtn">INSTALL APP</button>
+                    </div>
+                    <div class="settings-row" style="margin-top: 6px;">
+                        <span style="font-size: 0.72rem; color: var(--text-muted); display: block;">
+                            Tip: You can also double-click <code>CyberArena.bat</code> or run <code>npm run app</code> from the terminal to launch the lightweight standalone desktop app instantly.
+                        </span>
+                    </div>
                     <!-- SECTION 4: ACCESSIBILITY & TELEMETRY -->
                     <div class="settings-subhead" style="margin-top: 14px;">ACCESSIBILITY & TELEMETRY</div>
                     <div class="settings-row">

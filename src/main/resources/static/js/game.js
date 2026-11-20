@@ -9819,3 +9819,101 @@ window.addEventListener('DOMContentLoaded', () => {
             if (createModal) createModal.style.display = 'flex';
         });
     });
+
+
+// =============================================================================
+// PWA & STANDALONE DESKTOP APPLICATION ENGINE
+// =============================================================================
+let deferredInstallPrompt = null;
+
+if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw.js').then((reg) => {
+            console.log('[Cyber Arena PWA] Service Worker registered, scope:', reg.scope);
+        }).catch((err) => {
+            console.warn('[Cyber Arena PWA] Service Worker registration failed:', err);
+        });
+    });
+}
+
+if (typeof window !== 'undefined') {
+    window.addEventListener('beforeinstallprompt', (e) => {
+        e.preventDefault();
+        deferredInstallPrompt = e;
+        const installBtn = document.getElementById('installAppBtn');
+        if (installBtn) {
+            installBtn.style.display = 'inline-flex';
+            installBtn.classList.add('pulse-available');
+        }
+        const settingsInstallBtn = document.getElementById('settingsInstallAppBtn');
+        if (settingsInstallBtn) {
+            settingsInstallBtn.disabled = false;
+            settingsInstallBtn.textContent = 'INSTALL APP';
+        }
+    });
+
+    window.addEventListener('appinstalled', () => {
+        deferredInstallPrompt = null;
+        const installBtn = document.getElementById('installAppBtn');
+        if (installBtn) installBtn.style.display = 'none';
+        const settingsInstallBtn = document.getElementById('settingsInstallAppBtn');
+        if (settingsInstallBtn) {
+            settingsInstallBtn.textContent = 'INSTALLED (STANDALONE)';
+            settingsInstallBtn.disabled = true;
+        }
+        if (typeof showTacticalToast === 'function') {
+            showTacticalToast('APP INSTALLED', 'Cyber Arena has been installed as a standalone desktop application!', '🚀');
+        }
+    });
+}
+
+function handleAppInstallClick() {
+    if (deferredInstallPrompt) {
+        deferredInstallPrompt.prompt();
+        deferredInstallPrompt.userChoice.then((choiceResult) => {
+            if (choiceResult.outcome === 'accepted') {
+                if (typeof showTacticalToast === 'function') {
+                    showTacticalToast('INSTALL ACCEPTED', 'Installing Cyber Arena desktop client...', '⚡');
+                }
+            }
+            deferredInstallPrompt = null;
+        });
+    } else {
+        const isStandalone = (typeof window !== 'undefined') && (window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true);
+        if (isStandalone) {
+            if (typeof showTacticalToast === 'function') {
+                showTacticalToast('APP CLIENT ACTIVE', 'You are already running the dedicated Cyber Arena desktop app.', '✅');
+            }
+        } else {
+            if (typeof showTacticalToast === 'function') {
+                showTacticalToast('DESKTOP APP LAUNCHER', 'Run "npm run app" or double-click CyberArena.bat for instant native 60 FPS app mode!', '💻');
+            }
+        }
+    }
+}
+
+function initDesktopAppFeatures() {
+    const installBtn = document.getElementById('installAppBtn');
+    const settingsInstallBtn = document.getElementById('settingsInstallAppBtn');
+    if (installBtn) installBtn.addEventListener('click', handleAppInstallClick);
+    if (settingsInstallBtn) settingsInstallBtn.addEventListener('click', handleAppInstallClick);
+
+    const isStandalone = (typeof window !== 'undefined') && (window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true);
+    if (isStandalone) {
+        document.body.classList.add('is-standalone-app');
+        if (installBtn) installBtn.style.display = 'none';
+        if (settingsInstallBtn) {
+            settingsInstallBtn.textContent = 'INSTALLED (STANDALONE)';
+            settingsInstallBtn.disabled = true;
+        }
+    }
+}
+
+if (typeof document !== 'undefined') {
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initDesktopAppFeatures);
+    } else {
+        initDesktopAppFeatures();
+    }
+}
+
