@@ -1130,7 +1130,51 @@
                         <span id="reconnectingBannerText">CONNECTING TO SECURE ARENA SERVER...</span>
                     </div>
 
-                    <div class="canvas-container" id="canvasContainer">
+                    <div class="combat-viewport-layout">
+                        <!-- Widescreen Tactical Telemetry Wing Left -->
+                        <aside class="combat-telemetry-wing wing-left" aria-label="Left Telemetry Wing">
+                            <div class="wing-card wing-sensors">
+                                <div class="wing-header">
+                                    <span class="wing-pulse-led"></span>
+                                    <span class="wing-title">SYS-DIAG // SENSORS</span>
+                                </div>
+                                <div class="wing-stat-list">
+                                    <div class="wing-stat-row">
+                                        <span class="wing-stat-label">RADAR LINK</span>
+                                        <span class="wing-stat-val text-cyan">ONLINE</span>
+                                    </div>
+                                    <div class="wing-stat-row">
+                                        <span class="wing-stat-label">DAMPENERS</span>
+                                        <span class="wing-stat-val text-emerald">OPTIMAL</span>
+                                    </div>
+                                    <div class="wing-stat-row">
+                                        <span class="wing-stat-label">REACTOR CORE</span>
+                                        <span class="wing-stat-val text-gold">NOMINAL</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="wing-card wing-tactical-keys">
+                                <div class="wing-header">
+                                    <span class="wing-icon">⌨️</span>
+                                    <span class="wing-title">TACTICAL COMMS</span>
+                                </div>
+                                <div class="wing-comms-hints">
+                                    <div class="comm-hint-item"><span class="keycap">T</span> Tactical Callouts</div>
+                                    <div class="comm-hint-item"><span class="keycap">ENTER</span> Team Comms</div>
+                                    <div class="comm-hint-item"><span class="keycap">TAB</span> Live Standings</div>
+                                    <div class="comm-hint-item"><span class="keycap">ESC</span> Pause &amp; Config</div>
+                                </div>
+                            </div>
+                        </aside>
+
+                        <!-- Main Combat Canvas Container with Cyber Corner Brackets -->
+                        <div class="canvas-container" id="canvasContainer">
+                            <div class="canvas-bracket bracket-tl" aria-hidden="true"></div>
+                            <div class="canvas-bracket bracket-tr" aria-hidden="true"></div>
+                            <div class="canvas-bracket bracket-bl" aria-hidden="true"></div>
+                            <div class="canvas-bracket bracket-br" aria-hidden="true"></div>
+
                         <canvas id="gameCanvas" width="800" height="600"></canvas>
 
                         <!-- Directional Damage Indicator Overlay -->
@@ -1290,6 +1334,39 @@
                                 </button>
                             </div>
                         </div>
+                    
+                        </div>
+
+                        <!-- Widescreen Tactical Telemetry Wing Right -->
+                        <aside class="combat-telemetry-wing wing-right" aria-label="Right Telemetry Wing">
+                            <div class="wing-card wing-objective">
+                                <div class="wing-header">
+                                    <span class="wing-pulse-led gold"></span>
+                                    <span class="wing-title">TACTICAL DIRECTIVE</span>
+                                </div>
+                                <div class="wing-objective-body">
+                                    <div class="directive-mode" id="wingDirectiveMode">FFA DEATHMATCH</div>
+                                    <div class="directive-goal">Eliminate hostile chassis &amp; collect core charges to claim victory.</div>
+                                    <div class="directive-target-box">
+                                        <span>GOAL:</span>
+                                        <strong id="wingTargetScore">100 PTS</strong>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="wing-card wing-ballistics">
+                                <div class="wing-header">
+                                    <span class="wing-icon">🎯</span>
+                                    <span class="wing-title">WEAPONRY &amp; MOBILITY</span>
+                                </div>
+                                <div class="wing-comms-hints">
+                                    <div class="comm-hint-item"><span class="keycap">L-CLICK</span> Primary Fire</div>
+                                    <div class="comm-hint-item"><span class="keycap">SPACE</span> Class Ability</div>
+                                    <div class="comm-hint-item"><span class="keycap">W A S D</span> Vector Move</div>
+                                    <div class="comm-hint-item"><span class="keycap">R-CLICK</span> Special Ability</div>
+                                </div>
+                            </div>
+                        </aside>
                     </div>
                 </div>
 
@@ -1593,129 +1670,200 @@
     <!-- SETTINGS & AUDIO MODAL -->
     <!-- ========================================================================= -->
     <div class="modal-overlay" id="settingsModal" style="display: none;">
-        <div class="modal-card modal-medium">
-            <div class="modal-header">
-                <h3>TACTICAL SYSTEMS & CONTROLS CONFIG</h3>
-                <button class="modal-close-btn" id="closeSettingsModalBtn" type="button">&times;</button>
+        <div class="modal-card modal-settings-deck">
+            <div class="modal-header settings-header">
+                <div class="settings-header-brand">
+                    <span class="settings-header-icon">⚙️</span>
+                    <div>
+                        <h3 class="settings-modal-title">SYSTEMS &amp; CONTROLS CONFIG</h3>
+                        <p class="settings-modal-subtitle">Tactical audio synthesis, ballistic crosshair tuning, rendering fidelity, and app integration</p>
+                    </div>
+                </div>
+                <button class="modal-close-btn" id="closeSettingsModalBtn" type="button" aria-label="Close Settings">&times;</button>
             </div>
-            <div class="modal-body">
-                <div class="settings-group">
-                    <!-- SECTION 1: AUDIO SYNTHESIZER -->
-                    <div class="settings-subhead">AUDIO SYNTHESIS & VOLUME</div>
-                    <div class="settings-row">
-                        <label for="masterVolumeRange">Master Volume (<span id="masterVolDisplay">50%</span>)</label>
-                        <input type="range" id="masterVolumeRange" min="0" max="100" value="50" class="settings-slider">
-                    </div>
-                    <div class="settings-row">
-                        <label for="sfxVolumeRange">SFX Combat Synthesis (<span id="sfxVolDisplay">75%</span>)</label>
-                        <input type="range" id="sfxVolumeRange" min="0" max="100" value="75" class="settings-slider">
-                    </div>
-                    <div class="settings-toggle-row">
-                        <div class="toggle-info">
-                            <span class="toggle-title">Atmospheric Cyber Drone & Synth</span>
-                            <span class="toggle-desc">Procedural sub-bass binaural harmonic oscillator loop</span>
-                        </div>
-                        <label class="switch">
-                            <input type="checkbox" id="ambientDroneToggle">
-                            <span class="slider round"></span>
-                        </label>
-                    </div>
 
-                    <!-- SECTION 2: GRAPHICS QUALITY & VISUAL JUICE -->
-                    <div class="settings-subhead" style="margin-top: 14px;">GRAPHICS PRESET & RENDERING</div>
-                    <div class="settings-row">
-                        <label>Visual Quality Preset</label>
-                        <div class="graphics-preset-pills" id="graphicsQualityPills">
-                            <button type="button" class="preset-pill" data-quality="low">LOW</button>
-                            <button type="button" class="preset-pill" data-quality="medium">MEDIUM</button>
-                            <button type="button" class="preset-pill active" data-quality="high">HIGH (AAA)</button>
-                        </div>
-                    </div>
-                    <div class="settings-toggle-row">
-                        <div class="toggle-info">
-                            <span class="toggle-title">Combat Screen Recoil & Trauma Shake</span>
-                            <span class="toggle-desc">Dynamic blast impulse and projectile recoil feedback</span>
-                        </div>
-                        <label class="switch">
-                            <input type="checkbox" id="screenShakeToggle" checked>
-                            <span class="slider round"></span>
-                        </label>
-                    </div>
+            <!-- Settings Tactical Navigation Tabs -->
+            <div class="settings-nav-tabs" role="tablist">
+                <button class="settings-tab-btn active" data-tab="settingsAudio" type="button" role="tab" aria-selected="true">
+                    <span>🔊</span> AUDIO
+                </button>
+                <button class="settings-tab-btn" data-tab="settingsGraphics" type="button" role="tab" aria-selected="false">
+                    <span>🖥️</span> GRAPHICS
+                </button>
+                <button class="settings-tab-btn" data-tab="settingsCrosshair" type="button" role="tab" aria-selected="false">
+                    <span>🎯</span> CROSSHAIR
+                </button>
+                <button class="settings-tab-btn" data-tab="settingsApp" type="button" role="tab" aria-selected="false">
+                    <span>⚡</span> STANDALONE APP
+                </button>
+                <button class="settings-tab-btn" data-tab="settingsNetwork" type="button" role="tab" aria-selected="false">
+                    <span>🌐</span> NETWORK &amp; ACCESS
+                </button>
+            </div>
 
-                    <!-- SECTION 3: CROSSHAIR CUSTOMIZATION -->
-                    <div class="settings-subhead" style="margin-top: 14px;">BALLISTIC CROSSHAIR CUSTOMIZER</div>
-                    <div class="crosshair-config-row">
-                        <div class="crosshair-preview-stage">
-                            <div class="ch-preview-box" id="crosshairPreviewBox">
-                                <div class="ch-preview-reticle" id="chPreviewReticle">
-                                    <span class="ch-prev-tick ch-prev-top"></span>
-                                    <span class="ch-prev-tick ch-prev-bottom"></span>
-                                    <span class="ch-prev-tick ch-prev-left"></span>
-                                    <span class="ch-prev-tick ch-prev-right"></span>
-                                    <span class="ch-prev-dot" id="chPreviewDot"></span>
-                                </div>
+            <div class="modal-body settings-tab-body">
+                <!-- TAB 1: AUDIO -->
+                <div class="settings-tab-pane active" id="settingsAudio" role="tabpanel">
+                    <div class="settings-card">
+                        <div class="settings-subhead">AUDIO SYNTHESIS &amp; MASTER CHANNELS</div>
+                        <div class="settings-row">
+                            <div class="settings-row-label">
+                                <label for="masterVolumeRange">Master Volume</label>
+                                <span class="settings-val-badge" id="masterVolDisplay">50%</span>
                             </div>
-                            <span class="ch-preview-hint">Live Reticle Preview</span>
+                            <input type="range" id="masterVolumeRange" min="0" max="100" value="50" class="settings-slider">
                         </div>
-                        <div class="crosshair-controls-col">
-                            <div class="ch-control-item">
-                                <label>Reticle Color</label>
-                                <div class="ch-color-picker" id="chColorPicker">
-                                    <button type="button" class="ch-color-btn active" data-color="#16C8F2" style="background: #16C8F2;" title="Cyan"></button>
-                                    <button type="button" class="ch-color-btn" data-color="#00E6A0" style="background: #00E6A0;" title="Teal Green"></button>
-                                    <button type="button" class="ch-color-btn" data-color="#E02694" style="background: #E02694;" title="Magenta"></button>
-                                    <button type="button" class="ch-color-btn" data-color="#FFB300" style="background: #FFB300;" title="Amber"></button>
-                                    <button type="button" class="ch-color-btn" data-color="#FFFFFF" style="background: #FFFFFF;" title="White"></button>
-                                </div>
+                        <div class="settings-row">
+                            <div class="settings-row-label">
+                                <label for="sfxVolumeRange">SFX Combat Synthesis</label>
+                                <span class="settings-val-badge" id="sfxVolDisplay">75%</span>
                             </div>
-                            <div class="ch-control-item">
-                                <label for="chSizeRange">Reticle Size (<span id="chSizeDisplay">10px</span>)</label>
-                                <input type="range" id="chSizeRange" min="6" max="18" value="10" class="settings-slider">
-                            </div>
-                            <div class="ch-control-item">
-                                <label for="chGapRange">Center Gap (<span id="chGapDisplay">5px</span>)</label>
-                                <input type="range" id="chGapRange" min="2" max="12" value="5" class="settings-slider">
-                            </div>
+                            <input type="range" id="sfxVolumeRange" min="0" max="100" value="75" class="settings-slider">
                         </div>
-                    </div>
-
-                    
-                    <!-- SECTION 5: DESKTOP APPLICATION & OFFLINE CLIENT -->
-                    <div class="settings-subhead" style="margin-top: 14px;">DESKTOP APPLICATION &amp; OFFLINE CLIENT</div>
-                    <div class="settings-toggle-row">
-                        <div class="toggle-info">
-                            <span class="toggle-title">Native Standalone App Mode</span>
-                            <span class="toggle-desc">Run in dedicated borderless window with 60 FPS hardware acceleration &amp; full offline combat capability</span>
+                        <div class="settings-toggle-row">
+                            <div class="toggle-info">
+                                <span class="toggle-title">Atmospheric Cyber Drone &amp; Synth</span>
+                                <span class="toggle-desc">Procedural sub-bass binaural harmonic oscillator loop</span>
+                            </div>
+                            <label class="switch">
+                                <input type="checkbox" id="ambientDroneToggle">
+                                <span class="slider round"></span>
+                            </label>
                         </div>
-                        <button type="button" class="btn-action-pill" id="settingsInstallAppBtn">INSTALL APP</button>
-                    </div>
-                    <div class="settings-row" style="margin-top: 6px;">
-                        <span style="font-size: 0.72rem; color: var(--text-muted); display: block;">
-                            Tip: You can also double-click <code>CyberArena.bat</code> or run <code>npm run app</code> from the terminal to launch the lightweight standalone desktop app instantly.
-                        </span>
-                    </div>
-                    <!-- SECTION 4: ACCESSIBILITY & TELEMETRY -->
-                    <div class="settings-subhead" style="margin-top: 14px;">ACCESSIBILITY & TELEMETRY</div>
-                    <div class="settings-row">
-                        <label for="colorblindModeSelect">Colorblind Team/Enemy Palette</label>
-                        <select id="colorblindModeSelect" class="form-input" style="width: 100%; padding: 6px 10px; background: rgba(6, 8, 15, 0.85); border: 1px solid var(--border-default); border-radius: 4px; color: #fff; font-family: var(--font-ui); font-size: 0.8rem;">
-                            <option value="none" selected>Default (Tactical Cyan / Combat Red)</option>
-                            <option value="deuteranopia">Deuteranopia (Yellow / Blue)</option>
-                            <option value="protanopia">Protanopia (Soft Gold / Violet)</option>
-                            <option value="tritanopia">Tritanopia (Cyan / Coral)</option>
-                        </select>
-                    </div>
-
-                    <div class="settings-row" style="margin-top: 14px; border-top: 1px solid rgba(148, 163, 184, 0.12); padding-top: 12px;">
-                        <label for="customBackendUrlInput" style="font-size: 0.85rem; color: var(--cyan-primary);">Remote Multiplayer Server URL (Optional)</label>
-                        <input type="text" id="customBackendUrlInput" placeholder="e.g. https://battle-arena.up.railway.app" class="form-input" style="width: 100%; margin-top: 6px; padding: 8px 12px; background: rgba(6, 8, 15, 0.8); border: 1px solid var(--border-default); border-radius: 4px; color: #fff; font-family: var(--font-mono); font-size: 0.8rem;">
-                        <span style="font-size: 0.72rem; color: var(--text-muted); display: block; margin-top: 4px;">Leave blank for local host or standalone arcade engine (Vercel).</span>
                     </div>
                 </div>
-                <div class="settings-footer">
-                    <button type="button" class="btn-secondary-action" id="modalSoundToggleBtn">AUDIO: ACTIVE</button>
-                    <button type="button" class="btn-primary-action" id="saveSettingsBtn">SAVE & CLOSE</button>
+
+                <!-- TAB 2: GRAPHICS -->
+                <div class="settings-tab-pane" id="settingsGraphics" role="tabpanel" style="display: none;">
+                    <div class="settings-card">
+                        <div class="settings-subhead">GRAPHICS PRESET &amp; RENDERING FIDELITY</div>
+                        <div class="settings-row">
+                            <label>Visual Quality Preset</label>
+                            <div class="graphics-preset-pills" id="graphicsQualityPills">
+                                <button type="button" class="preset-pill" data-quality="low">LOW</button>
+                                <button type="button" class="preset-pill" data-quality="medium">MEDIUM</button>
+                                <button type="button" class="preset-pill active" data-quality="high">HIGH (AAA)</button>
+                            </div>
+                        </div>
+                        <div class="settings-toggle-row">
+                            <div class="toggle-info">
+                                <span class="toggle-title">Combat Screen Recoil &amp; Trauma Shake</span>
+                                <span class="toggle-desc">Dynamic blast impulse and projectile recoil feedback</span>
+                            </div>
+                            <label class="switch">
+                                <input type="checkbox" id="screenShakeToggle" checked>
+                                <span class="slider round"></span>
+                            </label>
+                        </div>
+                        <div class="settings-note-box">
+                            <span class="note-icon">ℹ️</span>
+                            <span>High preset enables dynamic weapon bloom, projectile trails, particle thrusters, and directional damage arcs.</span>
+                        </div>
+                    </div>
                 </div>
+
+                <!-- TAB 3: CROSSHAIR -->
+                <div class="settings-tab-pane" id="settingsCrosshair" role="tabpanel" style="display: none;">
+                    <div class="settings-card">
+                        <div class="settings-subhead">BALLISTIC RETICLE TUNING</div>
+                        <div class="crosshair-config-row">
+                            <div class="crosshair-preview-stage">
+                                <div class="ch-preview-box" id="crosshairPreviewBox">
+                                    <div class="ch-preview-reticle" id="chPreviewReticle">
+                                        <span class="ch-prev-tick ch-prev-top"></span>
+                                        <span class="ch-prev-tick ch-prev-bottom"></span>
+                                        <span class="ch-prev-tick ch-prev-left"></span>
+                                        <span class="ch-prev-tick ch-prev-right"></span>
+                                        <span class="ch-prev-dot" id="chPreviewDot"></span>
+                                    </div>
+                                </div>
+                                <span class="ch-preview-hint">Live Targeting Reticle</span>
+                            </div>
+                            <div class="crosshair-controls-col">
+                                <div class="ch-control-item">
+                                    <label>Reticle Color Palette</label>
+                                    <div class="ch-color-picker" id="chColorPicker">
+                                        <button type="button" class="ch-color-btn active" data-color="#16C8F2" style="background: #16C8F2;" title="Cyan"></button>
+                                        <button type="button" class="ch-color-btn" data-color="#00E6A0" style="background: #00E6A0;" title="Teal Green"></button>
+                                        <button type="button" class="ch-color-btn" data-color="#E02694" style="background: #E02694;" title="Magenta"></button>
+                                        <button type="button" class="ch-color-btn" data-color="#FFB300" style="background: #FFB300;" title="Amber"></button>
+                                        <button type="button" class="ch-color-btn" data-color="#FFFFFF" style="background: #FFFFFF;" title="White"></button>
+                                    </div>
+                                </div>
+                                <div class="ch-control-item">
+                                    <div class="settings-row-label">
+                                        <label for="chSizeRange">Reticle Scale</label>
+                                        <span class="settings-val-badge" id="chSizeDisplay">10px</span>
+                                    </div>
+                                    <input type="range" id="chSizeRange" min="6" max="18" value="10" class="settings-slider">
+                                </div>
+                                <div class="ch-control-item">
+                                    <div class="settings-row-label">
+                                        <label for="chGapRange">Center Gap</label>
+                                        <span class="settings-val-badge" id="chGapDisplay">5px</span>
+                                    </div>
+                                    <input type="range" id="chGapRange" min="2" max="12" value="5" class="settings-slider">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TAB 4: STANDALONE APP -->
+                <div class="settings-tab-pane" id="settingsApp" role="tabpanel" style="display: none;">
+                    <div class="settings-card">
+                        <div class="settings-subhead">DESKTOP APPLICATION &amp; OFFLINE CLIENT</div>
+                        <div class="app-mode-card">
+                            <div class="app-mode-header">
+                                <div class="app-icon-badge">⚡</div>
+                                <div class="app-mode-meta">
+                                    <h4 class="app-mode-title">Dedicated Borderless Window Mode</h4>
+                                    <p class="app-mode-desc">Ultra-low latency Direct3D GPU acceleration, isolated cache sandbox, and full offline standalone simulation capability.</p>
+                                </div>
+                                <button type="button" class="btn-action-pill" id="settingsInstallAppBtn">INSTALL APP</button>
+                            </div>
+                            <div class="app-mode-features-grid">
+                                <div class="app-feature-pill"><span>🚀</span> 60+ FPS Hardware Rasterization</div>
+                                <div class="app-feature-pill"><span>📴</span> Zero-Network Offline Play</div>
+                                <div class="app-feature-pill"><span>⌨️</span> Direct Keyboard Polling</div>
+                                <div class="app-feature-pill"><span>🎮</span> Zero Browser URL Bar Distraction</div>
+                            </div>
+                        </div>
+                        <div class="settings-row" style="margin-top: 12px;">
+                            <span style="font-size: 0.76rem; color: var(--text-muted); display: block; line-height: 1.5;">
+                                💡 <strong>Quick Launchers:</strong> Double-click <code style="color: var(--cyan-primary);">CyberArena.bat</code> in the project directory or run <code style="color: var(--cyan-primary);">npm run app</code> in terminal to start the native standalone app window immediately.
+                            </span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TAB 5: NETWORK & ACCESS -->
+                <div class="settings-tab-pane" id="settingsNetwork" role="tabpanel" style="display: none;">
+                    <div class="settings-card">
+                        <div class="settings-subhead">ACCESSIBILITY &amp; TEAM PALETTE</div>
+                        <div class="settings-row">
+                            <label for="colorblindModeSelect">Colorblind Vision Palette</label>
+                            <select id="colorblindModeSelect" class="form-input settings-select">
+                                <option value="none" selected>Default (Tactical Cyan / Combat Red)</option>
+                                <option value="deuteranopia">Deuteranopia (Yellow / Blue)</option>
+                                <option value="protanopia">Protanopia (Soft Gold / Violet)</option>
+                                <option value="tritanopia">Tritanopia (Cyan / Coral)</option>
+                            </select>
+                        </div>
+
+                        <div class="settings-subhead" style="margin-top: 16px;">REMOTE COMBAT BACKEND INFRASTRUCTURE</div>
+                        <div class="settings-row">
+                            <label for="customBackendUrlInput">Remote Multiplayer Server URL (Optional)</label>
+                            <input type="text" id="customBackendUrlInput" placeholder="e.g. https://battle-arena.up.railway.app" class="form-input settings-text-input">
+                            <span style="font-size: 0.72rem; color: var(--text-muted); display: block; margin-top: 5px;">Leave blank for local host or standalone arcade engine (Vercel).</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="settings-footer">
+                <button type="button" class="btn-secondary-action" id="modalSoundToggleBtn">AUDIO: ACTIVE</button>
+                <button type="button" class="btn-primary-action" id="saveSettingsBtn">SAVE &amp; CLOSE</button>
             </div>
         </div>
     </div>
@@ -1846,24 +1994,58 @@
     <!-- ========================================================================= -->
     <div class="modal-overlay" id="gameOverModal" style="display: none;">
         <div class="modal-card modal-game-over">
-            <div class="modal-header">
-                <h3 id="gameOverTitle">COMBAT COMPLETE</h3>
-            </div>
-            <div class="modal-body">
+            <div class="modal-header game-over-header">
+                <div class="game-over-banner-crest">
+                    <span class="game-over-crown-icon" id="gameOverCrownIcon">👑</span>
+                    <div>
+                        <h3 id="gameOverTitle">COMBAT COMPLETE</h3>
+                        <p class="winner-announcement" id="winnerAnnouncement">Player reached the target score!</p>
+                    </div>
+                </div>
                 <div class="match-meta-pill" id="matchMetaPill" style="display: none;">Match #0</div>
-                <p class="winner-announcement" id="winnerAnnouncement">Player reached the target score!</p>
+            </div>
+            <div class="modal-body game-over-body">
+                <!-- Pilot XP Progression Card -->
+                <div class="gameover-xp-card" id="gameOverXpCard">
+                    <div class="xp-card-header">
+                        <span class="xp-tag">PILOT PROGRESSION</span>
+                        <span class="xp-gain-badge" id="gameOverXpGain">+150 COMBAT XP</span>
+                    </div>
+                    <div class="xp-bar-container">
+                        <div class="xp-meta-row">
+                            <span class="xp-current-lvl" id="gameOverCurrentLvl">LVL 1 PILOT</span>
+                            <span class="xp-ratio-text" id="gameOverXpRatio">150 / 1000 XP</span>
+                        </div>
+                        <div class="xp-bar-track">
+                            <div class="xp-bar-fill" id="gameOverXpFill" style="width: 15%;"></div>
+                        </div>
+                    </div>
+                </div>
 
-                <div class="match-accolades-row" id="matchAccoladesRow"></div>
+                <!-- Match Accolades Medals Row -->
+                <div class="match-accolades-section">
+                    <div class="section-label-micro">COMBAT ACCOLADES &amp; MEDALS</div>
+                    <div class="match-accolades-row" id="matchAccoladesRow"></div>
+                </div>
+
+                <!-- Combat Timeline Highlights -->
                 <div class="match-highlights-box" id="matchHighlightsBox">
-                    <div class="highlights-header">COMBAT TIMELINE & HIGHLIGHTS</div>
+                    <div class="highlights-header">
+                        <span class="hl-dot"></span>
+                        <span>COMBAT TIMELINE &amp; HIGHLIGHTS</span>
+                    </div>
                     <div class="highlights-list" id="highlightsList"></div>
                 </div>
 
-                <div class="match-summary-scores" id="matchSummaryScores"></div>
+                <!-- Match Standings Scoreboard -->
+                <div class="match-standings-section">
+                    <div class="section-label-micro">FINAL ARENA STANDINGS</div>
+                    <div class="match-summary-scores" id="matchSummaryScores"></div>
+                </div>
 
                 <!-- Social Media Sharing Showcase -->
                 <div class="social-share-container" id="socialShareContainer">
-                    <span class="social-share-title">⚡ TRANSMIT BATTLE RECORD TO SOCIAL MEDIA</span>
+                    <span class="social-share-title">⚡ TRANSMIT BATTLE RECORD TO SOCIAL CHANNELS</span>
                     <div class="social-share-row" id="socialShareRow">
                         <button class="btn-social-share btn-twitter" id="postToTwitterBtn" type="button" title="Post Match Result to X (Twitter)">
                             <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>

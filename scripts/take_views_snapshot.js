@@ -102,13 +102,25 @@ server.listen(PORT, '127.0.0.1', async () => {
         snap = await send('Page.captureScreenshot', { format: 'png' });
         fs.writeFileSync(path.join(DOCS_DIR, 'assets', 'snap_emulator.png'), Buffer.from(snap.data, 'base64'));
 
-        // 6. Launch match to capture live combat HUD
-        await send('Runtime.evaluate', { expression: 'document.getElementById("startEmulatorSubmitBtn")?.click()' });
+        // 6. Open Settings modal and take snapshot
+        await send('Runtime.evaluate', { expression: 'closePvPEmulatorModal(); openSettingsModal();' });
+        await sleep(600);
+        snap = await send('Page.captureScreenshot', { format: 'png' });
+        fs.writeFileSync(path.join(DOCS_DIR, 'assets', 'snap_modal_settings.png'), Buffer.from(snap.data, 'base64'));
+
+        // 7. Launch match to capture live combat HUD
+        await send('Runtime.evaluate', { expression: 'closeSettingsModal(); document.getElementById("giantPlayNowBtn")?.click()' });
         await sleep(1500);
         snap = await send('Page.captureScreenshot', { format: 'png' });
         fs.writeFileSync(path.join(DOCS_DIR, 'assets', 'snap_combat.png'), Buffer.from(snap.data, 'base64'));
 
-        console.log('SUCCESS_ALL_SEVEN_VIEWS');
+        // 8. End match to capture Game Over podium modal
+        await send('Runtime.evaluate', { expression: 'if (pvpEmulator) pvpEmulator.endMatch(player);' });
+        await sleep(800);
+        snap = await send('Page.captureScreenshot', { format: 'png' });
+        fs.writeFileSync(path.join(DOCS_DIR, 'assets', 'snap_modal_game_over.png'), Buffer.from(snap.data, 'base64'));
+
+        console.log('SUCCESS_ALL_NINE_VIEWS');
         ws.close();
     } catch (e) {
         console.error(e);

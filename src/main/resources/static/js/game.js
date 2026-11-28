@@ -3861,10 +3861,25 @@ function renderOverchargeBeacon() {
     ctx.textBaseline = 'middle';
     ctx.strokeStyle = '#050811';
     ctx.lineWidth = 3;
-    const capText = activeRoom.beaconCapturedBy ? `CAPTURED: ${activeRoom.beaconCapturedBy.toUpperCase()}` : 'OVERCHARGE BEACON (+2 PTS / +6 SHIELD/S)';
-    ctx.strokeText(capText, 0, -brad - 14);
+    const capText = activeRoom.beaconCapturedBy ? `SECURED: ${activeRoom.beaconCapturedBy.toUpperCase()}` : 'OVERCHARGE ZONE';
+    const textWidth = ctx.measureText(capText).width;
+    const pillW = textWidth + 24;
+    const pillH = 20;
+    const pillY = -brad - 18;
+    ctx.fillStyle = 'rgba(6, 10, 20, 0.85)';
+    ctx.strokeStyle = activeRoom.beaconCapturedBy ? 'rgba(52, 211, 153, 0.7)' : 'rgba(245, 158, 11, 0.7)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    if (ctx.roundRect) {
+        ctx.roundRect(-pillW / 2, pillY - pillH / 2, pillW, pillH, 10);
+    } else {
+        ctx.rect(-pillW / 2, pillY - pillH / 2, pillW, pillH);
+    }
+    ctx.fill();
+    ctx.stroke();
+
     ctx.fillStyle = activeRoom.beaconCapturedBy ? '#34d399' : '#fbbf24';
-    ctx.fillText(capText, 0, -brad - 14);
+    ctx.fillText(capText, 0, pillY);
 
     ctx.restore();
 }
@@ -5493,9 +5508,17 @@ class PvPEmulatorEngine {
             }
             if (winnerAnnouncement) {
                 winnerAnnouncement.textContent = isMeWinner
-                    ? `🏆 You dominated the arena with ${player.kills} eliminations! (+${earnedXp} XP)`
-                    : `☠️ ${winner.name} seized victory with ${winner.kills} eliminations. (+${earnedXp} XP)`;
+                    ? `🏆 You dominated the arena with ${player.kills} eliminations!`
+                    : `☠️ ${winner.name} seized victory with ${winner.kills} eliminations.`;
             }
+            const goXpGain = document.getElementById('gameOverXpGain');
+            const goCurLvl = document.getElementById('gameOverCurrentLvl');
+            const goXpRatio = document.getElementById('gameOverXpRatio');
+            const goXpFill = document.getElementById('gameOverXpFill');
+            if (goXpGain) goXpGain.textContent = `+${earnedXp} COMBAT XP`;
+            if (goCurLvl) goCurLvl.textContent = `LVL ${profile.level} PILOT`;
+            if (goXpRatio) goXpRatio.textContent = `${profile.xp % 1000} / 1000 XP`;
+            if (goXpFill) goXpFill.style.width = `${Math.min(100, Math.round(((profile.xp % 1000) / 1000) * 100))}%`;
 
             if (matchAccoladesRow) {
                 const topFragger = [...participants].sort((a, b) => b.kills - a.kills)[0];
@@ -9029,6 +9052,31 @@ function setupAudioEventListeners() {
 }
 
 function setupSettingsEventListeners() {
+    // Settings Tab Switching
+    const settingsTabs = document.querySelectorAll('.settings-tab-btn');
+    settingsTabs.forEach(btn => {
+        btn.addEventListener('click', () => {
+            const tabId = btn.getAttribute('data-tab');
+            settingsTabs.forEach(t => {
+                t.classList.remove('active');
+                t.setAttribute('aria-selected', 'false');
+            });
+            btn.classList.add('active');
+            btn.setAttribute('aria-selected', 'true');
+
+            const panes = document.querySelectorAll('.settings-tab-pane');
+            panes.forEach(p => {
+                if (p.id === tabId) {
+                    p.classList.add('active');
+                    p.style.display = 'block';
+                } else {
+                    p.classList.remove('active');
+                    p.style.display = 'none';
+                }
+            });
+        });
+    });
+
     if (openSettingsBtn) {
         openSettingsBtn.addEventListener('click', openSettingsModal);
     }
